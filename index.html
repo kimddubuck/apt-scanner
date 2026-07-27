@@ -290,6 +290,8 @@ function drawPills(){
           // 그 시의 첫 지역(또는 현재 선택이 그 시면 유지)으로 이동
           const cur=regionByCode(regionCode);
           if(sidoOf(cur.name)!==s){ regionCode=list.find(g=>sidoOf(g.name)===s).code; }
+          // ── [칩↔드롭박스 동기화] 아래 필터도 이 시로 맞춤 (구는 전체로 초기화) ──
+          filters.sido=s; filters.region="";
           searchKey=null; pickDefault(); render();
         };
         box.appendChild(b);
@@ -305,7 +307,12 @@ function drawPills(){
         const b=document.createElement("button");
         b.className="pill"+(g.code===active?" on":"");
         b.innerHTML=`${g.name.split(" ").slice(1).join(" ")||g.name}<b>${g.starCount}</b>`;  // "서울 종로구"→"종로구"
-        b.onclick=()=>{ regionCode=g.code; searchKey=null; pickDefault(); render(); };
+        b.onclick=()=>{
+          regionCode=g.code;
+          // ── [칩↔드롭박스 동기화] 아래 필터도 이 시·구로 맞춤 ──
+          filters.sido=sido; filters.region=g.code;
+          searchKey=null; pickDefault(); render();
+        };
         box.appendChild(b);
       });
     }
@@ -499,18 +506,52 @@ function matchFilters(c, regionCode2){
   }
   return true;
 }
+function syncChartToFilter(){
+  /* ── [필터 연동] 필터를 바꿨을 때, 차트에 그려진 아파트가 그 필터에 안 맞으면
+     필터를 통과하는 '첫 번째 후보'로 차트 대상을 자동 전환한다.
+     (예: 필터를 부산으로 바꾸면 차트도 부산 첫 후보로)
+     검색으로 특정 단지를 보고 있을 땐 건드리지 않음(searchKey 우선).       */
+  if(searchKey) return;
+  if(mode==="region"){
+    const r=regionByCode(regionCode);
+    const cur=r.candidates.find(x=>x.id===activeId);
+    if(!cur || !matchFilters(cur, r.code)){
+      const first=r.candidates.find(c=>matchFilters(c, r.code));
+      if(first) activeId=first.id;   // 맞는 게 없으면 그대로 둠(목록이 "없어요" 표시)
+    }
+  } else {
+    const t=tierByCode(tierCode);
+    const ok = it => matchFilters(it, it.regionCode);
+    const cur = activeItem && t.items.find(x=>x.id===activeItem.id && x.regionCode===activeItem.regionCode);
+    if(!cur || !ok(cur)){
+      const first=t.items.find(ok);
+      if(first) activeItem={regionCode:first.regionCode, id:first.id};
+    }
+  }
+}
 function drawFilters(){
   const box=$("#filters"); box.innerHTML="";
   const sidos=[...new Set(DATA.regions.map(r=>r.name.split(" ")[0]))];
   const mk=(opts,val,onch)=>{const s=document.createElement("select");
     opts.forEach(([v,l])=>{const o=document.createElement("option");o.value=v;o.textContent=l;if(v===val)o.selected=true;s.appendChild(o);});
     s.onchange=()=>onch(s.value); return s;};
-  box.appendChild(mk([["","시·도 전체"],...sidos.map(s=>[s,s])], filters.sido, v=>{filters.sido=v;filters.region="";render();}));
+  box.appendChild(mk([["","시·도 전체"],...sidos.map(s=>[s,s])], filters.sido, v=>{
+    filters.sido=v; filters.region="";
+    // ── [드롭박스↔칩 동기화] 위 칩도 이 시로 맞춤 ──
+    if(v){ sido=v; const first=DATA.regions.find(r=>r.name.startsWith(v)); if(first) regionCode=first.code; }
+    else { sido=null; }
+    syncChartToFilter(); render();
+  }));
   const regs=DATA.regions.filter(r=>!filters.sido||r.name.startsWith(filters.sido));
-  box.appendChild(mk([["","구 전체"],...regs.map(r=>[r.code,r.name.split(" ").slice(1).join(" ")||r.name])], filters.region, v=>{filters.region=v;render();}));
-  box.appendChild(mk([["","평형 전체"],["0-20","20평 미만"],["20-30","20평대"],["30-40","30평대"],["40-999","40평 이상"]], filters.pyeong, v=>{filters.pyeong=v;render();}));
-  box.appendChild(mk(PRICE_OPTS, filters.price, v=>{filters.price=v;render();}));
-  box.appendChild(mk(PP_OPTS, filters.pp, v=>{filters.pp=v;render();}));
+  box.appendChild(mk([["","구 전체"],...regs.map(r=>[r.code,r.name.split(" ").slice(1).join(" ")||r.name])], filters.region, v=>{
+    filters.region=v;
+    // ── [드롭박스↔칩 동기화] 위 칩도 이 구로 맞춤 ──
+    if(v){ const r=regionByCode(v); if(r){ regionCode=v; sido=r.name.split(" ")[0]; filters.sido=sido; } }
+    syncChartToFilter(); render();
+  }));
+  box.appendChild(mk([["","평형 전체"],["0-20","20평 미만"],["20-30","20평대"],["30-40","30평대"],["40-999","40평 이상"]], filters.pyeong, v=>{filters.pyeong=v;syncChartToFilter();render();}));
+  box.appendChild(mk(PRICE_OPTS, filters.price, v=>{filters.price=v;syncChartToFilter();render();}));
+  box.appendChild(mk(PP_OPTS, filters.pp, v=>{filters.pp=v;syncChartToFilter();render();}));
 }
 function svgChart(months, series){
   const W=700,H=300,padL=54,padR=16,padT=12,padB=30;
