@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>부동산 저평가 스캐너</title>
+<style>
+  :root{--bg:#F4F5F7;--card:#FFF;--ink:#16202E;--soft:#5B6675;--line:#E4E7EC;
+    --gold:#C8901E;--gold-bg:#FBF2DA;--steel:#9BB4D2;--neg:#9AA3AF}
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;line-height:1.5}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px 18px 60px}
+  @media(max-width:640px){
+    .wrap{padding:14px 12px 40px}
+    h1{font-size:21px}
+    .sub{font-size:13px}
+    .regions{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;scrollbar-width:none}
+    .regions::-webkit-scrollbar{display:none}
+    .pill{flex:0 0 auto;padding:9px 14px}
+    .stats{gap:8px}
+    .stat{padding:9px 12px;min-width:0;flex:1}
+    .stat b{font-size:18px}
+    .list{max-height:300px}
+    .row{padding:12px 8px}
+    .modal-box{padding:14px;border-radius:14px}
+    .search{max-width:100%}
+  }
+  .eyebrow{font-size:12px;letter-spacing:.14em;color:var(--gold);font-weight:700;text-transform:uppercase}
+  h1{margin:.2em 0 .1em;font-size:26px;font-weight:800;letter-spacing:-.02em}
+  .sub{color:var(--soft);font-size:14px}
+  .regions{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 4px}
+  .pill{border:1px solid var(--line);background:var(--card);border-radius:999px;
+    padding:8px 15px;font-size:14px;font-weight:600;cursor:pointer;color:var(--soft);transition:.12s}
+  .pill:hover{border-color:#CBD3DD}
+  .pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .pill b{color:var(--gold);margin-left:4px}
+  .pill.on b{color:#F1C97A}
+  .modes{display:inline-flex;background:#EDEFF2;border-radius:999px;padding:3px;margin-bottom:14px}
+  .modes button{border:0;background:transparent;padding:7px 16px;border-radius:999px;font-size:14px;font-weight:700;color:var(--soft);cursor:pointer}
+  .modes button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 4px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 16px}
+  .stat b{display:block;font-size:20px;font-weight:800}
+  .stat span{font-size:12px;color:var(--soft)}
+  .stat.gold b{color:var(--gold)}
+  .grid{display:grid;grid-template-columns:340px 1fr;gap:16px;margin-top:8px}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .card h2{margin:0 0 4px;font-size:15px;font-weight:700}
+  .card .hint{font-size:12px;color:var(--soft);margin-bottom:10px}
+  .list{max-height:520px;overflow:auto;margin:0 -6px}
+  .row{display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:10px;cursor:pointer}
+  .row:hover{background:#F1F3F6}
+  .row.active{background:var(--gold-bg);outline:1px solid #EAD9A8}
+  .row .nm{flex:1;min-width:0}
+  .row .nm b{font-size:14px;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .nm span{font-size:12px;color:var(--soft)}
+  .rate{font-weight:800;font-size:15px;text-align:right;white-space:nowrap}
+  .rate.up{color:var(--gold)} .rate.down{color:var(--neg)}
+  .star{color:var(--gold)}
+  .chart-title{font-size:16px;font-weight:800;margin-bottom:2px}
+  .chart-note{font-size:13px;color:var(--soft);margin-bottom:12px}
+  .chart-note b{color:var(--gold)}
+  svg{width:100%;height:auto;display:block}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:12px;font-size:13px}
+  .legend .it{display:flex;align-items:center;gap:6px}
+  .swatch{width:16px;height:3px;border-radius:2px;display:inline-block}
+  .legend .val{color:var(--soft);font-variant-numeric:tabular-nums}
+  footer{margin-top:24px;font-size:12px;color:var(--soft);text-align:center}
+  .detail-link{margin-top:12px}
+  .detail-link button{background:var(--ink);color:#fff;border:0;border-radius:9px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer}
+  .modal{display:none;position:fixed;inset:0;background:rgba(20,30,45,.5);z-index:50;align-items:center;justify-content:center;padding:16px}
+  .modal-box{background:#fff;border-radius:16px;max-width:760px;width:100%;max-height:90vh;overflow:auto;padding:22px}
+  .modal-box h3{margin:0;font-size:20px;font-weight:800}
+  .modal-box .meta{color:var(--soft);font-size:13px;margin:2px 0 8px}
+  .modal-close{float:right;border:0;background:#EDEFF2;border-radius:8px;width:32px;height:32px;font-size:18px;cursor:pointer;color:var(--soft)}
+  .sec-title{font-size:13px;font-weight:700;color:var(--soft);margin:16px 0 4px}
+  .dtable{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+  .dtable th{text-align:left;color:var(--soft);font-weight:600;border-bottom:1px solid var(--line);padding:6px 8px}
+  .dtable td{border-bottom:1px solid #F1F3F6;padding:6px 8px;font-variant-numeric:tabular-nums}
+  .dtable td.price{font-weight:700}
+  .pyfilter{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px}
+  .pyfilter button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--soft);cursor:pointer}
+  .pyfilter button.on{color:#fff;border-color:transparent}
+  .sec-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+  .search{position:relative;max-width:320px;width:100%;margin-left:auto}
+  .search input{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px;font-family:inherit}
+  .search input:focus{outline:2px solid #EAD9A8;border-color:#EAD9A8}
+  .sresults{position:absolute;top:46px;left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(20,30,45,.12);max-height:320px;overflow:auto;z-index:20;display:none}
+  .sresults .sr{padding:10px 14px;cursor:pointer;border-bottom:1px solid #F1F3F6}
+  .sresults .sr:hover{background:#F1F3F6}
+  .sresults .sr b{font-size:14px}
+  .sresults .sr span{font-size:12px;color:var(--soft)}
+  .sresults .empty{padding:14px;color:var(--soft);font-size:13px}
+  .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  .filters{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;margin-bottom:8px}
+  .filters select{border:1px solid var(--line);border-radius:9px;padding:7px 8px;font-size:12.5px;font-family:inherit;color:var(--ink);background:#fff;max-width:118px}
+  @media(max-width:640px){.filters{justify-content:flex-start}.filters select{flex:1;min-width:88px}}
+  .chart-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+  /* ── 아실풍 시작화면 ── */
+  #home{display:none}
+  #home.on{display:block}
+  #scanner{display:none}
+  #scanner.on{display:block}
+  .home-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .home-logo{font-size:20px;font-weight:800;letter-spacing:-.02em}
+  .home-logo em{color:var(--gold);font-style:normal}
+  .home-search{position:relative;margin-bottom:14px}
+  .home-search input{width:100%;box-sizing:border-box;border:1.5px solid var(--line);border-radius:14px;padding:15px 18px;font-size:15px;font-family:inherit;background:#fff}
+  .home-search input:focus{outline:2px solid #EAD9A8}
+  .qcards{display:grid;grid-template-columns:1.1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;margin-bottom:22px}
+  .qcard{background:#F0F1F4;border:0;border-radius:16px;padding:18px 16px;text-align:left;cursor:pointer;font-family:inherit}
+  .qcard:active{background:#E8EAEE}
+  .qcard.big{grid-row:1/3;display:flex;flex-direction:column;justify-content:flex-end;background:linear-gradient(160deg,#1B2940,#2E4260);color:#fff}
+  .qcard .qi{font-size:26px;margin-bottom:8px;display:block}
+  .qcard b{font-size:15px;font-weight:800;display:block}
+  .qcard span{font-size:12px;color:var(--soft)}
+  .qcard.big span{color:#B9C6D8}
+  .qcard.big .qnum{font-size:34px;font-weight:800;color:#F1C97A}
+  .home-sec{font-size:17px;font-weight:800;margin:6px 0 12px}
+  .igrid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px 6px;margin-bottom:8px}
+  @media(max-width:640px){.igrid{grid-template-columns:repeat(4,1fr)}}
+  .ibtn{border:0;background:transparent;cursor:pointer;text-align:center;font-family:inherit;padding:0}
+  .ibtn .ic{width:52px;height:52px;border-radius:16px;background:#F0F1F4;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 6px}
+  .ibtn span{font-size:12px;color:var(--ink);font-weight:600}
+  .back-home{border:0;background:transparent;color:var(--soft);font-size:13.5px;font-weight:700;cursor:pointer;padding:0;margin-bottom:8px;font-family:inherit}
+  .infobtn{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#E3E6EB;color:var(--soft);font-size:12px;font-weight:800;cursor:pointer;margin-left:7px;vertical-align:middle;font-style:normal}
+  .infobtn:hover{background:var(--gold);color:#fff}
+  .info-box h3{margin:0 0 10px;font-size:18px;font-weight:800}
+  .info-box p{margin:0 0 12px;font-size:14px;color:#3a4658}
+  .info-step{display:flex;gap:10px;margin:10px 0}
+  .info-step .n{flex:0 0 24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+  .info-step b{font-size:14px}
+  .info-step span{display:block;font-size:13px;color:var(--soft)}
+  .info-note{background:#F4F6F8;border-radius:10px;padding:12px 14px;font-size:13px;color:var(--soft);margin-top:12px}
+</style></head>
+<body><div class="wrap">
+
+<div id="home" class="on">
+  <div class="home-top">
+    <div class="home-logo">저평가 <em>스캐너</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
+  </div>
+  <div class="home-search">
+    <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
+    <div class="sresults" id="homeResults"></div>
+  </div>
+  <div class="qcards">
+    <button class="qcard big" onclick="goScanner('star')">
+      <span class="qi">⭐</span>
+      <span class="qnum" id="homeStarCount">0</span>
+      <b>저평가 후보 보기</b>
+      <span>동급 대비 뒤처진 단지</span>
+    </button>
+    <button class="qcard" onclick="goScanner('region')">
+      <span class="qi">🗺️</span><b>구별 보기</b><span>지역별 스캔</span>
+    </button>
+    <button class="qcard" onclick="goScanner('tier')">
+      <span class="qi">💰</span><b>평당가별 보기</b><span>2500~5000만 구간</span>
+    </button>
+  </div>
+  <div class="home-sec">바로가기</div>
+  <div class="igrid" id="homeGrid"></div>
+</div>
+
+<div id="scanner">
+  <button class="back-home" onclick="goHome()">← 홈으로</button>
+  <div class="topbar">
+    <div>
+      <div class="eyebrow">저평가 스캐너</div>
+      <h1>저평가 스캐너 <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></h1>
+      <div class="sub">과거엔 같은 급이었는데 홀로 뒤처진 아파트를 찾습니다.</div>
+    </div>
+    <div class="search">
+      <input id="searchInput" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
+      <div class="sresults" id="searchResults"></div>
+    </div>
+  </div>
+  <div class="modes" id="modes"></div>
+  <div class="regions" id="regions"></div>
+  <div class="stats" id="stats"></div>
+  <div class="grid">
+    <div class="card"><h2>저평가 후보</h2>
+      <div class="hint">저평가율 높은 순 · 눌러서 그래프 보기</div>
+      <div class="list" id="list"></div></div>
+    <div class="card">
+      <div class="filters" id="filters"></div>
+      <div class="chart-title" id="ctitle"></div>
+      <div class="chart-note" id="cnote"></div>
+      <div id="chart"></div><div class="legend" id="legend"></div>
+      <div class="detail-link"><button id="detailBtn">📋 이 단지 전체 평형·거래이력 보기</button></div></div>
+  </div>
+  <footer>데이터: 국토교통부 실거래가 · 세로축=실거래가(매매), 비슷한 평수끼리 비교</footer>
+</div><!-- /scanner -->
+</div>
+  <div class="modal" id="infoModal" onclick="if(event.target===this)closeInfo()">
+    <div class="modal-box info-box" style="max-width:520px">
+      <button class="modal-close" onclick="closeInfo()">×</button>
+      <h3>‘동급 아파트’란? 🏘️</h3>
+      <p><b>과거엔 값이 거의 같이 움직였던 단지들</b>을 동급으로 묶어요. 그중 지금 혼자 뒤처진 곳이 <b>저평가 후보</b>예요.</p>
+      <div class="info-step"><div class="n">1</div><div><b>비슷한 크기</b><span>평수가 서로 ±18% 이내 (24평은 24평끼리)</span></div></div>
+      <div class="info-step"><div class="n">2</div><div><b>과거에 비슷한 값</b><span>수집 시작부터 처음 몇 년간 가격이 서로 ±10% 이내</span></div></div>
+      <div class="info-step"><div class="n">3</div><div><b>함께 움직임</b><span>그 시절 두 단지의 가격 비율이 거의 일정 (같이 오르내림)</span></div></div>
+      <p style="margin-top:12px">이 셋을 다 통과한 단지가 <b>동급</b>이고, 지금 동급 평균보다 싼 단지를 저평가로 보여줘요. ‘처음 몇 년’은 전국 동급 보기 화면에서 직접 바꿀 수 있어요.</p>
+      <div class="info-note">💡 옛날 반에서 성적이 비슷했던 친구들 중 한 명만 뒤처졌다면, 다시 치고 올라올 여지가 있는지 보는 것과 같아요.<br><br>※ 집값은 재건축·학군·개발 등 여러 이유로 벌어질 수 있으니 <b>참고용</b>이에요.</div>
+    </div>
+  </div>
+  <div class="modal" id="modal" onclick="if(event.target===this)closeDetail()">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeDetail()">×</button>
+      <h3 id="dTitle"></h3><div class="meta" id="dMeta"></div>
+      <div class="sec-row"><div class="sec-title">전체 평형 실거래가</div><div class="pyfilter" id="dFilter"></div></div>
+      <div id="dChart"></div><div class="legend" id="dLegend"></div>
+      <div class="sec-title">거래 이력 (최근순)</div>
+      <table class="dtable"><thead><tr><th>계약일</th><th>평형</th><th>층</th><th>거래가</th></tr></thead>
+      <tbody id="dDeals"></tbody></table>
+    </div>
+  </div>
+<script src="data.js"></script>
+<script>
+const DATA = window.__APTDATA__ || {};
+let mode = "region";                 // "region"(구별) | "tier"(평당가별)
+let regionCode = DATA.defaultRegion;
+let tierCode = DATA.defaultTier;
+let activeId = null;                  // 구별: 후보 id
+let activeItem = null;               // 평당가별: {regionCode, id}
+let highlightId = null;              // 그래프에서 강조된 선 (1탭)
+let searchKey = null;                // 검색으로 선택한 밴드 단지 키 (후보 아니어도)
+let filters = {sido:"", region:"", pyeong:"", price:"", pp:""};   // 필터 상태
+let scope = "gu";                    // 비교 범위: "gu"(구) | "si"(시) | "nat"(전국)
+let peerYears = (DATA.defaultYears||5);   // 동급 판정 기준: 처음/최근 N년
+let peerBasis = "past";              // 동급 판정 시점: "past"(처음 N년) | "recent"(최근 N년)
+let peerBuilt = "";                  // 동급 연식 필터: ""(전체) | "lo-hi"(건축년도 구간)
+let peerHhMin = 0, peerHhMax = 10000; // 동급 세대수 필터 범위 (전체=0~10000, 미상은 항상 통과)
+const $ = s => document.querySelector(s);
+const fmtEok = v => { if(v==null) return "-"; const e=v/10000; return (Number.isInteger(e)?e:e.toFixed(1))+"억"; };
+const PALETTE=["#3E6DA6","#4E9E8F","#7A6DB0","#C07A5B","#5AA0C8","#7E9E4E"];
+const regionByCode = c => DATA.regions.find(r=>r.code===c);
+const tierByCode = c => DATA.tiers.find(t=>t.code===c);
+
+// 현재 선택된 (지역객체, 후보객체) — 두 모드 공통. 그래프는 항상 후보의 '자기 지역' 데이터로 그림.
+function current(){
+  if(mode==="region"){
+    const r=regionByCode(regionCode);
+    return {r, c: r.candidates.find(x=>x.id===activeId) || r.candidates[0]};
+  }
+  const r=regionByCode(activeItem.regionCode);
+  return {r, c: r.candidates.find(x=>x.id===activeItem.id)};
+}
+
+function drawModes(){
+  const box=$("#modes"); box.innerHTML="";
+  [["region","구별 보기"],["tier","평당가별 보기"]].forEach(([m,label])=>{
+    const b=document.createElement("button");
+    b.className=(mode===m?"on":""); b.textContent=label;
+    b.onclick=()=>{ mode=m; searchKey=null; pickDefault(); render(); };
+    box.appendChild(b);
+  });
+}
+function drawPills(){
+  const box=$("#regions"); box.innerHTML="";
+  const list = mode==="region" ? DATA.regions : DATA.tiers;
+  const active = mode==="region" ? regionCode : tierCode;
+  list.forEach(g=>{
+    const b=document.createElement("button");
+    b.className="pill"+(g.code===active?" on":"");
+    b.innerHTML=`${g.name}<b>${g.starCount}</b>`;
+    b.onclick=()=>{ if(mode==="region") regionCode=g.code; else tierCode=g.code; searchKey=null; pickDefault(); render(); };
+    box.appendChild(b);
+  });
+}
+function pickDefault(){
+  if(mode==="region"){
+    const r=regionByCode(regionCode);
+    activeId=(r.candidates.find(c=>c.star)||r.candidates[0]).id;
+  } else {
+    const t=tierByCode(tierCode);
+    const f=t.items.find(x=>x.star)||t.items[0];
+    activeItem={regionCode:f.regionCode, id:f.id};
+  }
+}
+function drawStats(){
+  if(mode==="region"){
+    const r=regionByCode(regionCode);
+    $("#stats").innerHTML=`
+      <div class="stat"><b>${r.unitCount}</b><span>분석 단위</span></div>
+      <div class="stat gold"><b>${r.starCount}</b><span>저평가 후보 ★</span></div>
+      <div class="stat"><b>${r.months.length}</b><span>개월 시세</span></div>`;
+  } else {
+    const t=tierByCode(tierCode);
+    const nreg=new Set(t.items.map(x=>x.regionName)).size;
+    $("#stats").innerHTML=`
+      <div class="stat"><b>${t.items.length}</b><span>후보 단지</span></div>
+      <div class="stat gold"><b>${t.starCount}</b><span>저평가 ★</span></div>
+      <div class="stat"><b>${nreg}</b><span>지역 수</span></div>`;
+  }
+}
+function rowEl(box, name, sub, rate, star, active, onclick){
+  const up=rate>=0, el=document.createElement("div");
+  el.className="row"+(active?" active":""); el.onclick=onclick;
+  el.innerHTML=`<div class="nm"><b>${star?'<span class="star">★</span> ':''}${name}</b>
+    <span>${sub}</span></div><div class="rate ${up?'up':'down'}">${up?'+':''}${rate}%</div>`;
+  box.appendChild(el);
+}
+function drawList(){
+  const box=$("#list"); box.innerHTML="";
+  let count=0;
+  if(mode==="region"){
+    const r=regionByCode(regionCode);
+    r.candidates.filter(c=>matchFilters(c,r.code)).forEach(c=>{count++;
+      rowEl(box, c.name, `${c.pyeong}평 · 현재 ${fmtEok(c.now)}`,
+      c.rate, c.star, c.id===activeId, ()=>{ activeId=c.id; highlightId=null; searchKey=null; scope="gu"; render(); });});
+  } else {
+    const t=tierByCode(tierCode);
+    t.items.filter(it=>matchFilters(it,it.regionCode)).forEach(it=>{count++;
+      rowEl(box, it.name, `${it.regionName} · ${it.pyeong}평 · ${fmtEok(it.now)}`,
+      it.rate, it.star,
+      activeItem&&activeItem.id===it.id&&activeItem.regionCode===it.regionCode,
+      ()=>{ activeItem={regionCode:it.regionCode, id:it.id}; highlightId=null; searchKey=null; render(); });});
+  }
+  if(!count) box.innerHTML='<div style="padding:14px;color:#9AA3AF;font-size:13px">필터에 맞는 후보가 없어요.</div>';
+}
+function drawChart(months, units, ids, mainId, colors){
+  const W=680,H=360,padL=54,padR=16,padT=16,padB=34;
+  let vals=[]; ids.forEach(id=>units[id].prices.forEach(v=>{if(v!=null)vals.push(v);}));
+  if(!vals.length){$("#chart").innerHTML="<p>시세 없음</p>";return;}
+  let ymin=Math.min(...vals),ymax=Math.max(...vals);
+  function niceStep(x){const raw=x/5,p=Math.pow(10,Math.floor(Math.log10(raw))),n=raw/p;return (n<1.5?1:n<3?2:n<7?5:10)*p;}
+  const step=niceStep((ymax-ymin)||1);
+  ymin=Math.floor(ymin/step)*step; ymax=Math.ceil(ymax/step)*step; if(ymax===ymin)ymax+=step;
+  const X=i=>padL+(W-padL-padR)*(i/Math.max(months.length-1,1));
+  const Y=v=>padT+(H-padT-padB)*(1-(v-ymin)/(ymax-ymin));
+  let g="";
+  for(let v=ymin;v<=ymax;v+=step){
+    g+=`<line x1="${padL}" y1="${Y(v)}" x2="${W-padR}" y2="${Y(v)}" stroke="#EDEFF2"/>`;
+    g+=`<text x="${padL-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="#9AA3AF">${fmtEok(v)}</text>`;
+  }
+  const sx=Math.ceil(months.length/6);
+  months.forEach((m,i)=>{if(i%sx===0||i===months.length-1)
+    g+=`<text x="${X(i)}" y="${H-12}" text-anchor="middle" font-size="10" fill="#9AA3AF">${m}</text>`;});
+  function line(pr,color,w,op){
+    const pts=[]; pr.forEach((v,i)=>{ if(v!=null) pts.push(`${X(i)},${Y(v)}`); });
+    if(pts.length<1) return "";
+    const dr = w>=3 ? 2.6 : 1.9;
+    let out=`<g opacity="${op}">`;
+    if(pts.length>=2) out+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"/>`;
+    pts.forEach(p=>{ const [x,y]=p.split(","); out+=`<circle cx="${x}" cy="${y}" r="${dr}" fill="${color}"/>`; });
+    return out+"</g>";
+  }
+  // 강조 모드: 강조된 선은 굵고 선명, 나머지는 투명하게
+  const hl = highlightId && ids.includes(highlightId) ? highlightId : null;
+  ids.filter(id=>id!==mainId && id!==hl).forEach(id=>g+=line(units[id].prices,colors[id], 1.8, hl?0.22:1));
+  if(mainId!==hl) g+=line(units[mainId].prices,colors[mainId], hl?2.2:3.2, hl?0.25:1);
+  if(hl) g+=line(units[hl].prices,colors[hl], 4, 1);
+  $("#chart").innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;
+}
+function drawLegend(units, ids, mainId, colors){
+  const box=$("#legend"); box.innerHTML="";
+  const last=pr=>{for(let i=pr.length-1;i>=0;i--)if(pr[i]!=null)return pr[i];return null;};
+  [mainId,...ids.filter(i=>i!==mainId)].forEach(id=>{
+    const u=units[id],isMain=id===mainId,el=document.createElement("div");el.className="it";
+    el.style.cursor="pointer";
+    el.title="탭: 이 선 강조 · 다시 탭: 상세보기";
+    if(highlightId && highlightId!==id) el.style.opacity="0.4";
+    if(highlightId===id) el.style.fontWeight="800";
+    el.onclick=()=>{
+      if(highlightId===id){ openDetail(u.name, u.rc||null); }
+      else { highlightId=id; render(); }
+    };
+    const rn = u.rn ? "·"+u.rn.replace(/^(서울|부산|대구|인천|광주|대전|울산|경기|경남|경북|충남|충북|전남|전북|강원|제주)\s*/,"$1 ").split(" ").slice(-1)[0] : "";
+    el.innerHTML=`<span class="swatch" style="background:${colors[id]};height:${isMain?4:3}px"></span>
+      ${u.name}(${u.pyeong}평${scope!=="gu"&&u.rn?"·"+u.rn:""}) <span class="val">${fmtEok(last(u.prices))}</span>`;
+    box.appendChild(el);
+  });
+  if(highlightId){
+    const hint=document.createElement("div");
+    hint.style.cssText="font-size:12px;color:#9AA3AF;width:100%";
+    hint.textContent="강조된 단지를 다시 탭하면 상세보기 · 다른 단지를 탭하면 강조 이동";
+    box.appendChild(hint);
+  }
+}
+const aptOf = id => id.split("|")[0];
+// ── 화면에서 '처음 N년' 기준으로 동급 즉석 계산 ──
+// 시 단위 키: 광역시·특별시·세종은 시도(앞 2자리), 그 외는 시(앞 4자리)
+function siKey(rc){ const M=["11","26","27","28","29","30","31","36"]; return M.includes(rc.slice(0,2))?rc.slice(0,2):rc.slice(0,4); }
+// 숫자 배열의 중앙값 (없으면 null)
+function medianOf(a){ if(!a||!a.length) return null; const s=[...a].sort((x,y)=>x-y); const m=s.length>>1; return s.length%2? s[m] : (s[m-1]+s[m])/2; }
+function computePeers(meKey, years, scp, basis, built){
+  const pd=DATA.peerdata; if(!pd||!pd.series[meKey]) return [];
+  const ff=arr=>{let last=null;return arr.map(v=>{if(v!=null)last=v;return last;});};
+  const n=Math.min(years*12, pd.months.length);   // 월 단위
+  // 판정 구간: 과거 기준이면 그래프 앞부분(처음 N개월), 현재 기준이면 뒷부분(최근 N개월)
+  const win = arr => basis==="recent" ? arr.slice(-n) : arr.slice(0,n);
+  const me=win(ff(pd.series[meKey])), mi=pd.units[meKey], meSi=siKey(mi.rc);
+  const bLo = built ? +built.split("-")[0] : 0;   // 연식 필터 구간
+  const bHi = built ? +built.split("-")[1] : 0;
+  const out=[];
+  for(const k in pd.units){
+    if(k===meKey) continue;
+    const inf=pd.units[k];
+    if(scp==="si" && siKey(inf.rc)!==meSi) continue;      // 같은 시만
+    if(built){ const by=inf.by||0; if(!(by>=bLo && by<bHi)) continue; }   // 연식 구간 필터
+    // 세대수 필터 (전체범위 아니면 적용) — 범위를 지정하면 세대수 미상(0)은 제외
+    if(peerHhMin>0 || peerHhMax<10000){
+      const hh=inf.hh||0;
+      const hi = peerHhMax>=10000 ? Infinity : peerHhMax;
+      if(!(hh>=peerHhMin && hh<=hi)) continue;   // 미상(0)은 min>0이면 자동 탈락
+    }
+    if(Math.abs(inf.pyeong-mi.pyeong)/mi.pyeong > pd.py) continue;
+    if(inf.name===mi.name && inf.rc===mi.rc) continue;
+    const vf=ff(pd.series[k]), vp=win(vf);
+    const rs=[]; for(let i=0;i<n;i++){ if(me[i]!=null && vp[i]!=null && vp[i]>0) rs.push(me[i]/vp[i]); }
+    if(rs.length<12) continue;                             // 최소 1년(12개월) 겹침
+    const mean=rs.reduce((a,b)=>a+b,0)/rs.length;
+    if(mean<1-pd.lvl || mean>1+pd.lvl) continue;
+    const sd=Math.sqrt(rs.reduce((a,b)=>a+(b-mean)**2,0)/rs.length);
+    if(sd/mean > pd.cv) continue;
+    let lastv=0; for(let i=vf.length-1;i>=0;i--){ if(vf[i]!=null){lastv=vf[i];break;} }
+    out.push({key:k,last:lastv});
+  }
+  out.sort((a,b)=>b.last-a.last);
+  return out.map(x=>x.key);
+}
+function peerUnits(keys){
+  const pd=DATA.peerdata, u={};
+  keys.forEach(k=>{const inf=pd.units[k]; u[k]={name:inf.name,pyeong:inf.pyeong,rc:inf.rc,rn:inf.rn,
+    prices:pd.series[k].map(v=>v==null?null:v*1000)};});   // 억×10 → 만원 복원
+  return u;
+}
+// ---- 필터 ----
+const PRICE_OPTS=[["","가격 전체"],["0-50000","5억 이하"],["50000-100000","5~10억"],["100000-150000","10~15억"],["150000-200000","15~20억"],["200000-999999999","20억 이상"]];
+const PP_OPTS=[["","평당가 전체"],["2500-3000","2500~3000"],["3000-3500","3000~3500"],["3500-4000","3500~4000"],["4000-4500","4000~4500"],["4500-5001","4500~5000"]];
+function matchFilters(c, regionCode2){
+  const r=regionByCode(regionCode2);
+  if(filters.sido && !r.name.startsWith(filters.sido)) return false;
+  if(filters.region && r.code!==filters.region) return false;
+  if(filters.pyeong){
+    const [a,b]=filters.pyeong.split("-").map(Number);
+    if(!(c.pyeong>=a && c.pyeong<b)) return false;
+  }
+  if(filters.price){
+    const [a,b]=filters.price.split("-").map(Number);
+    if(!(c.now>=a && c.now<b)) return false;
+  }
+  if(filters.pp){
+    const [a,b]=filters.pp.split("-").map(Number);
+    if(!(c.pp>=a && c.pp<b)) return false;
+  }
+  return true;
+}
+function drawFilters(){
+  const box=$("#filters"); box.innerHTML="";
+  const sidos=[...new Set(DATA.regions.map(r=>r.name.split(" ")[0]))];
+  const mk=(opts,val,onch)=>{const s=document.createElement("select");
+    opts.forEach(([v,l])=>{const o=document.createElement("option");o.value=v;o.textContent=l;if(v===val)o.selected=true;s.appendChild(o);});
+    s.onchange=()=>onch(s.value); return s;};
+  box.appendChild(mk([["","시·도 전체"],...sidos.map(s=>[s,s])], filters.sido, v=>{filters.sido=v;filters.region="";render();}));
+  const regs=DATA.regions.filter(r=>!filters.sido||r.name.startsWith(filters.sido));
+  box.appendChild(mk([["","구 전체"],...regs.map(r=>[r.code,r.name.split(" ").slice(1).join(" ")||r.name])], filters.region, v=>{filters.region=v;render();}));
+  box.appendChild(mk([["","평형 전체"],["0-20","20평 미만"],["20-30","20평대"],["30-40","30평대"],["40-999","40평 이상"]], filters.pyeong, v=>{filters.pyeong=v;render();}));
+  box.appendChild(mk(PRICE_OPTS, filters.price, v=>{filters.price=v;render();}));
+  box.appendChild(mk(PP_OPTS, filters.pp, v=>{filters.pp=v;render();}));
+}
+function svgChart(months, series){
+  const W=700,H=300,padL=54,padR=16,padT=12,padB=30;
+  let vals=[]; series.forEach(s=>s.prices.forEach(v=>{if(v!=null)vals.push(v);}));
+  if(!vals.length) return "<p style='color:#9AA3AF'>거래 시세가 없어요.</p>";
+  let ymin=Math.min(...vals),ymax=Math.max(...vals);
+  const ns=x=>{const raw=x/5,p=Math.pow(10,Math.floor(Math.log10(raw))),n=raw/p;return (n<1.5?1:n<3?2:n<7?5:10)*p;};
+  const step=ns((ymax-ymin)||1); ymin=Math.floor(ymin/step)*step; ymax=Math.ceil(ymax/step)*step; if(ymax===ymin)ymax+=step;
+  const X=i=>padL+(W-padL-padR)*(i/Math.max(months.length-1,1));
+  const Y=v=>padT+(H-padT-padB)*(1-(v-ymin)/(ymax-ymin));
+  let g="";
+  for(let v=ymin;v<=ymax;v+=step){g+=`<line x1="${padL}" y1="${Y(v)}" x2="${W-padR}" y2="${Y(v)}" stroke="#EDEFF2"/><text x="${padL-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="#9AA3AF">${fmtEok(v)}</text>`;}
+  const sx=Math.ceil(months.length/6);
+  months.forEach((m,i)=>{if(i%sx===0||i===months.length-1)g+=`<text x="${X(i)}" y="${H-10}" text-anchor="middle" font-size="10" fill="#9AA3AF">${m}</text>`;});
+  series.forEach(s=>{const pts=[];s.prices.forEach((v,i)=>{if(v!=null)pts.push(`${X(i)},${Y(v)}`);});
+    if(pts.length>=2)g+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round"/>`;
+    pts.forEach(p=>{const[x,y]=p.split(",");g+=`<circle cx="${x}" cy="${y}" r="1.8" fill="${s.color}"/>`;});});
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" style="width:100%;height:auto">${g}</svg>`;
+}
+let detailState=null;
+function openDetail(apt, rc){
+  let r = rc ? regionByCode(rc) : current().r;
+  // 숨은 지역(지역칩엔 없지만 검색·그래프엔 나오는 지역)은 별도 상세 창고에서 찾기
+  if(!r && rc && DATA.hiddenDetails && DATA.hiddenDetails[rc]) r = DATA.hiddenDetails[rc];
+  const d=r&&r.details&&r.details[apt];
+  if(!d){ alert("이 단지의 상세 데이터가 아직 없어요."); return; }
+  const series=d.types.map((t,i)=>({pyeong:t.pyeong, prices:t.prices, color:PALETTE[i%PALETTE.length]}));
+  detailState={r,d,series,selected:new Set(series.map(s=>s.pyeong))};  // 처음엔 전체 평형 켜짐
+  $("#dTitle").textContent=d.name;
+  $("#dMeta").textContent=r.name+(d.buildYear?" · "+d.buildYear+"년 준공":"");
+  redrawDetail();
+  $("#modal").style.display="flex";
+}
+function redrawDetail(){
+  const {r,d,series,selected}=detailState;
+  const fb=$("#dFilter"); fb.innerHTML="";
+  series.forEach(s=>{
+    const on=selected.has(s.pyeong), b=document.createElement("button");
+    b.className=on?"on":""; b.textContent=s.pyeong+"평";
+    if(on) b.style.background=s.color;
+    b.onclick=()=>{ if(selected.has(s.pyeong)){ if(selected.size>1) selected.delete(s.pyeong); } else selected.add(s.pyeong); redrawDetail(); };
+    fb.appendChild(b);
+  });
+  const shown=series.filter(s=>selected.has(s.pyeong));
+  $("#dChart").innerHTML=svgChart(r.months, shown.map(s=>({label:s.pyeong+"평",prices:s.prices,color:s.color})));
+  $("#dLegend").innerHTML=shown.map(s=>`<div class="it"><span class="swatch" style="background:${s.color}"></span>${s.pyeong}평</div>`).join("");
+  const deals=d.deals.filter(x=>selected.has(x.pyeong));
+  $("#dDeals").innerHTML=deals.map(x=>`<tr><td>${x.date}</td><td>${x.pyeong}평</td><td>${x.floor}층</td><td class="price">${fmtEok(x.price)}</td></tr>`).join("");
+}
+function closeDetail(){ $("#modal").style.display="none"; }
+function openInfo(){ $("#infoModal").style.display="flex"; }
+function closeInfo(){ $("#infoModal").style.display="none"; }
+function render(){
+  drawModes(); drawPills(); drawStats(); drawFilters(); drawList();
+  const pd=DATA.peerdata;
+  const lastP=pr=>{for(let i=pr.length-1;i>=0;i--)if(pr[i]!=null)return pr[i];return 0;};
+
+  // 그래프에 그릴 대상 결정: 검색된 단지(후보 아니어도) 우선
+  let meKey, mName, mPy, ctx=null;   // ctx = {r,c} (후보일 때만)
+  if(searchKey && pd && pd.series[searchKey]){
+    meKey=searchKey; const u=pd.units[searchKey]; mName=u.name; mPy=u.pyeong;
+  } else {
+    const cur=current();
+    if(!cur.c){ $("#chart").innerHTML=""; $("#legend").innerHTML=""; $("#ctitle").textContent=""; $("#cnote").textContent=""; return; }
+    ctx=cur; meKey=cur.r.code+"|"+cur.c.id; mName=cur.c.name; mPy=cur.c.pyeong;
+  }
+  const hasPeer = pd && pd.series && pd.series[meKey];
+  // 검색된 단지는 '구' 비교가 없으니 시로 대체
+  let eff = scope;
+  if(!ctx && eff==="gu") eff="si";
+
+  // ── 공통 컨트롤: 평형 선택 + 과거/현재 토글 (구·시·전국 어디서 시작해도 똑같이 보이게) ──
+  const bBtn=(b,label)=>`<button class="basisBtn" data-b="${b}" style="border:1px solid var(--line);padding:2px 8px;font:inherit;cursor:pointer;border-radius:6px;`
+    +`${peerBasis===b?"background:var(--gold);color:#fff;border-color:var(--gold);font-weight:700":"background:#fff;color:var(--ink)"}">${label}</button>`;
+  const basisToggle=`<span style="display:inline-flex;gap:4px;vertical-align:middle;margin-right:6px">${bBtn("past","과거 기준")}${bBtn("recent","현재 기준")}</span>`;
+  const meRc = pd.units[meKey] ? pd.units[meKey].rc : "";
+  const sameApt = (pd.units[meKey] ? Object.keys(pd.units).filter(k => pd.units[k].name===mName && pd.units[k].rc===meRc) : [])
+    .map(k => ({key:k, py:pd.units[k].pyeong})).sort((a,b)=>a.py-b.py);
+  let pySelHtml = "";
+  if(sameApt.length > 1){   // 같은 단지 평형이 2개 이상일 때만 평형 선택기 표시
+    pySelHtml = `평형 <select id="mePySel" style="font:inherit;font-weight:700;border:1px solid var(--line);border-radius:6px;padding:2px 5px;color:var(--gold)">`
+      + sameApt.map(o=>`<option value="${o.key}"${o.key===meKey?" selected":""}>${o.py}평</option>`).join("")
+      + `</select>&nbsp;&nbsp;`;
+  }
+  const ctrlBar = `${pySelHtml}${basisToggle}`;
+
+  if(eff!=="gu" && hasPeer){
+    // ── 같은 시 / 전국 동급 (처음 N년=과거 / 최근 N년=현재 기준 즉석 계산) ──
+    // 과거 기준일 때만 서버가 미리 계산한 '구 동급(sibs)'을 앞에 붙임 (그건 과거 기준 산출물이라서)
+    // 연식·세대수 필터가 켜져 있으면 서버 구-동급도 같은 조건만 남김
+    const builtOk = k => { if(!peerBuilt) return true; const by=(pd.units[k]&&pd.units[k].by)||0; const [lo,hi]=peerBuilt.split("-").map(Number); return by>=lo && by<hi; };
+    const hhOk = k => { if(peerHhMin<=0 && peerHhMax>=10000) return true; const hh=(pd.units[k]&&pd.units[k].hh)||0; const hi=peerHhMax>=10000?Infinity:peerHhMax; return hh>=peerHhMin && hh<=hi; };
+    const localKeys = (ctx && peerBasis==="past") ? ctx.c.sibs.map(s=>ctx.r.code+"|"+s).filter(k=>pd.series[k] && builtOk(k) && hhOk(k)) : [];
+    const far=computePeers(meKey, peerYears, eff, peerBasis, peerBuilt).filter(k=>!localKeys.includes(k));
+    let list=[meKey, ...localKeys.slice(0,4), ...far];
+    const seen=new Set(); let ids=list.filter(k=>{ if(seen.has(k)) return false; seen.add(k); return true; }).slice(0,8);
+    const units=peerUnits(ids);
+    const colors={}; colors[meKey]="#C8901E";
+    ids.filter(k=>k!==meKey).forEach((k,i)=>colors[k]=PALETTE[i%PALETTE.length]);
+    drawChart(pd.months, units, ids, meKey, colors);
+    drawLegend(units, ids, meKey, colors);
+    const scWord = eff==="si" ? "같은 시" : "전국";
+    $("#ctitle").textContent=`${mName} (${mPy}평) · ${eff==="si"?"🏙️ 같은 시 동급":"🌏 전국 동급"}`;
+
+    // 기준 연수 드롭다운 (동급을 못 찾아도 항상 보이게)
+    const whenWord = peerBasis==="recent" ? "최근" : "처음";
+    const yearSel=`<select id="peerYearSel" style="font:inherit;font-weight:700;border:1px solid var(--line);border-radius:6px;padding:2px 5px;color:var(--gold)">`
+      +[3,5,7,10].map(y=>`<option value="${y}"${y===peerYears?" selected":""}>${y}년</option>`).join("")
+      +`</select>`;
+
+    // 현재 기준일 때 '과거 격차'(처음엔 동급보다 얼마나 높았/낮았나) 계산
+    let gapText="";
+    if(peerBasis==="recent" && ids.length>=2){
+      const nPast=Math.min(peerYears*12, pd.months.length);
+      const ff2=arr=>{let last=null;return arr.map(v=>{if(v!=null)last=v;return last;});};
+      const firstMed=key=>medianOf(ff2(pd.series[key]).slice(0,nPast).filter(v=>v!=null));
+      const meP=firstMed(meKey);
+      const peerP=medianOf(ids.filter(k=>k!==meKey).map(firstMed).filter(v=>v!=null));
+      if(meP!=null && peerP!=null && peerP>0){
+        const g=Math.round((meP-peerP)/peerP*100);
+        gapText = g<0 ? ` 이 단지는 초기엔 동급보다 <b>${Math.abs(g)}% 낮았어요</b>.`
+                : g>0 ? ` 이 단지는 초기엔 동급보다 <b>${g}% 높았어요</b>.`
+                      : ` 이 단지는 초기에도 동급과 비슷했어요.`;
+      }
+    }
+
+    if(ids.length<2){
+      // 동급 0개일 때도 토글·드롭다운을 함께 보여줘서 되돌리거나 기준을 바꿀 수 있게 함
+      $("#cnote").innerHTML=`${ctrlBar}<br>${scWord}에서 <b>${whenWord} ${yearSel}</b> 기준으로는 아직 동급을 못 찾았어요. 연수·기준을 바꾸거나 [전국]을 눌러보세요.`;
+    } else if(peerBasis==="recent"){
+      $("#cnote").innerHTML=`${ctrlBar}<br>현재부터 <b>최근 ${yearSel}</b> 값이 닮은 ${scWord} 동급이에요.${gapText}`;
+    } else {
+      $("#cnote").innerHTML=`${ctrlBar}<br>수집 시작부터 <b>처음 ${yearSel}</b> 값이 닮았던 ${scWord} 동급 아파트예요.`;
+    }
+  } else {
+    // ── 같은 구 (후보의 미리 계산된 동급) ──
+    const {r,c}=ctx;
+    const sibs=c.sibs.filter(s=>r.units[s]).sort((a,b)=>lastP(r.units[b].prices)-lastP(r.units[a].prices)).slice(0,6);
+    const ids=[c.id,...sibs];
+    const colors={}; colors[c.id]="#C8901E";
+    sibs.forEach((id,i)=>colors[id]=PALETTE[i%PALETTE.length]);
+    drawChart(r.months, r.units, ids, c.id, colors);
+    drawLegend(r.units, ids, c.id, colors);
+    $("#ctitle").textContent=`${c.name} (${c.pyeong}평) · ${r.name}`;
+    $("#cnote").innerHTML = `${ctrlBar}<br>` + (c.rate>=0
+      ? `과거엔 동급이었지만, 지금은 <b>같은 구 동급</b>보다 <b>${c.rate}% 저평가</b> 상태예요. (신뢰도 ${c.conf})`
+      : `이 단지는 <b>같은 구 동급</b>들보다 <b>${Math.abs(c.rate)}% 앞서</b> 있어요. (신뢰도 ${c.conf})`);
+  }
+  // 비교 범위 토글 (구 / 시 / 전국) — 검색 단지는 구 비활성
+  const oldT=$("#scopeToggle"); if(oldT) oldT.remove();
+  const wrap=document.createElement("span"); wrap.id="scopeToggle";
+  wrap.style.cssText="display:inline-flex;gap:4px;margin-left:8px;vertical-align:middle";
+  [["gu","구"],["si","시"],["nat","전국"]].forEach(([s,label])=>{
+    const disabled = (s==="gu" && !ctx);
+    const on=(eff===s), b=document.createElement("button");
+    b.style.cssText="border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:700;cursor:"+(disabled?"not-allowed":"pointer")+";opacity:"+(disabled?"0.4":"1")+";background:"+(on?"var(--ink)":"#fff")+";color:"+(on?"#fff":"var(--soft)");
+    b.textContent=label;
+    if(!disabled) b.onclick=()=>{ scope=s; highlightId=null; render(); };
+    wrap.appendChild(b);
+  });
+  $("#ctitle").appendChild(wrap);
+  // 연식 필터 드롭다운 — 구/시/전국 어디서든 표시 (구에서 바꾸면 시로 전환되어 적용)
+  {
+    const bsel=document.createElement("select");
+    bsel.style.cssText="margin-left:8px;font:inherit;font-size:12px;font-weight:700;border:1px solid var(--line);border-radius:999px;padding:5px 9px;color:var(--soft);vertical-align:middle;cursor:pointer;background:#fff";
+    [["","연식 전체"],["0-2000","~1999년"],["2000-2010","2000~2009년"],["2010-2020","2010~2019년"],["2020-9999","2020년~"]]
+      .forEach(([v,l])=>{const o=document.createElement("option");o.value=v;o.textContent=l;if(v===peerBuilt)o.selected=true;bsel.appendChild(o);});
+    bsel.onchange=e=>{ peerBuilt=e.target.value; if(scope==="gu") scope="si"; highlightId=null; render(); };
+    $("#ctitle").appendChild(bsel);
+  }
+  // 세대수 필터 (최소·최대 드롭다운, 100세대 단위) — 미상(0)은 항상 통과
+  {
+    const opts = (isMax) => {
+      let o = "";
+      if(isMax){
+        for(let v=100; v<=9900; v+=100) o += `<option value="${v}"${peerHhMax===v?" selected":""}>${v.toLocaleString()}</option>`;
+        o += `<option value="10000"${peerHhMax>=10000?" selected":""}>제한없음</option>`;
+      } else {
+        o += `<option value="0"${peerHhMin<=0?" selected":""}>0 (전체)</option>`;
+        for(let v=100; v<=9900; v+=100) o += `<option value="${v}"${peerHhMin===v?" selected":""}>${v.toLocaleString()}</option>`;
+      }
+      return o;
+    };
+    const style = "font:inherit;font-size:12px;font-weight:700;border:1px solid var(--line);border-radius:999px;padding:5px 7px;color:var(--soft);vertical-align:middle;cursor:pointer;background:#fff";
+    const wrapS=document.createElement("span");
+    wrapS.style.cssText="margin-left:10px;font-size:12px;font-weight:600;color:var(--soft);vertical-align:middle";
+    wrapS.innerHTML = `세대수 <select id="hhMin" style="${style}">${opts(false)}</select>`
+      + ` ~ <select id="hhMax" style="${style}">${opts(true)}</select>`;
+    $("#ctitle").appendChild(wrapS);
+    const mn=document.getElementById("hhMin"), mx=document.getElementById("hhMax");
+    const apply=()=>{
+      let a=+mn.value, b=+mx.value;
+      if(a>b){ const t=a; a=b; b=t; }        // 최소>최대면 교환
+      peerHhMin=a; peerHhMax=b;
+      if(scope==="gu") scope="si"; highlightId=null; render();
+    };
+    mn.onchange=apply; mx.onchange=apply;
+  }
+  // 공통 컨트롤 동작 연결 (구·시·전국 공통, 한 번만) — 구에서 '동급 옵션'을 건드리면 시로 전환
+  document.querySelectorAll(".basisBtn").forEach(b=>{ b.onclick=()=>{ peerBasis=b.dataset.b; if(scope==="gu") scope="si"; highlightId=null; render(); }; });
+  const _ys=document.getElementById("peerYearSel");
+  if(_ys) _ys.onchange=e=>{ peerYears=+e.target.value; if(scope==="gu") scope="si"; highlightId=null; render(); };
+  const _ps=document.getElementById("mePySel");
+  if(_ps) _ps.onchange=e=>{ searchKey=e.target.value; highlightId=null; render(); };   // 다른 평형 선택 시 그 평형 보기로
+  $("#detailBtn").onclick=()=>openDetail(mName, meKey.split("|")[0]);
+}
+// 검색: 질의어 포함 → 관련도 순 정렬(이름이 질의어로 '시작'하면 우선, 짧은 이름 우선) → 상위 60개
+function searchHits(idx, rawInput){
+  const q=rawInput.trim().replace(/\s/g,"").toLowerCase();
+  if(!q) return [];
+  const norm=s=>s.replace(/\s/g,"").toLowerCase();
+  const matched=idx.filter(x=>norm(x.name).includes(q));
+  // 같은 아파트(이름+지역)로 묶어 한 줄만. 대표 평형 = 33평(30평대)에 가장 가까운 것
+  const groups={};
+  matched.forEach(x=>{ const gk=x.name+"|"+(x.regionName||""); (groups[gk]=groups[gk]||[]).push(x); });
+  const reps=Object.values(groups).map(arr=>{
+    const rep=arr.slice().sort((a,b)=>Math.abs(a.pyeong-33)-Math.abs(b.pyeong-33))[0]; // 30평대에 가장 가까운 평형
+    return Object.assign({}, rep, { isCand: arr.some(x=>x.isCand), nPy: arr.length }); // 하나라도 후보면 ⭐, 평형 개수
+  });
+  reps.sort((a,b)=>{
+    const an=norm(a.name), bn=norm(b.name);
+    const as=an.startsWith(q)?0:1, bs=bn.startsWith(q)?0:1;   // 이름이 질의어로 시작하면 맨 위
+    if(as!==bs) return as-bs;
+    if(an.length!==bn.length) return an.length-bn.length;      // 짧은 이름 우선(더 정확한 일치)
+    if(an!==bn) return an<bn?-1:1;                             // 이름 가나다 순
+    return a.pyeong-b.pyeong;
+  });
+  return reps.slice(0,60);
+}
+function setupSearch(){
+  const inp=$("#searchInput"), box=$("#searchResults"), idx=DATA.search||[];
+  const hide=()=>box.style.display="none";
+  inp.addEventListener("input",()=>{
+    const q=inp.value.trim().replace(/\s/g,"").toLowerCase();
+    if(!q){ hide(); return; }
+    const hits=searchHits(idx, inp.value);
+    if(!hits.length){
+      box.innerHTML='<div class="empty">검색 결과 없음. (밴드 안 단지만 검색돼요)</div>';
+      box.style.display="block"; return;
+    }
+    box.innerHTML=hits.map(x=>`<div class="sr"><b>${x.name}</b> <span>${x.regionName}${x.nPy>1?" · 평형 "+x.nPy+"개":" · "+x.pyeong+"평"}${x.isCand?" · ⭐저평가후보":""}</span></div>`).join("");
+    box.querySelectorAll(".sr").forEach((el,i)=>{ el.onclick=()=>{
+      const x=hits[i]; searchKey=x.key; mode="region"; scope="si"; highlightId=null;
+      inp.value=x.name; hide(); render(); window.scrollTo({top:0,behavior:"smooth"});
+    };});
+    box.style.display="block";
+  });
+  document.addEventListener("click",e=>{ if(!e.target.closest(".search")) hide(); });
+}
+// ── 홈 ↔ 스캐너 화면 전환 ──
+function goHome(){ $("#home").classList.add("on"); $("#scanner").classList.remove("on"); window.scrollTo(0,0); }
+function goScanner(kind){
+  $("#home").classList.remove("on"); $("#scanner").classList.add("on");
+  if(kind==="tier"){ mode="tier"; }
+  else { mode="region"; }
+  if(kind==="star"){
+    // 저평가 ★ 이 가장 많은 지역으로
+    const best=[...DATA.regions].sort((a,b)=>b.starCount-a.starCount)[0];
+    if(best) regionCode=best.code;
+  }
+  scope="gu"; highlightId=null; searchKey=null; pickDefault(); render(); window.scrollTo(0,0);
+}
+function setupHome(){
+  const total=DATA.regions.reduce((s,r)=>s+r.starCount,0);
+  $("#homeStarCount").textContent=total;
+  // 바로가기: 저평가 많은 지역 TOP 8 + 평당가 구간
+  const grid=$("#homeGrid"); grid.innerHTML="";
+  const icons=["🏙️","🌊","🏔️","🌉","🏗️","🚉","🌳","🏟️"];
+  [...DATA.regions].sort((a,b)=>b.starCount-a.starCount).slice(0,8).forEach((r,i)=>{
+    const b=document.createElement("button"); b.className="ibtn";
+    b.innerHTML=`<div class="ic">${icons[i%icons.length]}</div><span>${r.name.split(" ").slice(-1)[0]} ${r.starCount}</span>`;
+    b.onclick=()=>{ goScanner("region"); regionCode=r.code; searchKey=null; pickDefault(); render(); };
+    grid.appendChild(b);
+  });
+  (DATA.tiers||[]).forEach(t=>{
+    const b=document.createElement("button"); b.className="ibtn";
+    b.innerHTML=`<div class="ic">💰</div><span>${t.name.replace("만","")}</span>`;
+    b.onclick=()=>{ goScanner("tier"); tierCode=t.code; searchKey=null; pickDefault(); render(); };
+    grid.appendChild(b);
+  });
+  // 홈 검색 (선택 시 같은 시 동급 보기로 스캐너 진입)
+  const inp=$("#homeSearch"), box=$("#homeResults"), idx=DATA.search||[];
+  const hide=()=>box.style.display="none";
+  inp.addEventListener("input",()=>{
+    const q=inp.value.trim().replace(/\s/g,"").toLowerCase();
+    if(!q){ hide(); return; }
+    const hits=searchHits(idx, inp.value);
+    box.innerHTML=hits.length?hits.map(x=>`<div class="sr"><b>${x.name}</b> <span>${x.regionName}${x.nPy>1?" · 평형 "+x.nPy+"개":" · "+x.pyeong+"평"}${x.isCand?" · ⭐저평가후보":""}</span></div>`).join("")
+      :'<div class="empty">검색 결과 없음. (밴드 안 단지만 검색돼요)</div>';
+    box.querySelectorAll(".sr").forEach((el,i)=>{ el.onclick=()=>{
+      const x=hits[i];
+      $("#home").classList.remove("on"); $("#scanner").classList.add("on");
+      searchKey=x.key; mode="region"; scope="si"; highlightId=null; hide(); inp.value=x.name; render(); window.scrollTo(0,0);
+    };});
+    box.style.display="block";
+  });
+  document.addEventListener("click",e=>{ if(!e.target.closest(".home-search")) hide(); });
+}
+if(DATA.regions && DATA.regions.length){ pickDefault(); render(); setupSearch(); setupHome(); }
+else { $("#list").innerHTML="<p>표시할 데이터가 없어요. collect_all.py 로 먼저 모으세요.</p>"; }
+</script></body></html>
