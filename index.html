@@ -230,6 +230,7 @@ let scope = "gu";                    // 비교 범위: "gu"(구) | "si"(시) | "
 let peerYears = (DATA.defaultYears||5);   // 동급 판정 기준: 처음/최근 N년
 let peerBasis = "past";              // 동급 판정 시점: "past"(처음 N년) | "recent"(최근 N년)
 let peerBuilt = "";                  // 동급 연식 필터: ""(전체) | "lo-hi"(건축년도 구간)
+let peerHhMin = 0, peerHhMax = 10000; // 동급 세대수 필터 범위 (전체=0~10000, 미상은 항상 통과)
 const $ = s => document.querySelector(s);
 const fmtEok = v => { if(v==null) return "-"; const e=v/10000; return (Number.isInteger(e)?e:e.toFixed(1))+"억"; };
 const PALETTE=["#3E6DA6","#4E9E8F","#7A6DB0","#C07A5B","#5AA0C8","#7E9E4E"];
@@ -398,6 +399,12 @@ function computePeers(meKey, years, scp, basis, built){
     const inf=pd.units[k];
     if(scp==="si" && siKey(inf.rc)!==meSi) continue;      // 같은 시만
     if(built){ const by=inf.by||0; if(!(by>=bLo && by<bHi)) continue; }   // 연식 구간 필터
+    // 세대수 필터 (전체범위 아니면 적용) — 범위를 지정하면 세대수 미상(0)은 제외
+    if(peerHhMin>0 || peerHhMax<10000){
+      const hh=inf.hh||0;
+      const hi = peerHhMax>=10000 ? Infinity : peerHhMax;
+      if(!(hh>=peerHhMin && hh<=hi)) continue;   // 미상(0)은 min>0이면 자동 탈락
+    }
     if(Math.abs(inf.pyeong-mi.pyeong)/mi.pyeong > pd.py) continue;
     if(inf.name===mi.name && inf.rc===mi.rc) continue;
     const vf=ff(pd.series[k]), vp=win(vf);
@@ -523,12 +530,28 @@ function render(){
   let eff = scope;
   if(!ctx && eff==="gu") eff="si";
 
+  // ── 공통 컨트롤: 평형 선택 + 과거/현재 토글 (구·시·전국 어디서 시작해도 똑같이 보이게) ──
+  const bBtn=(b,label)=>`<button class="basisBtn" data-b="${b}" style="border:1px solid var(--line);padding:2px 8px;font:inherit;cursor:pointer;border-radius:6px;`
+    +`${peerBasis===b?"background:var(--gold);color:#fff;border-color:var(--gold);font-weight:700":"background:#fff;color:var(--ink)"}">${label}</button>`;
+  const basisToggle=`<span style="display:inline-flex;gap:4px;vertical-align:middle;margin-right:6px">${bBtn("past","과거 기준")}${bBtn("recent","현재 기준")}</span>`;
+  const meRc = pd.units[meKey] ? pd.units[meKey].rc : "";
+  const sameApt = (pd.units[meKey] ? Object.keys(pd.units).filter(k => pd.units[k].name===mName && pd.units[k].rc===meRc) : [])
+    .map(k => ({key:k, py:pd.units[k].pyeong})).sort((a,b)=>a.py-b.py);
+  let pySelHtml = "";
+  if(sameApt.length > 1){   // 같은 단지 평형이 2개 이상일 때만 평형 선택기 표시
+    pySelHtml = `평형 <select id="mePySel" style="font:inherit;font-weight:700;border:1px solid var(--line);border-radius:6px;padding:2px 5px;color:var(--gold)">`
+      + sameApt.map(o=>`<option value="${o.key}"${o.key===meKey?" selected":""}>${o.py}평</option>`).join("")
+      + `</select>&nbsp;&nbsp;`;
+  }
+  const ctrlBar = `${pySelHtml}${basisToggle}`;
+
   if(eff!=="gu" && hasPeer){
     // ── 같은 시 / 전국 동급 (처음 N년=과거 / 최근 N년=현재 기준 즉석 계산) ──
     // 과거 기준일 때만 서버가 미리 계산한 '구 동급(sibs)'을 앞에 붙임 (그건 과거 기준 산출물이라서)
-    // 연식 필터가 켜져 있으면 서버 구-동급도 같은 연식 구간만 남김
+    // 연식·세대수 필터가 켜져 있으면 서버 구-동급도 같은 조건만 남김
     const builtOk = k => { if(!peerBuilt) return true; const by=(pd.units[k]&&pd.units[k].by)||0; const [lo,hi]=peerBuilt.split("-").map(Number); return by>=lo && by<hi; };
-    const localKeys = (ctx && peerBasis==="past") ? ctx.c.sibs.map(s=>ctx.r.code+"|"+s).filter(k=>pd.series[k] && builtOk(k)) : [];
+    const hhOk = k => { if(peerHhMin<=0 && peerHhMax>=10000) return true; const hh=(pd.units[k]&&pd.units[k].hh)||0; const hi=peerHhMax>=10000?Infinity:peerHhMax; return hh>=peerHhMin && hh<=hi; };
+    const localKeys = (ctx && peerBasis==="past") ? ctx.c.sibs.map(s=>ctx.r.code+"|"+s).filter(k=>pd.series[k] && builtOk(k) && hhOk(k)) : [];
     const far=computePeers(meKey, peerYears, eff, peerBasis, peerBuilt).filter(k=>!localKeys.includes(k));
     let list=[meKey, ...localKeys.slice(0,4), ...far];
     const seen=new Set(); let ids=list.filter(k=>{ if(seen.has(k)) return false; seen.add(k); return true; }).slice(0,8);
@@ -540,22 +563,6 @@ function render(){
     const scWord = eff==="si" ? "같은 시" : "전국";
     $("#ctitle").textContent=`${mName} (${mPy}평) · ${eff==="si"?"🏙️ 같은 시 동급":"🌏 전국 동급"}`;
 
-    // [과거 기준 | 현재 기준] 토글 버튼
-    const bBtn=(b,label)=>`<button class="basisBtn" data-b="${b}" style="border:1px solid var(--line);padding:2px 8px;font:inherit;cursor:pointer;border-radius:6px;`
-      +`${peerBasis===b?"background:var(--gold);color:#fff;border-color:var(--gold);font-weight:700":"background:#fff;color:var(--ink)"}">${label}</button>`;
-    const basisToggle=`<span style="display:inline-flex;gap:4px;vertical-align:middle;margin-right:6px">${bBtn("past","과거 기준")}${bBtn("recent","현재 기준")}</span>`;
-    // 같은 단지(같은 이름·같은 지역)의 다른 평형들 → 평형 선택 드롭다운
-    const meRc = pd.units[meKey] ? pd.units[meKey].rc : "";
-    const sameApt = Object.keys(pd.units)
-      .filter(k => pd.units[k].name===mName && pd.units[k].rc===meRc)
-      .map(k => ({key:k, py:pd.units[k].pyeong}))
-      .sort((a,b)=>a.py-b.py);
-    let pySelHtml = "";
-    if(sameApt.length > 1){   // 평형이 2개 이상일 때만 선택기 표시
-      pySelHtml = `평형 <select id="mePySel" style="font:inherit;font-weight:700;border:1px solid var(--line);border-radius:6px;padding:2px 5px;color:var(--gold)">`
-        + sameApt.map(o=>`<option value="${o.key}"${o.key===meKey?" selected":""}>${o.py}평</option>`).join("")
-        + `</select>&nbsp;&nbsp;`;
-    }
     // 기준 연수 드롭다운 (동급을 못 찾아도 항상 보이게)
     const whenWord = peerBasis==="recent" ? "최근" : "처음";
     const yearSel=`<select id="peerYearSel" style="font:inherit;font-weight:700;border:1px solid var(--line);border-radius:6px;padding:2px 5px;color:var(--gold)">`
@@ -580,18 +587,12 @@ function render(){
 
     if(ids.length<2){
       // 동급 0개일 때도 토글·드롭다운을 함께 보여줘서 되돌리거나 기준을 바꿀 수 있게 함
-      $("#cnote").innerHTML=`${pySelHtml}${basisToggle}<br>${scWord}에서 <b>${whenWord} ${yearSel}</b> 기준으로는 아직 동급을 못 찾았어요. 연수·기준을 바꾸거나 [전국]을 눌러보세요.`;
+      $("#cnote").innerHTML=`${ctrlBar}<br>${scWord}에서 <b>${whenWord} ${yearSel}</b> 기준으로는 아직 동급을 못 찾았어요. 연수·기준을 바꾸거나 [전국]을 눌러보세요.`;
     } else if(peerBasis==="recent"){
-      $("#cnote").innerHTML=`${pySelHtml}${basisToggle}<br>현재부터 <b>최근 ${yearSel}</b> 값이 닮은 ${scWord} 동급이에요.${gapText}`;
+      $("#cnote").innerHTML=`${ctrlBar}<br>현재부터 <b>최근 ${yearSel}</b> 값이 닮은 ${scWord} 동급이에요.${gapText}`;
     } else {
-      $("#cnote").innerHTML=`${pySelHtml}${basisToggle}<br>수집 시작부터 <b>처음 ${yearSel}</b> 값이 닮았던 ${scWord} 동급 아파트예요.`;
+      $("#cnote").innerHTML=`${ctrlBar}<br>수집 시작부터 <b>처음 ${yearSel}</b> 값이 닮았던 ${scWord} 동급 아파트예요.`;
     }
-    // 토글·드롭다운·평형선택 동작 연결 (한 번만)
-    document.querySelectorAll(".basisBtn").forEach(b=>{ b.onclick=()=>{ peerBasis=b.dataset.b; highlightId=null; render(); }; });
-    const sel=document.getElementById("peerYearSel");
-    if(sel) sel.onchange=e=>{ peerYears=+e.target.value; highlightId=null; render(); };
-    const pySel2=document.getElementById("mePySel");
-    if(pySel2) pySel2.onchange=e=>{ searchKey=e.target.value; highlightId=null; render(); };  // 다른 평형 선택 시 그 평형으로 다시 그림
   } else {
     // ── 같은 구 (후보의 미리 계산된 동급) ──
     const {r,c}=ctx;
@@ -602,9 +603,9 @@ function render(){
     drawChart(r.months, r.units, ids, c.id, colors);
     drawLegend(r.units, ids, c.id, colors);
     $("#ctitle").textContent=`${c.name} (${c.pyeong}평) · ${r.name}`;
-    $("#cnote").innerHTML = c.rate>=0
-      ? `과거엔 동급이었지만, 지금은 동급 아파트 중앙값보다 <b>${c.rate}% 저평가</b> 상태예요. (신뢰도 ${c.conf})`
-      : `이 단지는 동급 아파트들보다 <b>${Math.abs(c.rate)}% 앞서</b> 있어요. (신뢰도 ${c.conf})`;
+    $("#cnote").innerHTML = `${ctrlBar}<br>` + (c.rate>=0
+      ? `과거엔 동급이었지만, 지금은 <b>같은 구 동급</b>보다 <b>${c.rate}% 저평가</b> 상태예요. (신뢰도 ${c.conf})`
+      : `이 단지는 <b>같은 구 동급</b>들보다 <b>${Math.abs(c.rate)}% 앞서</b> 있어요. (신뢰도 ${c.conf})`);
   }
   // 비교 범위 토글 (구 / 시 / 전국) — 검색 단지는 구 비활성
   const oldT=$("#scopeToggle"); if(oldT) oldT.remove();
@@ -619,15 +620,49 @@ function render(){
     wrap.appendChild(b);
   });
   $("#ctitle").appendChild(wrap);
-  // 연식 필터 드롭다운 (시/전국 동급에만) — 구/시/전국 토글 옆
-  if(eff!=="gu"){
+  // 연식 필터 드롭다운 — 구/시/전국 어디서든 표시 (구에서 바꾸면 시로 전환되어 적용)
+  {
     const bsel=document.createElement("select");
     bsel.style.cssText="margin-left:8px;font:inherit;font-size:12px;font-weight:700;border:1px solid var(--line);border-radius:999px;padding:5px 9px;color:var(--soft);vertical-align:middle;cursor:pointer;background:#fff";
     [["","연식 전체"],["0-2000","~1999년"],["2000-2010","2000~2009년"],["2010-2020","2010~2019년"],["2020-9999","2020년~"]]
       .forEach(([v,l])=>{const o=document.createElement("option");o.value=v;o.textContent=l;if(v===peerBuilt)o.selected=true;bsel.appendChild(o);});
-    bsel.onchange=e=>{ peerBuilt=e.target.value; highlightId=null; render(); };
+    bsel.onchange=e=>{ peerBuilt=e.target.value; if(scope==="gu") scope="si"; highlightId=null; render(); };
     $("#ctitle").appendChild(bsel);
   }
+  // 세대수 필터 (최소·최대 드롭다운, 100세대 단위) — 미상(0)은 항상 통과
+  {
+    const opts = (isMax) => {
+      let o = "";
+      if(isMax){
+        for(let v=100; v<=9900; v+=100) o += `<option value="${v}"${peerHhMax===v?" selected":""}>${v.toLocaleString()}</option>`;
+        o += `<option value="10000"${peerHhMax>=10000?" selected":""}>제한없음</option>`;
+      } else {
+        o += `<option value="0"${peerHhMin<=0?" selected":""}>0 (전체)</option>`;
+        for(let v=100; v<=9900; v+=100) o += `<option value="${v}"${peerHhMin===v?" selected":""}>${v.toLocaleString()}</option>`;
+      }
+      return o;
+    };
+    const style = "font:inherit;font-size:12px;font-weight:700;border:1px solid var(--line);border-radius:999px;padding:5px 7px;color:var(--soft);vertical-align:middle;cursor:pointer;background:#fff";
+    const wrapS=document.createElement("span");
+    wrapS.style.cssText="margin-left:10px;font-size:12px;font-weight:600;color:var(--soft);vertical-align:middle";
+    wrapS.innerHTML = `세대수 <select id="hhMin" style="${style}">${opts(false)}</select>`
+      + ` ~ <select id="hhMax" style="${style}">${opts(true)}</select>`;
+    $("#ctitle").appendChild(wrapS);
+    const mn=document.getElementById("hhMin"), mx=document.getElementById("hhMax");
+    const apply=()=>{
+      let a=+mn.value, b=+mx.value;
+      if(a>b){ const t=a; a=b; b=t; }        // 최소>최대면 교환
+      peerHhMin=a; peerHhMax=b;
+      if(scope==="gu") scope="si"; highlightId=null; render();
+    };
+    mn.onchange=apply; mx.onchange=apply;
+  }
+  // 공통 컨트롤 동작 연결 (구·시·전국 공통, 한 번만) — 구에서 '동급 옵션'을 건드리면 시로 전환
+  document.querySelectorAll(".basisBtn").forEach(b=>{ b.onclick=()=>{ peerBasis=b.dataset.b; if(scope==="gu") scope="si"; highlightId=null; render(); }; });
+  const _ys=document.getElementById("peerYearSel");
+  if(_ys) _ys.onchange=e=>{ peerYears=+e.target.value; if(scope==="gu") scope="si"; highlightId=null; render(); };
+  const _ps=document.getElementById("mePySel");
+  if(_ps) _ps.onchange=e=>{ searchKey=e.target.value; highlightId=null; render(); };   // 다른 평형 선택 시 그 평형 보기로
   $("#detailBtn").onclick=()=>openDetail(mName, meKey.split("|")[0]);
 }
 // 검색: 질의어 포함 → 관련도 순 정렬(이름이 질의어로 '시작'하면 우선, 짧은 이름 우선) → 상위 60개
@@ -635,16 +670,23 @@ function searchHits(idx, rawInput){
   const q=rawInput.trim().replace(/\s/g,"").toLowerCase();
   if(!q) return [];
   const norm=s=>s.replace(/\s/g,"").toLowerCase();
-  const hits=idx.filter(x=>norm(x.name).includes(q));
-  hits.sort((a,b)=>{
+  const matched=idx.filter(x=>norm(x.name).includes(q));
+  // 같은 아파트(이름+지역)로 묶어 한 줄만. 대표 평형 = 33평(30평대)에 가장 가까운 것
+  const groups={};
+  matched.forEach(x=>{ const gk=x.name+"|"+(x.regionName||""); (groups[gk]=groups[gk]||[]).push(x); });
+  const reps=Object.values(groups).map(arr=>{
+    const rep=arr.slice().sort((a,b)=>Math.abs(a.pyeong-33)-Math.abs(b.pyeong-33))[0]; // 30평대에 가장 가까운 평형
+    return Object.assign({}, rep, { isCand: arr.some(x=>x.isCand), nPy: arr.length }); // 하나라도 후보면 ⭐, 평형 개수
+  });
+  reps.sort((a,b)=>{
     const an=norm(a.name), bn=norm(b.name);
     const as=an.startsWith(q)?0:1, bs=bn.startsWith(q)?0:1;   // 이름이 질의어로 시작하면 맨 위
     if(as!==bs) return as-bs;
     if(an.length!==bn.length) return an.length-bn.length;      // 짧은 이름 우선(더 정확한 일치)
     if(an!==bn) return an<bn?-1:1;                             // 이름 가나다 순
-    return a.pyeong-b.pyeong;                                  // 같은 이름이면 작은 평형부터
+    return a.pyeong-b.pyeong;
   });
-  return hits.slice(0,60);
+  return reps.slice(0,60);
 }
 function setupSearch(){
   const inp=$("#searchInput"), box=$("#searchResults"), idx=DATA.search||[];
@@ -657,7 +699,7 @@ function setupSearch(){
       box.innerHTML='<div class="empty">검색 결과 없음. (밴드 안 단지만 검색돼요)</div>';
       box.style.display="block"; return;
     }
-    box.innerHTML=hits.map(x=>`<div class="sr"><b>${x.name}</b> <span>${x.regionName} · ${x.pyeong}평${x.isCand?" · ⭐저평가후보":""}</span></div>`).join("");
+    box.innerHTML=hits.map(x=>`<div class="sr"><b>${x.name}</b> <span>${x.regionName}${x.nPy>1?" · 평형 "+x.nPy+"개":" · "+x.pyeong+"평"}${x.isCand?" · ⭐저평가후보":""}</span></div>`).join("");
     box.querySelectorAll(".sr").forEach((el,i)=>{ el.onclick=()=>{
       const x=hits[i]; searchKey=x.key; mode="region"; scope="si"; highlightId=null;
       inp.value=x.name; hide(); render(); window.scrollTo({top:0,behavior:"smooth"});
@@ -704,7 +746,7 @@ function setupHome(){
     const q=inp.value.trim().replace(/\s/g,"").toLowerCase();
     if(!q){ hide(); return; }
     const hits=searchHits(idx, inp.value);
-    box.innerHTML=hits.length?hits.map(x=>`<div class="sr"><b>${x.name}</b> <span>${x.regionName} · ${x.pyeong}평${x.isCand?" · ⭐저평가후보":""}</span></div>`).join("")
+    box.innerHTML=hits.length?hits.map(x=>`<div class="sr"><b>${x.name}</b> <span>${x.regionName}${x.nPy>1?" · 평형 "+x.nPy+"개":" · "+x.pyeong+"평"}${x.isCand?" · ⭐저평가후보":""}</span></div>`).join("")
       :'<div class="empty">검색 결과 없음. (밴드 안 단지만 검색돼요)</div>';
     box.querySelectorAll(".sr").forEach((el,i)=>{ el.onclick=()=>{
       const x=hits[i];
