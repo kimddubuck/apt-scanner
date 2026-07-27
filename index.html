@@ -24,6 +24,14 @@
     .row{padding:12px 8px}
     .modal-box{padding:14px;border-radius:14px}
     .search{max-width:100%}
+    /* ── [모바일 개선] 차트를 목록 위로 올리기 ──
+       HTML 순서는 [목록카드, 차트카드] 그대로 두고,
+       '보이는 순서'만 바꿔서 모바일에서 차트가 먼저 뜨게 합니다.
+       (PC는 이 규칙 밖이라 원래대로 좌우 배치 유지)                      */
+    .grid{display:flex;flex-direction:column}   /* 세로로 쌓고 순서 지정 가능하게 */
+    .grid > .card:nth-child(2){order:1}          /* 둘째(차트) → 맨 위로  */
+    .grid > .card:nth-child(1){order:2}          /* 첫째(목록) → 그 아래로 */
+    .list{max-height:260px}                      /* 목록은 살짝 낮춰 스크롤 편하게(위 300 덮어씀) */
   }
   .eyebrow{font-size:12px;letter-spacing:.14em;color:var(--gold);font-weight:700;text-transform:uppercase}
   h1{margin:.2em 0 .1em;font-size:26px;font-weight:800;letter-spacing:-.02em}
@@ -105,6 +113,8 @@
   .home-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
   .home-logo{font-size:20px;font-weight:800;letter-spacing:-.02em}
   .home-logo em{color:var(--gold);font-style:normal}
+  /* [버전 배지] 홈 오른쪽 상단, 빌드 날짜 자동 표시 */
+  .ver-badge{font-size:11px;color:var(--soft);background:#EFF2F5;border-radius:999px;padding:4px 10px;font-weight:600}
   .home-search{position:relative;margin-bottom:14px}
   .home-search input{width:100%;box-sizing:border-box;border:1.5px solid var(--line);border-radius:14px;padding:15px 18px;font-size:15px;font-family:inherit;background:#fff}
   .home-search input:focus{outline:2px solid #EAD9A8}
@@ -139,6 +149,7 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">저평가 <em>스캐너</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
+    <div class="ver-badge">ver 2026.07.28</div>
   </div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
@@ -219,6 +230,7 @@
 <script>
 const DATA = window.__APTDATA__ || {};
 let mode = "region";                 // "region"(구별) | "tier"(평당가별)
+let sido = null;                     // [시별 보기] 선택된 시·도 (null=1단계 시목록, 값=2단계 구목록)
 let regionCode = DATA.defaultRegion;
 let tierCode = DATA.defaultTier;
 let activeId = null;                  // 구별: 후보 id
@@ -260,6 +272,46 @@ function drawPills(){
   const box=$("#regions"); box.innerHTML="";
   const list = mode==="region" ? DATA.regions : DATA.tiers;
   const active = mode==="region" ? regionCode : tierCode;
+  /* ── [시별 보기] 구별 모드는 2단계로: 시·도 먼저 → 시를 고르면 그 안의 구들 ──
+     지역 이름("서울 종로구")의 첫 단어("서울")를 시·도로 사용.
+     데이터 구조는 그대로 두고 '보여주는 방식'만 바꿈.                       */
+  if(mode==="region"){
+    const sidoOf = n => n.split(" ")[0];               // "서울 종로구" → "서울"
+    if(!sido){
+      // [1단계] 시·도 칩들 (별 개수는 그 시 전체 합계)
+      const groups={};
+      list.forEach(g=>{ const s=sidoOf(g.name); (groups[s]=groups[s]||{star:0,n:0}); groups[s].star+=g.starCount; groups[s].n++; });
+      Object.keys(groups).forEach(s=>{
+        const b=document.createElement("button");
+        b.className="pill"+(sidoOf(regionByCode(regionCode).name)===s?" on":"");
+        b.innerHTML=`${s}<b>${groups[s].star}</b>`;
+        b.onclick=()=>{
+          sido=s;
+          // 그 시의 첫 지역(또는 현재 선택이 그 시면 유지)으로 이동
+          const cur=regionByCode(regionCode);
+          if(sidoOf(cur.name)!==s){ regionCode=list.find(g=>sidoOf(g.name)===s).code; }
+          searchKey=null; pickDefault(); render();
+        };
+        box.appendChild(b);
+      });
+    } else {
+      // [2단계] 뒤로가기 칩 + 그 시의 구들만
+      const back=document.createElement("button");
+      back.className="pill";
+      back.innerHTML="◀ 시·도";
+      back.onclick=()=>{ sido=null; render(); };
+      box.appendChild(back);
+      list.filter(g=>sidoOf(g.name)===sido).forEach(g=>{
+        const b=document.createElement("button");
+        b.className="pill"+(g.code===active?" on":"");
+        b.innerHTML=`${g.name.split(" ").slice(1).join(" ")||g.name}<b>${g.starCount}</b>`;  // "서울 종로구"→"종로구"
+        b.onclick=()=>{ regionCode=g.code; searchKey=null; pickDefault(); render(); };
+        box.appendChild(b);
+      });
+    }
+    return;
+  }
+  // 평당가별 모드는 기존 그대로
   list.forEach(g=>{
     const b=document.createElement("button");
     b.className="pill"+(g.code===active?" on":"");
@@ -534,8 +586,8 @@ function render(){
   const bBtn=(b,label)=>`<button class="basisBtn" data-b="${b}" style="border:1px solid var(--line);padding:2px 8px;font:inherit;cursor:pointer;border-radius:6px;`
     +`${peerBasis===b?"background:var(--gold);color:#fff;border-color:var(--gold);font-weight:700":"background:#fff;color:var(--ink)"}">${label}</button>`;
   const basisToggle=`<span style="display:inline-flex;gap:4px;vertical-align:middle;margin-right:6px">${bBtn("past","과거 기준")}${bBtn("recent","현재 기준")}</span>`;
-  const meRc = pd.units[meKey] ? pd.units[meKey].rc : "";
-  const sameApt = (pd.units[meKey] ? Object.keys(pd.units).filter(k => pd.units[k].name===mName && pd.units[k].rc===meRc) : [])
+  const meRc = (pd && pd.units[meKey]) ? pd.units[meKey].rc : "";
+  const sameApt = ((pd && pd.units[meKey]) ? Object.keys(pd.units).filter(k => pd.units[k].name===mName && pd.units[k].rc===meRc) : [])
     .map(k => ({key:k, py:pd.units[k].pyeong})).sort((a,b)=>a.py-b.py);
   let pySelHtml = "";
   if(sameApt.length > 1){   // 같은 단지 평형이 2개 이상일 때만 평형 선택기 표시
@@ -702,7 +754,8 @@ function setupSearch(){
     box.innerHTML=hits.map(x=>`<div class="sr"><b>${x.name}</b> <span>${x.regionName}${x.nPy>1?" · 평형 "+x.nPy+"개":" · "+x.pyeong+"평"}${x.isCand?" · ⭐저평가후보":""}</span></div>`).join("");
     box.querySelectorAll(".sr").forEach((el,i)=>{ el.onclick=()=>{
       const x=hits[i]; searchKey=x.key; mode="region"; scope="si"; highlightId=null;
-      inp.value=x.name; hide(); render(); window.scrollTo({top:0,behavior:"smooth"});
+      const _u=DATA.peerdata&&DATA.peerdata.units[x.key]; if(_u&&_u.rc&&regionByCode(_u.rc)){regionCode=_u.rc;} syncSido();
+      inp.value=x.name; hide(); render(); scrollToChart();
     };});
     box.style.display="block";
   });
@@ -710,6 +763,26 @@ function setupSearch(){
 }
 // ── 홈 ↔ 스캐너 화면 전환 ──
 function goHome(){ $("#home").classList.add("on"); $("#scanner").classList.remove("on"); window.scrollTo(0,0); }
+/* [검색 개선] 검색으로 아파트를 고르면 차트가 바로 보이게 스크롤.
+   - 모바일(좁은 화면): 지역칩·통계를 건너뛰고 차트 카드로 이동
+   - PC(넓은 화면): 차트가 오른쪽에 이미 보이므로 그냥 맨 위로       */
+function scrollToChart(){
+  if(window.innerWidth<=640){
+    setTimeout(()=>{                     // render()가 화면을 다 그린 다음에
+      const c=$("#chart");
+      if(c) c.closest(".card").scrollIntoView({behavior:"smooth",block:"start"});
+      else window.scrollTo(0,0);
+    },80);
+  } else {
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+}
+function syncSido(){
+  /* 현재 선택된 지역(regionCode)에 맞춰 시·도 선택을 따라 맞춤.
+     (검색·바로가기 등으로 특정 구에 바로 들어올 때 2단계 화면이 자연스럽게) */
+  const r=regionByCode(regionCode);
+  sido = r ? r.name.split(" ")[0] : null;
+}
 function goScanner(kind){
   $("#home").classList.remove("on"); $("#scanner").classList.add("on");
   if(kind==="tier"){ mode="tier"; }
@@ -718,21 +791,39 @@ function goScanner(kind){
     // 저평가 ★ 이 가장 많은 지역으로
     const best=[...DATA.regions].sort((a,b)=>b.starCount-a.starCount)[0];
     if(best) regionCode=best.code;
+    syncSido();                        // 그 지역의 시로 2단계 진입
+  } else {
+    sido=null;                          // "구별 보기"는 1단계(시 목록)부터
   }
   scope="gu"; highlightId=null; searchKey=null; pickDefault(); render(); window.scrollTo(0,0);
 }
 function setupHome(){
   const total=DATA.regions.reduce((s,r)=>s+r.starCount,0);
   $("#homeStarCount").textContent=total;
-  // 바로가기: 저평가 많은 지역 TOP 8 + 평당가 구간
+  // 바로가기: 저평가 많은 시·도 TOP 8 + 평당가 구간
   const grid=$("#homeGrid"); grid.innerHTML="";
   const icons=["🏙️","🌊","🏔️","🌉","🏗️","🚉","🌳","🏟️"];
-  [...DATA.regions].sort((a,b)=>b.starCount-a.starCount).slice(0,8).forEach((r,i)=>{
-    const b=document.createElement("button"); b.className="ibtn";
-    b.innerHTML=`<div class="ic">${icons[i%icons.length]}</div><span>${r.name.split(" ").slice(-1)[0]} ${r.starCount}</span>`;
-    b.onclick=()=>{ goScanner("region"); regionCode=r.code; searchKey=null; pickDefault(); render(); };
-    grid.appendChild(b);
+  // ── [시·도별 묶기] "서울 종로구"의 첫 단어("서울")로 그룹핑, 별 개수 합산 ──
+  const sidoMap={};   // { "서울": {star:합계, code:그 시의 첫 지역코드} }
+  DATA.regions.forEach(r=>{
+    const s=r.name.split(" ")[0];
+    if(!sidoMap[s]) sidoMap[s]={star:0, code:r.code};
+    sidoMap[s].star += r.starCount;
   });
+  Object.keys(sidoMap)
+    .sort((a,b)=>sidoMap[b].star-sidoMap[a].star)   // 별 많은 시·도 순
+    .slice(0,8)
+    .forEach((s,i)=>{
+      const b=document.createElement("button"); b.className="ibtn";
+      b.innerHTML=`<div class="ic">${icons[i%icons.length]}</div><span>${s} ${sidoMap[s].star}</span>`;
+      b.onclick=()=>{
+        goScanner("region");
+        regionCode=sidoMap[s].code;   // 그 시의 첫 지역으로
+        syncSido();                    // → 그 시의 2단계(구 목록) 화면
+        searchKey=null; pickDefault(); render();
+      };
+      grid.appendChild(b);
+    });
   (DATA.tiers||[]).forEach(t=>{
     const b=document.createElement("button"); b.className="ibtn";
     b.innerHTML=`<div class="ic">💰</div><span>${t.name.replace("만","")}</span>`;
@@ -751,7 +842,7 @@ function setupHome(){
     box.querySelectorAll(".sr").forEach((el,i)=>{ el.onclick=()=>{
       const x=hits[i];
       $("#home").classList.remove("on"); $("#scanner").classList.add("on");
-      searchKey=x.key; mode="region"; scope="si"; highlightId=null; hide(); inp.value=x.name; render(); window.scrollTo(0,0);
+      searchKey=x.key; mode="region"; scope="si"; highlightId=null; const _u=DATA.peerdata&&DATA.peerdata.units[x.key]; if(_u&&_u.rc&&regionByCode(_u.rc)){regionCode=_u.rc;} syncSido(); hide(); inp.value=x.name; render(); scrollToChart();
     };});
     box.style.display="block";
   });
