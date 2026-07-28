@@ -71,6 +71,14 @@
   .chart-note b{color:var(--gold)}
   svg{width:100%;height:auto;display:block}
   .legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:12px;font-size:13px}
+  /* ── [차트 확대] 차트 영역에서는 페이지가 같이 확대되지 않게 막음 ── */
+  #chart{touch-action:none}
+  .zoomhint{font-size:11px;color:#9AA3AF;text-align:center;margin-top:4px}
+  .zoombar{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px;
+           font-size:12px;color:var(--ink);font-weight:600}
+  .zoombar button{border:1px solid var(--line);background:#fff;border-radius:999px;
+                  padding:4px 10px;font-size:11px;cursor:pointer;font-weight:600}
+  .zoombar button:hover{border-color:#CBD3DD}
   .legend .it{display:flex;align-items:center;gap:6px}
   .swatch{width:16px;height:3px;border-radius:2px;display:inline-block}
   .legend .val{color:var(--soft);font-variant-numeric:tabular-nums}
@@ -230,6 +238,10 @@
 <script>
 const DATA = window.__APTDATA__ || {};
 let mode = "region";                 // "region"(구별) | "tier"(평당가별)
+/* [차트 확대] 보여줄 기간 구간을 0~1 비율로 저장.
+   zoomA=0, zoomB=1 이면 전체 기간. 손가락을 벌리면 이 폭이 좁아짐(=확대). */
+let zoomA = 0, zoomB = 1;
+let chartFullN = 138;                // 현재 차트의 전체 개월 수 (확대 한계 계산용)
 let sido = null;                     // [시별 보기] 선택된 시·도 (null=1단계 시목록, 값=2단계 구목록)
 let regionCode = DATA.defaultRegion;
 let tierCode = DATA.defaultTier;
@@ -379,6 +391,21 @@ function drawList(){
   if(!count) box.innerHTML='<div style="padding:14px;color:#9AA3AF;font-size:13px">필터에 맞는 후보가 없어요.</div>';
 }
 function drawChart(months, units, ids, mainId, colors){
+  /* ── [차트 확대] 보여줄 기간만 잘라내기 ──
+     손가락을 벌리면(zoomA~zoomB 폭이 좁아지면) 그 구간만 크게 보입니다.
+     months(가로축 날짜)와 각 아파트 prices(값)를 '같은 위치'로 함께 잘라야
+     날짜와 값이 어긋나지 않습니다.                                        */
+  const FULL_N = months.length;
+  chartFullN = FULL_N;
+  if(FULL_N > 4 && (zoomA > 0 || zoomB < 1)){
+    let i0 = Math.round(zoomA * (FULL_N - 1));
+    let i1 = Math.round(zoomB * (FULL_N - 1));
+    if(i1 - i0 < 3) i1 = Math.min(FULL_N - 1, i0 + 3);   // 최소 4개월은 보이게
+    months = months.slice(i0, i1 + 1);
+    const cut = {};                                      // 값도 같은 구간으로 자름
+    ids.forEach(id => { cut[id] = Object.assign({}, units[id], {prices: units[id].prices.slice(i0, i1 + 1)}); });
+    units = cut;
+  }
   const W=680,H=360,padL=54,padR=16,padT=16,padB=34;
   let vals=[]; ids.forEach(id=>units[id].prices.forEach(v=>{if(v!=null)vals.push(v);}));
   if(!vals.length){$("#chart").innerHTML="<p>시세 없음</p>";return;}
@@ -410,7 +437,70 @@ function drawChart(months, units, ids, mainId, colors){
   ids.filter(id=>id!==mainId && id!==hl).forEach(id=>g+=line(units[id].prices,colors[id], 1.8, hl?0.22:1));
   if(mainId!==hl) g+=line(units[mainId].prices,colors[mainId], hl?2.2:3.2, hl?0.25:1);
   if(hl) g+=line(units[hl].prices,colors[hl], 4, 1);
-  $("#chart").innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;
+  const zoomed = (zoomA > 0 || zoomB < 1);
+  const hint = zoomed
+    ? `<div class="zoombar">🔍 ${months[0]} ~ ${months[months.length-1]} 확대 중 <button onclick="resetZoom()">전체 보기</button></div>`
+    : `<div class="zoomhint">두 손가락을 벌리면 확대 · 좁히면 축소 (PC는 마우스 휠)</div>`;
+  $("#chart").innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img">${g}</svg>${hint}`;
+  bindZoom(FULL_N);
+}
+/* ── [차트 확대] 손가락 두 개(핀치)·마우스 휠로 기간을 좁히거나 넓힘 ── */
+function resetZoom(){ zoomA=0; zoomB=1; render(); }
+function bindZoom(fullN){
+  const el=$("#chart");
+  if(!el || el.dataset.zoomBound) return;   // 한 번만 연결 (중복 방지)
+  el.dataset.zoomBound="1";
+  const clamp=()=>{                          // 범위가 뒤집히거나 넘치지 않게 정리
+    const minW=Math.max(4/Math.max(chartFullN,5), 0.03);   // 최소 폭(너무 확대 방지)
+    if(zoomB-zoomA < minW){ const c=(zoomA+zoomB)/2; zoomA=c-minW/2; zoomB=c+minW/2; }
+    if(zoomA<0){ zoomB-=zoomA; zoomA=0; }
+    if(zoomB>1){ zoomA-=(zoomB-1); zoomB=1; }
+    if(zoomA<0) zoomA=0; if(zoomB>1) zoomB=1;
+  };
+  // 확대/축소 실행: factor<1 이면 확대(폭 좁힘), >1 이면 축소. center=0~1 기준점
+  const applyZoom=(factor, center)=>{
+    const w=(zoomB-zoomA)*factor;
+    const c=zoomA+(zoomB-zoomA)*center;      // 화면상 기준점을 비율로 환산
+    zoomA=c-w*center; zoomB=c+w*(1-center);
+    clamp();
+    if(zoomB-zoomA>=0.999){ zoomA=0; zoomB=1; }   // 거의 전체면 전체로 딱 맞춤
+    render();
+  };
+  let startDist=0, startA=0, startB=0, rafPending=false;
+  const smoothRender=()=>{            // 손가락 움직이는 동안 그리기를 화면 주기에 맞춤
+    if(rafPending) return;            // (매 움직임마다 그리면 휴대폰이 버벅임)
+    rafPending=true;
+    requestAnimationFrame(()=>{ rafPending=false; render(); });
+  };
+  el.addEventListener("touchstart",e=>{
+    if(e.touches.length===2){
+      const [t1,t2]=e.touches;
+      startDist=Math.hypot(t2.clientX-t1.clientX, t2.clientY-t1.clientY);
+      startA=zoomA; startB=zoomB;
+    }
+  },{passive:true});
+  el.addEventListener("touchmove",e=>{
+    if(e.touches.length===2 && startDist>0){
+      e.preventDefault();                    // 페이지 전체가 같이 확대되는 것 방지
+      const [t1,t2]=e.touches;
+      const d=Math.hypot(t2.clientX-t1.clientX, t2.clientY-t1.clientY);
+      const rect=el.getBoundingClientRect();
+      const cx=((t1.clientX+t2.clientX)/2 - rect.left)/rect.width;   // 두 손가락 중간점
+      const w=(startB-startA)*(startDist/Math.max(d,1));             // 벌리면 폭 축소
+      const c=startA+(startB-startA)*Math.min(Math.max(cx,0),1);
+      zoomA=c-w*cx; zoomB=c+w*(1-cx);
+      clamp();
+      smoothRender();
+    }
+  },{passive:false});
+  el.addEventListener("touchend",()=>{ startDist=0; },{passive:true});
+  // PC: 마우스 휠로도 확대/축소
+  el.addEventListener("wheel",e=>{
+    e.preventDefault();
+    const rect=el.getBoundingClientRect();
+    const cx=Math.min(Math.max((e.clientX-rect.left)/rect.width,0),1);
+    applyZoom(e.deltaY<0 ? 0.8 : 1.25, cx);
+  },{passive:false});
 }
 function drawLegend(units, ids, mainId, colors){
   const box=$("#legend"); box.innerHTML="";
