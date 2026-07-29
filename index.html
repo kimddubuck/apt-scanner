@@ -164,15 +164,16 @@
     .grid > .card:nth-child(2){order:1}          /* 둘째(차트) → 맨 위로  */
     .grid > .card:nth-child(1){order:2}          /* 첫째(목록) → 그 아래로 */
     .list{max-height:260px}                      /* 목록은 살짝 낮춰 스크롤 편하게(위 300 덮어씀) */
-    /* ── [스크롤 최소화] 차트 카드 안에서도 '차트 먼저, 조절은 아래' ──
-       필터·컨트롤은 차트를 본 다음에 만지는 것이므로 아래로 내립니다.    */
+    /* ── [순서] 필터(접기버튼+내용)는 붙어 있어야 하고, 그 바로 아래 차트 ──
+       예전엔 버튼은 위, 펼쳐지는 내용은 아래에 있어 엇박자가 났습니다.      */
     .grid > .card:nth-child(2){display:flex;flex-direction:column}
-    .grid > .card:nth-child(2) > .chart-title{order:1}   /* 어느 아파트인지 */
-    .grid > .card:nth-child(2) > #chart      {order:2}   /* 📉 차트 바로!  */
-    .grid > .card:nth-child(2) > .legend     {order:3}   /* 어떤 선인지    */
-    .grid > .card:nth-child(2) > .chart-note {order:4}   /* 설명+컨트롤    */
-    .grid > .card:nth-child(2) > .filters    {order:5}   /* 필터 5개       */
-    .grid > .card:nth-child(2) > .detail-link{order:6}
+    .grid > .card:nth-child(2) > #filterPicker{order:1}  /* ⚙️ 필터 버튼   */
+    .grid > .card:nth-child(2) > .filters    {order:2}   /* 펼치면 바로 아래 */
+    .grid > .card:nth-child(2) > .chart-title{order:3}   /* 어느 아파트인지 */
+    .grid > .card:nth-child(2) > #chart      {order:4}   /* 📉 차트        */
+    .grid > .card:nth-child(2) > .legend     {order:5}   /* 어떤 선인지    */
+    .grid > .card:nth-child(2) > .chart-note {order:6}   /* 설명           */
+    .grid > .card:nth-child(2) > .detail-link{order:7}
     /* [스크롤 최소화] 통계 3개는 차트를 본 뒤 봐도 되므로 아래로 내림 */
     #scanner.on{display:flex;flex-direction:column}
     #scanner > .grid{order:4}       /* 차트+목록 먼저 */
@@ -359,8 +360,8 @@ function drawPills(){
         b.innerHTML=`${g.name.split(" ").slice(1).join(" ")||g.name}<b>${g.starCount}</b>`;  // "서울 종로구"→"종로구"
         b.onclick=()=>{
           regionCode=g.code;
-          // ── [칩↔드롭박스 동기화] 아래 필터도 이 시·구로 맞춤 ──
-          filters.sido=sido; filters.region=g.code;
+          // ── [칩↔드롭박스 동기화] 아래 필터·차트 비교지역도 이 시·구로 맞춤 ──
+          filters.sido=sido; filters.region=g.code; peerSido=sido;
           searchKey=null; pickDefault(); closePick("regions"); render();
         };
         box.appendChild(b);
@@ -779,13 +780,16 @@ function drawFilters(){
     // ── [드롭박스↔칩 동기화] 위 칩도 이 시로 맞춤 ──
     if(v){ sido=v; const first=DATA.regions.find(r=>r.name.startsWith(v)); if(first) regionCode=first.code; }
     else { sido=null; }
+    // ── [차트 연동] 필터에서 지역을 고르면 차트의 '비교 대상'도 같은 지역으로 ──
+    //    (예: 부산으로 필터하면 차트 동급도 부산 아파트만 나오게)
+    peerSido = v;
     syncChartToFilter(); render();
   }));
   const regs=DATA.regions.filter(r=>!filters.sido||r.name.startsWith(filters.sido));
   box.appendChild(mk([["","구 전체"],...regs.map(r=>[r.code,r.name.split(" ").slice(1).join(" ")||r.name])], filters.region, v=>{
     filters.region=v;
     // ── [드롭박스↔칩 동기화] 위 칩도 이 구로 맞춤 ──
-    if(v){ const r=regionByCode(v); if(r){ regionCode=v; sido=r.name.split(" ")[0]; filters.sido=sido; } }
+    if(v){ const r=regionByCode(v); if(r){ regionCode=v; sido=r.name.split(" ")[0]; filters.sido=sido; peerSido=sido; } }
     syncChartToFilter(); render();
   }));
   box.appendChild(mk([["","평형 전체"],["0-20","20평 미만"],["20-30","20평대"],["30-40","30평대"],["40-999","40평 이상"]], filters.pyeong, v=>{filters.pyeong=v;syncChartToFilter();render();}));
@@ -955,7 +959,12 @@ function render(){
     const on=(eff===s), b=document.createElement("button");
     b.style.cssText="border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:700;cursor:"+(disabled?"not-allowed":"pointer")+";opacity:"+(disabled?"0.4":"1")+";background:"+(on?"var(--ink)":"#fff")+";color:"+(on?"#fff":"var(--soft)");
     b.textContent=label;
-    if(!disabled) b.onclick=()=>{ scope=s; highlightId=null; render(); };
+    if(!disabled) b.onclick=()=>{
+      scope=s; highlightId=null;
+      // 전국을 누르면 '비교지역'도 전체로 풀어줌 (전국인데 한 지역만 비교하면 앞뒤가 안 맞음)
+      if(s==="nat") peerSido="";
+      render();
+    };
     wrap.appendChild(b);
   });
   $("#ctitle").appendChild(wrap);
