@@ -62,7 +62,7 @@
   .regions:not(.open),.filters:not(.open){display:none}
   .regions.open{max-height:44vh;overflow-y:auto}
   /* ── [차트 확대] 차트 영역에서는 페이지가 같이 확대되지 않게 막음 ── */
-  #chart{touch-action:none}
+  #chart{touch-action:pan-y}   /* 세로 페이지 스크롤은 그대로, 확대·좌우이동은 직접 처리 */
   .zoombar{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px;
            font-size:12px;color:var(--ink);font-weight:600}
   .zoombar.zoomhint{font-size:11px;color:#9AA3AF;font-weight:400}
@@ -208,7 +208,7 @@
       <span class="qi">🗺️</span><b>구별 보기</b><span>지역별 스캔</span>
     </button>
     <button class="qcard" onclick="goScanner('tier')">
-      <span class="qi">💰</span><b>평당가별 보기</b><span>2000~5000만 구간</span>
+      <span class="qi">💰</span><b>평당가별 보기</b><span>1500~5000만 구간</span>
     </button>
   </div>
   <div class="home-sec">바로가기</div>
@@ -290,6 +290,8 @@ let scope = "gu";                    // 비교 범위: "gu"(구) | "si"(시) | "
 let peerYears = (DATA.defaultYears||5);   // 동급 판정 기준: 처음/최근 N년
 let peerBasis = "past";              // 동급 판정 시점: "past"(처음 N년) | "recent"(최근 N년)
 let peerBuilt = "";                  // 동급 연식 필터: ""(전체) | "lo-hi"(건축년도 구간)
+let peerSido = "";                   // 동급 '비교 지역' 필터: ""(전국 전체) | "대구" 등 시·도 이름
+let peerFound = 0;                   // 이번에 찾은 동급 총 개수(화면에 안내용)
 let peerHhMin = 0, peerHhMax = 10000; // 동급 세대수 필터 범위 (전체=0~10000, 미상은 항상 통과)
 const $ = s => document.querySelector(s);
 const fmtEok = v => { if(v==null) return "-"; const e=v/10000; return (Number.isInteger(e)?e:e.toFixed(1))+"억"; };
@@ -475,8 +477,8 @@ function drawChart(months, units, ids, mainId, colors){
   if(hl) g+=line(units[hl].prices,colors[hl], 4, 1);
   const zoomed = (zoomA > 0 || zoomB < 1);
   const hintInner = zoomed
-    ? `🔍 ${months[0]} ~ ${months[months.length-1]} 확대 중 <button onclick="resetZoom()">전체 보기</button>`
-    : `두 손가락을 벌리면 확대 · 좁히면 축소 (PC는 마우스 휠)`;
+    ? `🔍 ${months[0]} ~ ${months[months.length-1]} <button onclick="jumpLatest()">최신으로 ▶</button><button onclick="resetZoom()">전체 보기</button>`
+    : `두 손가락 벌리면 확대 · 확대 후 좌우로 밀면 기간 이동 (PC는 휠·드래그)`;
   /* ── [중요] SVG 요소를 '없애고 새로 만들지' 않고, 내용만 갈아끼운다 ──
      손가락으로 만지는 중에 SVG가 사라지면 휴대폰이 손가락 추적을 멈춰버려서
      핀치 확대가 첫 움직임에서 끊깁니다. 틀은 유지하고 속만 바꿔야 계속 됩니다. */
@@ -494,6 +496,8 @@ function drawChart(months, units, ids, mainId, colors){
 }
 /* ── [차트 확대] 손가락 두 개(핀치)·마우스 휠로 기간을 좁히거나 넓힘 ── */
 function resetZoom(){ zoomA=0; zoomB=1; render(); }
+/* [최신으로] 확대 폭은 그대로 두고 오른쪽 끝(가장 최근)으로 이동 */
+function jumpLatest(){ const w=zoomB-zoomA; zoomB=1; zoomA=Math.max(0,1-w); render(); }
 function bindZoom(fullN){
   const el=$("#chart");
   if(!el || el.dataset.zoomBound) return;   // 한 번만 연결 (중복 방지)
@@ -526,29 +530,69 @@ function bindZoom(fullN){
      사라지면 신호를 못 받아 확대가 첫 움직임에서 멈춰버립니다.
      window 는 사라지지 않으므로 끝까지 추적됩니다.                        */
   let pinching=false;
+  /* [기간 이동] 확대한 상태에서 한 손가락으로 좌우로 밀면 보는 기간이 이동합니다.
+     (확대만 되고 이동이 안 되면 원하는 시기를 못 보니 꼭 필요한 기능)        */
+  let panning=false, panStartX=0, panStartY=0, panA=0, panB=0, panDecided=false;
   el.addEventListener("touchstart",e=>{
     if(e.touches.length===2){
       e.preventDefault();                  // 브라우저 자체 확대가 끼어드는 것 차단
       const [t1,t2]=e.touches;
       startDist=Math.hypot(t2.clientX-t1.clientX, t2.clientY-t1.clientY);
-      startA=zoomA; startB=zoomB; pinching=true;
+      startA=zoomA; startB=zoomB; pinching=true; panning=false;
+    } else if(e.touches.length===1 && (zoomB-zoomA) < 0.999){
+      // 확대돼 있을 때만 이동 가능 (전체 보기 상태에선 이동할 곳이 없음)
+      panning=true; panDecided=false;
+      panStartX=e.touches[0].clientX; panStartY=e.touches[0].clientY;
+      panA=zoomA; panB=zoomB;
     }
   },{passive:false});
   window.addEventListener("touchmove",e=>{
-    if(!pinching || e.touches.length!==2 || startDist<=0) return;
-    e.preventDefault();                    // 페이지 전체가 같이 확대되는 것 방지
-    const [t1,t2]=e.touches;
-    const d=Math.hypot(t2.clientX-t1.clientX, t2.clientY-t1.clientY);
-    const rect=el.getBoundingClientRect();
-    const cx=Math.min(Math.max(((t1.clientX+t2.clientX)/2 - rect.left)/rect.width, 0), 1);
-    const w=(startB-startA)*(startDist/Math.max(d,1));             // 벌리면 폭 축소
-    const c=startA+(startB-startA)*cx;
-    zoomA=c-w*cx; zoomB=c+w*(1-cx);
-    clamp();
-    smoothRender();
+    if(pinching && e.touches.length===2 && startDist>0){
+      e.preventDefault();                  // 페이지 전체가 같이 확대되는 것 방지
+      const [t1,t2]=e.touches;
+      const d=Math.hypot(t2.clientX-t1.clientX, t2.clientY-t1.clientY);
+      const rect=el.getBoundingClientRect();
+      const cx=Math.min(Math.max(((t1.clientX+t2.clientX)/2 - rect.left)/rect.width, 0), 1);
+      const w=(startB-startA)*(startDist/Math.max(d,1));             // 벌리면 폭 축소
+      const c=startA+(startB-startA)*cx;
+      zoomA=c-w*cx; zoomB=c+w*(1-cx);
+      clamp(); smoothRender();
+      return;
+    }
+    if(panning && e.touches.length===1){
+      const dxPx=e.touches[0].clientX-panStartX;
+      const dyPx=e.touches[0].clientY-panStartY;
+      if(!panDecided){
+        // 처음 움직임의 방향을 보고 결정: 가로면 기간 이동, 세로면 페이지 스크롤 양보
+        if(Math.abs(dxPx)<6 && Math.abs(dyPx)<6) return;          // 아직 판단 보류
+        if(Math.abs(dyPx) > Math.abs(dxPx)){ panning=false; return; }  // 세로 → 페이지 스크롤
+        panDecided=true;
+      }
+      e.preventDefault();
+      const rect=el.getBoundingClientRect();
+      const w=panB-panA;
+      let a=panA - (dxPx/rect.width)*w;    // 오른쪽으로 밀면 과거로 이동
+      if(a<0) a=0; if(a+w>1) a=1-w;
+      zoomA=a; zoomB=a+w;
+      smoothRender();
+    }
   },{passive:false});
-  window.addEventListener("touchend",()=>{ pinching=false; startDist=0; },{passive:true});
-  window.addEventListener("touchcancel",()=>{ pinching=false; startDist=0; },{passive:true});
+  window.addEventListener("touchend",()=>{ pinching=false; startDist=0; panning=false; },{passive:true});
+  window.addEventListener("touchcancel",()=>{ pinching=false; startDist=0; panning=false; },{passive:true});
+  // PC: 마우스로 끌어서도 기간 이동
+  let mDown=false, mX=0, mA=0, mB=0;
+  el.addEventListener("mousedown",e=>{
+    if((zoomB-zoomA)>=0.999) return;
+    mDown=true; mX=e.clientX; mA=zoomA; mB=zoomB; e.preventDefault();
+  });
+  window.addEventListener("mousemove",e=>{
+    if(!mDown) return;
+    const rect=el.getBoundingClientRect(), w=mB-mA;
+    let a=mA-((e.clientX-mX)/rect.width)*w;
+    if(a<0) a=0; if(a+w>1) a=1-w;
+    zoomA=a; zoomB=a+w; smoothRender();
+  });
+  window.addEventListener("mouseup",()=>{ mDown=false; });
   // iOS 사파리: touch-action 만으로 페이지 확대가 안 막히므로 별도 차단
   ["gesturestart","gesturechange","gestureend"].forEach(ev=>
     el.addEventListener(ev, ev2=>ev2.preventDefault()));
@@ -605,6 +649,8 @@ function computePeers(meKey, years, scp, basis, built){
     if(k===meKey) continue;
     const inf=pd.units[k];
     if(scp==="si" && siKey(inf.rc)!==meSi) continue;      // 같은 시만
+    // ── [비교 지역 필터] 특정 시·도하고만 비교하고 싶을 때 (예: 대구랑만) ──
+    if(peerSido && !(inf.rn||"").startsWith(peerSido)) continue;
     if(built){ const by=inf.by||0; if(!(by>=bLo && by<bHi)) continue; }   // 연식 구간 필터
     // 세대수 필터 (전체범위 아니면 적용) — 범위를 지정하면 세대수 미상(0)은 제외
     if(peerHhMin>0 || peerHhMax<10000){
@@ -629,6 +675,7 @@ function computePeers(meKey, years, scp, basis, built){
      지금: ① 가장 '닮은 순'(가격수준이 1에 가깝고 흔들림 적은 순)으로 정렬하고
            ② 한 시·도에서 최대 2곳까지만 뽑아 여러 지역이 골고루 나오게 함.       */
   out.sort((a,b)=>a.sim-b.sim);
+  peerFound = out.length;              // 실제로 찾은 동급 총 개수 (화면 안내용)
   if(scp==="nat"){
     const cnt={}, first=[], rest=[];
     out.forEach(x=>{
@@ -647,7 +694,7 @@ function peerUnits(keys){
 }
 // ---- 필터 ----
 const PRICE_OPTS=[["","가격 전체"],["0-50000","5억 이하"],["50000-100000","5~10억"],["100000-150000","10~15억"],["150000-200000","15~20억"],["200000-999999999","20억 이상"]];
-const PP_OPTS=[["","평당가 전체"],["2000-2500","2000~2500"],["2500-3000","2500~3000"],["3000-3500","3000~3500"],["3500-4000","3500~4000"],["4000-4500","4000~4500"],["4500-5001","4500~5000"]];
+const PP_OPTS=[["","평당가 전체"],["1500-2000","1500~2000"],["2000-2500","2000~2500"],["2500-3000","2500~3000"],["3000-3500","3000~3500"],["3500-4000","3500~4000"],["4000-4500","4000~4500"],["4500-5001","4500~5000"]];
 function matchFilters(c, regionCode2){
   const r=regionByCode(regionCode2);
   if(filters.sido && !r.name.startsWith(filters.sido)) return false;
@@ -870,13 +917,20 @@ function render(){
       }
     }
 
+    // ── [안내] 동급을 실제로 몇 곳 찾았는지 알려줌 ──
+    //    차트에는 알아보기 쉽게 최대 8곳만 그리지만, 실제로는 더 많을 수 있습니다.
+    const shown = ids.length - 1;                       // 나 자신 제외
+    const foundTxt = peerFound > shown
+      ? ` <span style="color:#9AA3AF;font-size:12px">(닮은 곳 ${peerFound.toLocaleString()}곳 중 가장 닮은 ${shown}곳 표시${peerSido?" · "+peerSido+"만":""})</span>`
+      : (shown>0 ? ` <span style="color:#9AA3AF;font-size:12px">(${shown}곳${peerSido?" · "+peerSido+"만":""})</span>` : "");
+
     if(ids.length<2){
       // 동급 0개일 때도 토글·드롭다운을 함께 보여줘서 되돌리거나 기준을 바꿀 수 있게 함
-      $("#cnote").innerHTML=`${ctrlBar}<br>${scWord}에서 <b>${whenWord} ${yearSel}</b> 기준으로는 아직 동급을 못 찾았어요. 연수·기준을 바꾸거나 [전국]을 눌러보세요.`;
+      $("#cnote").innerHTML=`${ctrlBar}<br>${scWord}${peerSido?"("+peerSido+")":""}에서 <b>${whenWord} ${yearSel}</b> 기준으로는 아직 동급을 못 찾았어요. 연수·기준을 바꾸거나 비교지역을 넓혀보세요.`;
     } else if(peerBasis==="recent"){
-      $("#cnote").innerHTML=`${ctrlBar}<br>현재부터 <b>최근 ${yearSel}</b> 값이 닮은 ${scWord} 동급이에요.${gapText}`;
+      $("#cnote").innerHTML=`${ctrlBar}<br>현재부터 <b>최근 ${yearSel}</b> 값이 닮은 ${scWord} 동급이에요.${gapText}${foundTxt}`;
     } else {
-      $("#cnote").innerHTML=`${ctrlBar}<br>수집 시작부터 <b>처음 ${yearSel}</b> 값이 닮았던 ${scWord} 동급 아파트예요.`;
+      $("#cnote").innerHTML=`${ctrlBar}<br>수집 시작부터 <b>처음 ${yearSel}</b> 값이 닮았던 ${scWord} 동급 아파트예요.${foundTxt}`;
     }
   } else {
     // ── 같은 구 (후보의 미리 계산된 동급) ──
@@ -905,6 +959,17 @@ function render(){
     wrap.appendChild(b);
   });
   $("#ctitle").appendChild(wrap);
+  // ── [비교 지역] 어느 시·도하고만 비교할지 고르는 드롭다운 ──
+  //    예: "대구"를 고르면 대구 아파트하고만 동급 비교합니다.
+  {
+    const ssel=document.createElement("select");
+    ssel.style.cssText="margin-left:8px;font:inherit;font-size:12px;font-weight:700;border:1px solid var(--line);border-radius:999px;padding:5px 9px;color:"+(peerSido?"var(--gold)":"var(--soft)")+";vertical-align:middle;cursor:pointer;background:#fff";
+    const sidos=[...new Set(DATA.regions.map(r=>r.name.split(" ")[0]))];
+    [["","🌏 비교지역 전체"],...sidos.map(s=>[s,s+"만"])]
+      .forEach(([v,l])=>{const o=document.createElement("option");o.value=v;o.textContent=l;if(v===peerSido)o.selected=true;ssel.appendChild(o);});
+    ssel.onchange=e=>{ peerSido=e.target.value; if(peerSido && scope==="gu") scope="nat"; highlightId=null; render(); };
+    $("#ctitle").appendChild(ssel);
+  }
   // 연식 필터 드롭다운 — 구/시/전국 어디서든 표시 (구에서 바꾸면 시로 전환되어 적용)
   {
     const bsel=document.createElement("select");
