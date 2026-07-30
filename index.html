@@ -16,52 +16,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="부동산 저평가 아파트 스캐너">
 <meta name="twitter:description" content="실거래가로 찾는 저평가 아파트. 동급 단지와 11년치 시세를 비교해 보세요.">
-<script>
-(function(){
-  var NO=false;
-  try{
-    var p=new URLSearchParams(location.search);
-    /* ?noads=1 과 ?dev=1 둘 다 지원 (주식 프로젝트와 사용법 통일) */
-    if(p.get('noads')==='0'||p.get('dev')==='0'){ localStorage.removeItem('noads'); localStorage.removeItem('adclicks'); }
-    else if(p.has('noads')||p.has('dev')) localStorage.setItem('noads','1');
-    if(localStorage.getItem('noads')==='1') NO=true;
-    /* [개발 환경 자동 차단] 내 컴퓨터에서 열어본 건 절대 광고를 띄우지 않음 */
-    var h=location.hostname;
-    if(h==='localhost'||h==='127.0.0.1'||h===''||location.protocol==='file:') NO=true;
-    /* [클릭 폭탄 방어] 10분 안에 3번 이상 광고를 누른 기기는 광고를 꺼버림 */
-    var cl=JSON.parse(localStorage.getItem('adclicks')||'[]');
-    var now=Date.now();
-    cl=cl.filter(function(t){return now-t<600000;});
-    if(cl.length>=3) NO=true;
-    localStorage.setItem('adclicks', JSON.stringify(cl));
-  }catch(e){ NO=false; }
-  window.__NOADS__ = NO;
-  if(!NO){
-    var s=document.createElement('script');
-    s.async=true; s.setAttribute('crossorigin','anonymous');
-    s.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7416290773673983';
-    document.head.appendChild(s);
-    /* 광고(iframe)를 누르면 창 포커스가 광고로 넘어감 → 그 순간을 클릭으로 기록 */
-    window.addEventListener('blur', function(){
-      setTimeout(function(){
-        var a=document.activeElement;
-        if(a && a.tagName==='IFRAME' && a.closest && a.closest('.adbox')){
-          try{
-            var c=JSON.parse(localStorage.getItem('adclicks')||'[]');
-            c.push(Date.now());
-            var n=Date.now();
-            c=c.filter(function(t){return n-t<600000;});
-            localStorage.setItem('adclicks', JSON.stringify(c));
-            if(c.length>=3){
-              var b=document.getElementById('adBox'); if(b) b.style.display='none';
-            }
-          }catch(e){}
-        }
-      },0);
-    });
-  }
-})();
-</script>
+<!-- 애드센스 미설정 (build_all.py 위쪽 ADSENSE_CLIENT/SLOT 에 ID를 넣으면 켜집니다) -->
 <style>
   :root{--bg:#F4F5F7;--card:#FFF;--ink:#16202E;--soft:#5B6675;--line:#E4E7EC;
     --gold:#C8901E;--gold-bg:#FBF2DA;--steel:#9BB4D2;--neg:#9AA3AF}
@@ -450,17 +405,7 @@
   </div>
 </footer>
 
-<div class="adbox" id="adBox">
-  <div class="adlabel">광고 / Sponsored</div>
-  <div class="adslot">
-    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-7416290773673983"
-         data-ad-slot="1871686101" data-ad-format="auto" data-full-width-responsive="true"></ins>
-  </div>
-</div>
-<script>
-  if(window.__NOADS__){ var _b=document.getElementById("adBox"); if(_b) _b.style.display="none"; }
-  else { try{ (adsbygoogle=window.adsbygoogle||[]).push({}); }catch(e){} }
-</script>
+
 </div>
   <div class="modal" id="infoModal" onclick="if(event.target===this)closeInfo()">
     <div class="modal-box info-box" style="max-width:520px">
@@ -488,6 +433,20 @@
 <script src="data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
+/* ── [용량 절약 복원] ──
+   data.js 파일에는 시세를 '억×10'(예: 4.5억 → 45)으로 압축해 저장합니다.
+   숫자 자릿수가 줄어 파일이 절반 이하로 작아지고, 친구가 받는 양도 줄어듭니다.
+   여기서 딱 한 번 만원 단위로 되돌려 두면, 아래 모든 화면 코드는 그대로 동작합니다. */
+(function restorePrices(){
+  const ex = a => Array.isArray(a) ? a.map(v => v==null ? null : v*1000) : a;
+  (DATA.regions||[]).forEach(r=>{
+    Object.values(r.units||{}).forEach(u=>{ u.prices = ex(u.prices); });
+    Object.values(r.details||{}).forEach(d=>{ (d.types||[]).forEach(t=>{ t.prices = ex(t.prices); }); });
+  });
+  Object.values(DATA.hiddenDetails||{}).forEach(r=>{
+    Object.values((r&&r.details)||{}).forEach(d=>{ (d.types||[]).forEach(t=>{ t.prices = ex(t.prices); }); });
+  });
+})();
 let mode = "region";                 // "region"(구별) | "tier"(평당가별)
 /* [차트 확대] 보여줄 기간 구간을 0~1 비율로 저장.
    zoomA=0, zoomB=1 이면 전체 기간. 손가락을 벌리면 이 폭이 좁아짐(=확대). */
@@ -1058,8 +1017,8 @@ function redrawDetail(){
   const shown=series.filter(s=>selected.has(s.pyeong));
   $("#dChart").innerHTML=svgChart(r.months, shown.map(s=>({label:s.pyeong+"평",prices:s.prices,color:s.color})));
   $("#dLegend").innerHTML=shown.map(s=>`<div class="it"><span class="swatch" style="background:${s.color}"></span>${s.pyeong}평</div>`).join("");
-  const deals=d.deals.filter(x=>selected.has(x.pyeong));
-  $("#dDeals").innerHTML=deals.map(x=>`<tr><td>${x.date}</td><td>${x.pyeong}평</td><td>${x.floor}층</td><td class="price">${fmtEok(x.price)}</td></tr>`).join("");
+  const deals=d.deals.filter(x=>selected.has(x.p));
+  $("#dDeals").innerHTML=deals.map(x=>`<tr><td>${x.d}</td><td>${x.p}평</td><td>${x.f}층</td><td class="price">${fmtEok(x.a)}</td></tr>`).join("");
 }
 function closeDetail(){ $("#modal").style.display="none"; }
 function openInfo(){ $("#infoModal").style.display="flex"; }
