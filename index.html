@@ -1067,17 +1067,23 @@ function drawFilters(){
     s.onchange=()=>onch(s.value); return s;};
   box.appendChild(mk([["","시·도 전체"],...sidos.map(s=>[s,s])], filters.sido, v=>{
     filters.sido=v; filters.region="";
+    // ── [지역 필터 변경 → 검색 해제] 다른 시·도를 고르면 검색한 단지는 놓아주고
+    //    그 지역의 후보 목록을 보여준다. 검색창 글자도 함께 비운다. ──
+    searchKey=null; { const _si=$("#searchInput"); if(_si) _si.value=""; }
     // ── [드롭박스↔칩 동기화] 위 칩도 이 시로 맞춤 ──
     if(v){ sido=v; const first=DATA.regions.find(r=>r.name.startsWith(v)); if(first) regionCode=first.code; }
     else { sido=null; }
-    syncChartToFilter(); render();
+    pickDefault(); syncChartToFilter(); render();
   }));
   const regs=DATA.regions.filter(r=>!filters.sido||r.name.startsWith(filters.sido));
   box.appendChild(mk([["","구 전체"],...regs.map(r=>[r.code,r.name.split(" ").slice(1).join(" ")||r.name])], filters.region, v=>{
     filters.region=v;
+    // ── [지역 필터 변경 → 검색 해제] 다른 구를 고르면 검색한 단지는 놓아주고
+    //    그 지역의 후보 목록을 보여준다. 검색창 글자도 함께 비운다. ──
+    searchKey=null; { const _si=$("#searchInput"); if(_si) _si.value=""; }
     // ── [드롭박스↔칩 동기화] 위 칩도 이 구로 맞춤 ──
     if(v){ const r=regionByCode(v); if(r){ regionCode=v; sido=r.name.split(" ")[0]; filters.sido=sido; } }
-    syncChartToFilter(); render();
+    pickDefault(); syncChartToFilter(); render();
   }));
   box.appendChild(mk([["","평형 전체"],["0-20","20평 미만"],["20-30","20평대"],["30-40","30평대"],["40-999","40평 이상"]], filters.pyeong, v=>{filters.pyeong=v;syncChartToFilter();render();}));
   box.appendChild(mk(PRICE_OPTS, filters.price, v=>{filters.price=v;syncChartToFilter();render();}));
@@ -1461,9 +1467,12 @@ function scrollToChart(){
 }
 function syncSido(){
   /* 현재 선택된 지역(regionCode)에 맞춰 시·도 선택을 따라 맞춤.
-     (검색·바로가기 등으로 특정 구에 바로 들어올 때 2단계 화면이 자연스럽게) */
+     (검색·바로가기 등으로 특정 구에 바로 들어올 때 2단계 화면이 자연스럽게)
+     ── [검색↔필터 동기화] 검색으로 특정 단지를 고르면, 상단 '검색 필터'의
+        시·도·구도 그 단지 지역으로 맞춰 준다 (지역칩 클릭 때와 동일한 동작). ── */
   const r=regionByCode(regionCode);
   sido = r ? r.name.split(" ")[0] : null;
+  if(r){ filters.sido = sido; filters.region = regionCode; }
 }
 function goScanner(kind){
   $("#home").classList.remove("on"); $("#scanner").classList.add("on");
@@ -1484,7 +1493,15 @@ function setupHome(){
   $("#homeStarCount").textContent=total;
   // 바로가기: 시·도 전체 + 평당가 구간 (많아도 한 화면에 들어가도록 촘촘히 배치)
   const grid=$("#homeGrid"); grid.innerHTML="";
-  const icons=["🏙️","🌊","🏔️","🌉","🏗️","🚉","🌳","🏟️","🛤️","⛰️","🌾","🏖️","🌅","🏞️","🧭","🌇","🛳️"];
+  // ── [지역별 아이콘] 시·도 이름에 맞는 이모지 (특색 반영, 1개씩). ──
+  //    매핑에 없는 키는 아래 기본 아이콘으로 자동 폴백 → 새 지역이 생겨도 안 깨짐.
+  const SIDO_ICON={
+    "서울":"🏙️","경기":"🏰","인천":"✈️","부산":"🌉","대구":"🍗","울산":"🐋",
+    "경남":"⛴️","경북":"🏯","광주":"🎨","전남광주":"🎨","전북":"🛖","전남":"🌾",
+    "대전":"🚀","세종":"🏛️","충남":"👑","충북":"🏞️","강원":"🥔","제주":"🍊"
+  };
+  const fallbackIcons=["🏙️","🌊","🏔️","🌉","🏗️","🚉","🌳","🏟️","🛤️","⛰️","🌾","🏖️","🌅","🏞️","🧭","🌇","🛳️"];
+  const iconFor=(s,i)=> SIDO_ICON[s] || fallbackIcons[i%fallbackIcons.length];
   // ── [시·도별 묶기] "서울 종로구"의 첫 단어("서울")로 그룹핑, 별 개수 합산 ──
   const sidoMap={};   // { "서울": {star:합계, code:그 시의 첫 지역코드} }
   DATA.regions.forEach(r=>{
@@ -1499,7 +1516,7 @@ function setupHome(){
     .sort((a,b)=>sidoMap[b].star-sidoMap[a].star)   // 별 많은 시·도 순
     .forEach((s,i)=>{
       const b=document.createElement("button"); b.className="ibtn";
-      b.innerHTML=`<div class="ic">${icons[i%icons.length]}</div><span>${shortName(s)}<b>${sidoMap[s].star}</b></span>`;
+      b.innerHTML=`<div class="ic">${iconFor(s,i)}</div><span>${shortName(s)}<b>${sidoMap[s].star}</b></span>`;
       b.onclick=()=>{
         goScanner("region");
         regionCode=sidoMap[s].code;   // 그 시의 첫 지역으로
