@@ -2,7 +2,7 @@
 <html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>부동산 저평가 아파트 스캐너 | 국토교통부 실거래가 기반 동급 단지 비교 분석</title>
-<meta name="description" content="국토교통부 아파트 실거래가 공공데이터를 기반으로, 과거에 가격이 함께 움직였던 '동급 아파트'를 찾아 지금 혼자 뒤처진 저평가 후보 단지를 보여주는 무료 분석 서비스입니다. 전국 시·도별, 평당가 구간별로 11년치 월별 시세 흐름을 차트로 비교할 수 있습니다.">
+<meta name="description" content="국토교통부 아파트 실거래가 공공데이터를 기반으로, 과거에 가격이 함께 움직였던 '동급 아파트'를 찾아 지금 혼자 뒤처진 저평가 후보 단지를 보여주는 무료 분석 서비스입니다. 매일 자동 갱신되며, 전국 시·도별, 평당가 구간별로 11년치 월별 시세 흐름을 차트로 비교할 수 있습니다.">
 <meta name="keywords" content="아파트 실거래가, 저평가 아파트, 부동산 분석, 동급 단지 비교, 평당가, 국토교통부 실거래가, 아파트 시세, 부동산 스캐너, 아파트 가격 비교">
 <meta name="author" content="부동산 저평가 스캐너">
 <meta name="robots" content="index, follow">
@@ -58,7 +58,14 @@
   .rate{font-weight:800;font-size:15px;text-align:right;white-space:nowrap}
   .rate.up{color:var(--gold)} .rate.down{color:var(--neg)}
   .star{color:var(--gold)}
-  .chart-title{font-size:16px;font-weight:800;margin-bottom:2px}
+  /* ── [한 줄 고정] 제목이 길어도 다음 줄로 안 넘어가게: 넘치면 …으로 줄임 ── */
+  .chart-title{font-size:16px;font-weight:800;margin-bottom:2px;display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:nowrap}
+  /* ── [줄넘김 방지] 제목이 길면 다음 줄로 넘기지 않고 …으로 줄임 ── */
+  .chart-title .ct-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+  #scopeToggle{flex-shrink:0}
+  .chart-title .ct-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .chart-title #scopeToggle{flex:none}
+  @media(max-width:820px){.chart-title{font-size:14.5px}}
   .chart-note{font-size:13px;color:var(--soft);margin-bottom:12px}
   .chart-note b{color:var(--gold)}
   svg{width:100%;height:auto;display:block}
@@ -108,7 +115,14 @@
   .zoombar button{border:1px solid var(--line);background:#fff;border-radius:999px;
                   padding:4px 10px;font-size:11px;cursor:pointer;font-weight:600}
   .zoombar button:hover{border-color:#CBD3DD}
-  .legend .it{display:flex;align-items:center;gap:6px}
+  /* ── [한 줄 고정] 범례도 항목마다 한 줄: 긴 이름은 …으로, 가격은 안 잘리게 ── */
+  .legend .it{display:flex;align-items:center;gap:6px;max-width:100%;min-width:0;white-space:nowrap}
+  /* ── [줄넘김 방지] 긴 단지명은 다음 줄로 넘기지 않고 …으로 줄임. 가격은 항상 보이게 ── */
+  .legend .it .lgtxt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .legend .it .val{flex-shrink:0}
+  .legend .it .swatch{flex:none}
+  .legend .it .lg-nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .legend .it .val{white-space:nowrap;flex:none}
   .swatch{width:16px;height:3px;border-radius:2px;display:inline-block}
   .legend .val{color:var(--soft);font-variant-numeric:tabular-nums}
   footer{margin-top:24px;font-size:12px;color:var(--soft);text-align:center}
@@ -244,7 +258,7 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">저평가 <em>스캐너</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge">ver 2026.08.02</div>
+    <div class="ver-badge">매일 갱신 · 2026.08.02</div>
   </div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
@@ -312,6 +326,7 @@
   <h2>부동산 저평가 아파트 분석 알고리즘 원리</h2>
   <p>본 서비스는 국토교통부가 공공데이터포털을 통해 무료로 개방한 <strong>아파트 매매 실거래가 자료</strong>를 내려받아,
   2015년 1월부터 현재까지 약 11년치 거래 내역을 단지별·평형별로 재구성한 뒤 분석합니다.
+  데이터는 <strong>매일 자동으로 갱신</strong>되어 최신 실거래 신고가 꾸준히 반영됩니다.
   핵심 아이디어는 단순합니다. <strong>“과거에 값이 거의 나란히 움직였던 아파트들은 서로 비슷한 급(級)”</strong>이라고 보고,
   그 무리 안에서 <strong>지금 혼자만 뒤처진 단지</strong>를 저평가 후보로 제시하는 것입니다.</p>
 
@@ -378,8 +393,10 @@
   또한 행정구역이 최근 개편된 일부 지역은 공공 API의 지역 코드가 바뀌어 일시적으로 수집되지 않을 수 있습니다.</p>
 
   <p><strong>Q. 데이터는 얼마나 최신인가요?</strong><br>
-  국토교통부 실거래가는 계약 후 신고까지 최대 30일이 걸립니다. 따라서 가장 최근 한두 달 자료는 실제보다 적게 집계될 수 있으며,
-  본 서비스는 신고가 충분히 반영된 시점까지의 데이터를 사용합니다. 화면 오른쪽 위 <strong>ver</strong> 표시가 데이터 갱신일입니다.</p>
+  데이터는 <strong>매일 자동으로 갱신</strong>됩니다. 매일 아침 최근 3개월치 실거래 신고를 다시 내려받아
+  새로 등록되거나 취소·정정된 거래까지 반영합니다. 다만 국토교통부 실거래가는 계약 후 신고까지 최대 30일이
+  걸리기 때문에, 가장 최근 한두 달 자료는 실제보다 적게 집계될 수 있습니다. 이 신고 지연은 실거래가를 다루는
+  모든 서비스가 동일하게 겪는 것으로, 화면 오른쪽 위 <strong>매일 갱신</strong> 배지의 날짜가 마지막 갱신일입니다.</p>
 
   <p><strong>Q. 이 서비스는 유료인가요?</strong><br>
   아닙니다. 누구나 무료로 이용할 수 있으며, 회원가입이나 개인정보 입력이 필요하지 않습니다.</p>
@@ -856,7 +873,7 @@ function drawLegend(units, ids, mainId, colors){
     };
     const rn = u.rn ? "·"+u.rn.replace(/^(서울|부산|대구|인천|광주|대전|울산|경기|경남|경북|충남|충북|전남|전북|강원|제주)\s*/,"$1 ").split(" ").slice(-1)[0] : "";
     el.innerHTML=`<span class="swatch" style="background:${colors[id]};height:${isMain?4:3}px"></span>
-      ${u.name}(${u.pyeong}평${scope!=="gu"&&u.rn?"·"+u.rn:""}) <span class="val">${fmtEok(last(u.prices))}</span>`;
+      <span class="lgtxt">${u.name}(${u.pyeong}평${scope!=="gu"&&u.rn?"·"+u.rn:""})</span> <span class="val">${fmtEok(last(u.prices))}</span>`;
     box.appendChild(el);
   });
   if(highlightId){
@@ -1276,7 +1293,7 @@ function render(){
     drawChart(pd.months, units, ids, meKey, colors);
     drawLegend(units, ids, meKey, colors);
     const scWord = eff==="gu" ? "같은 구" : eff==="si" ? "같은 시" : "전국";
-    $("#ctitle").textContent=`${mName} (${mPy}평) · ${eff==="gu"?"🏘️ 같은 구 동급":eff==="si"?"🏙️ 같은 시 동급":"🌏 전국 동급"}`;
+    $("#ctitle").innerHTML=`<span class="ct-text">${mName} (${mPy}평) · ${eff==="gu"?"🏘️ 같은 구 동급":eff==="si"?"🏙️ 같은 시 동급":"🌏 전국 동급"}</span>`;
 
     // 기준 연수 드롭다운 (동급을 못 찾아도 항상 보이게)
     const whenWord = peerBasis==="recent" ? "최근" : "처음";
@@ -1326,7 +1343,7 @@ function render(){
     sibs.forEach((id,i)=>colors[id]=PALETTE[i%PALETTE.length]);
     drawChart(r.months, r.units, ids, c.id, colors);
     drawLegend(r.units, ids, c.id, colors);
-    $("#ctitle").textContent=`${c.name} (${c.pyeong}평) · ${r.name}`;
+    $("#ctitle").innerHTML=`<span class="ct-text">${c.name} (${c.pyeong}평) · ${r.name}</span>`;
     $("#chartCtrl").innerHTML = ctrlBar;   // 평형·기준 컨트롤은 제목 아래 줄에
     $("#cnote").innerHTML = (c.rate>=0
       ? `과거엔 동급이었지만, 지금은 <b>같은 구 동급</b>보다 <b>${c.rate}% 저평가</b> 상태예요. (신뢰도 ${c.conf})`
