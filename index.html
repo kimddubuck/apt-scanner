@@ -156,7 +156,10 @@
   .filters select{border:1px solid var(--line);border-radius:9px;padding:7px 8px;font-size:12.5px;font-family:inherit;color:var(--ink);background:#fff;max-width:118px}
   @media(max-width:820px){.filters{justify-content:flex-start}.filters select{flex:1;min-width:88px}}
   /* ── [차트 컨트롤] 제목 바로 아래: 평형·기준·연수 선택 줄 ── */
-  .chart-ctrl{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:4px 0 2px;font-size:13px;color:var(--soft)}
+  .chart-ctrl{display:flex;gap:5px;align-items:center;flex-wrap:nowrap;margin:4px 0 2px;font-size:13px;color:var(--soft);overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .chart-ctrl::-webkit-scrollbar{display:none}       /* 스크롤바 숨김(깔끔하게) */
+  .chart-ctrl > *{flex-shrink:0}                      /* 항목이 찌그러지지 않게 */
+  .chart-ctrl select{padding:2px 4px}                 /* 좁은 화면에서 한 줄에 들어가도록 여백 축소 */
   /* ── [차트 필터] 차트 제목 아래, 비교 상대(동급)를 거르는 작은 필터 줄 ── */
   .peerbar{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin:6px 0 4px}
   .peerbar select{border:1px solid var(--line);border-radius:8px;padding:5px 6px;font-size:12px;font-family:inherit;color:var(--ink);background:#FDFBF7;max-width:110px}
@@ -1301,7 +1304,7 @@ function render(){
       +[3,5,7,10].map(y=>`<option value="${y}"${y===peerYears?" selected":""}>${y}년</option>`).join("")
       +`</select>`;
     // ── [이동] 평형·과거/현재·연수 컨트롤은 제목 바로 아래 줄로 (아래 설명글에서 분리) ──
-    $("#chartCtrl").innerHTML = `${ctrlBar}<span style="font-size:12.5px">기준</span> ${yearSel}`;
+    $("#chartCtrl").innerHTML = `${ctrlBar}${yearSel}`;
 
     // 현재 기준일 때 '과거 격차'(처음엔 동급보다 얼마나 높았/낮았나) 계산
     let gapText="";
