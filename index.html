@@ -30,7 +30,8 @@
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
   body{margin:0;background:var(--bg);color:var(--ink);
-    font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;line-height:1.5}
+    font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;line-height:1.5;
+    word-break:keep-all;overflow-wrap:anywhere}
   .wrap{max-width:1080px;margin:0 auto;padding:24px 18px 60px}
   .eyebrow{font-size:12px;letter-spacing:.14em;color:var(--gold);font-weight:700;text-transform:uppercase}
   h1{margin:.2em 0 .1em;font-size:26px;font-weight:800;letter-spacing:-.02em}
@@ -193,7 +194,7 @@
   .qcard:active{background:#E8EAEE}
   .qcard.big{grid-row:1/3;display:flex;flex-direction:column;justify-content:flex-end;background:linear-gradient(160deg,#1B2940,#2E4260);color:#fff}
   .qcard .qi{font-size:21px;margin-bottom:4px;display:block}
-  .qcard b{font-size:15px;font-weight:800;display:block}
+  .qcard b{font-size:15px;font-weight:800;display:block;line-height:1.3}
   .qcard span{font-size:12px;color:var(--soft)}
   .qcard.big span{color:#B9C6D8}
   .qcard.big .qnum{font-size:30px;font-weight:800;color:#F1C97A;line-height:1.1}
@@ -271,7 +272,7 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge">매일 갱신 · 2026.08.02</div>
+    <div class="ver-badge">매일 갱신 · 2026.08.03</div>
   </div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
