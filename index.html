@@ -2,7 +2,7 @@
 <html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>아파트매치 | 국토교통부 실거래가 기반 동급 단지 비교 분석</title>
-<meta name="description" content="국토교통부 아파트 실거래가 공공데이터를 기반으로, 과거에 가격이 함께 움직였던 '동급 아파트'를 찾아 지금 혼자 뒤처진 저평가 후보 단지를 보여주는 무료 분석 서비스입니다. 매일 자동 갱신되며, 전국 시·도별, 평당가 구간별로 11년치 월별 시세 흐름을 차트로 비교할 수 있습니다.">
+<meta name="description" content="국토교통부 아파트 실거래가 공공데이터를 기반으로, 과거에 가격이 함께 움직였던 '동급 아파트'를 찾아 지금 혼자 뒤처진 저평가 후보 단지를 보여주는 무료 분석 서비스입니다. 매일 자동 갱신되며, 전국 시·도별, 평당가 구간별로 최근 10년치 월별 시세 흐름을 차트로 비교할 수 있습니다.">
 <meta name="keywords" content="아파트 실거래가, 저평가 아파트, 부동산 분석, 동급 단지 비교, 평당가, 국토교통부 실거래가, 아파트 시세, 부동산 스캐너, 아파트 가격 비교">
 <meta name="author" content="아파트매치">
 <meta name="robots" content="index, follow">
@@ -15,7 +15,7 @@
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="아파트매치">
-<meta name="twitter:description" content="동급 단지와 11년치 실거래가 시세를 비교해 보세요. 아파트매치.">
+<meta name="twitter:description" content="동급 단지와 최근 10년치 실거래가 시세를 비교해 보세요. 아파트매치.">
 <!-- 애드센스 미설정 (build_all.py 위쪽 ADSENSE_CLIENT/SLOT 에 ID를 넣으면 켜집니다) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZYJNWJ8B5S"></script>
 <script>
@@ -335,7 +335,7 @@
 <article class="doc">
   <h2>부동산 저평가 아파트 분석 알고리즘 원리</h2>
   <p>본 서비스는 국토교통부가 공공데이터포털을 통해 무료로 개방한 <strong>아파트 매매 실거래가 자료</strong>를 내려받아,
-  2015년 1월부터 현재까지 약 11년치 거래 내역을 단지별·평형별로 재구성한 뒤 분석합니다.
+  <strong>최근 10년치</strong> 거래 내역을 단지별·평형별로 재구성한 뒤 분석합니다.
   데이터는 <strong>매일 자동으로 갱신</strong>되어 최신 실거래 신고가 꾸준히 반영됩니다.
   핵심 아이디어는 단순합니다. <strong>“과거에 값이 거의 나란히 움직였던 아파트들은 서로 비슷한 급(級)”</strong>이라고 보고,
   그 무리 안에서 <strong>지금 혼자만 뒤처진 단지</strong>를 저평가 후보로 제시하는 것입니다.</p>
@@ -622,7 +622,7 @@ function drawPills(){
     const b=document.createElement("button");
     b.className="pill"+(g.code===active?" on":"");
     b.innerHTML=`${g.name}<b>${g.starCount}</b>`;
-    b.onclick=()=>{ if(mode==="region") regionCode=g.code; else tierCode=g.code; searchKey=null; pickDefault(); closePick("regions"); render(); };
+    b.onclick=()=>{ if(mode==="region") regionCode=g.code; else { tierCode=g.code; filters.pp=""; } searchKey=null; pickDefault(); closePick("regions"); render(); };
     box.appendChild(b);
   });
 }
@@ -739,7 +739,7 @@ function drawChart(months, units, ids, mainId, colors){
   const zoomed = (zoomA > 0 || zoomB < 1);
   const hintInner = zoomed
     ? `🔍 ${months[0]} ~ ${months[months.length-1]} <button onclick="jumpLatest()">최신으로 ▶</button><button onclick="resetZoom()">전체 보기</button>`
-    : `두 손가락 벌리면 확대 · 확대 후 좌우로 밀면 기간 이동 (PC는 휠·드래그)`;
+    : `최근 10년치 실거래 기준 · 두 손가락 벌리면 확대 · 확대 후 좌우로 밀면 기간 이동 (PC는 휠·드래그)`;
   /* ── [중요] SVG 요소를 '없애고 새로 만들지' 않고, 내용만 갈아끼운다 ──
      손가락으로 만지는 중에 SVG가 사라지면 휴대폰이 손가락 추적을 멈춰버려서
      핀치 확대가 첫 움직임에서 끊깁니다. 틀은 유지하고 속만 바꿔야 계속 됩니다. */
@@ -1087,7 +1087,17 @@ function drawFilters(){
   }));
   box.appendChild(mk([["","평형 전체"],["0-20","20평 미만"],["20-30","20평대"],["30-40","30평대"],["40-999","40평 이상"]], filters.pyeong, v=>{filters.pyeong=v;syncChartToFilter();render();}));
   box.appendChild(mk(PRICE_OPTS, filters.price, v=>{filters.price=v;syncChartToFilter();render();}));
-  box.appendChild(mk(PP_OPTS, filters.pp, v=>{filters.pp=v;syncChartToFilter();render();}));
+  box.appendChild(mk(PP_OPTS, filters.pp, v=>{
+    filters.pp=v;
+    // ── [평당가별 보기 연동] 검색 필터의 평당가를 바꾸면 아래 '평당가 블록'(tier)도 그 구간으로 이동 ──
+    //    (구별 보기에서는 기존처럼 목록만 거른다)
+    if(mode==="tier" && v){
+      const lo = Number(v.split("-")[0]);
+      const t = (DATA.tiers||[]).find(t=>parseInt(t.name,10)===lo);
+      if(t){ tierCode=t.code; searchKey=null; pickDefault(); }
+    }
+    syncChartToFilter(); render();
+  }));
 }
 function drawPeerFilters(){
   /* ── [차트 필터] 지금 보는 단지의 '비교 상대(동급)'를 거릅니다. ──
