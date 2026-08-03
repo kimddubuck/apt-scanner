@@ -922,20 +922,26 @@ function drawChart(months, units, ids, mainId, colors){
     const anchor = i===0 ? "start" : (i===last ? "end" : "middle");
     g+=`<text x="${X(i)}" y="${H-12}" text-anchor="${anchor}" font-size="10" fill="#9AA3AF">${months[i]}</text>`;
   });
-  function line(pr,color,w,op){
-    const pts=[]; pr.forEach((v,i)=>{ if(v!=null) pts.push(`${X(i)},${Y(v)}`); });
+  function line(pr,color,w,op,label){
+    const pts=[]; pr.forEach((v,i)=>{ if(v!=null) pts.push([X(i),Y(v),i,v]); });
     if(pts.length<1) return "";
     const dr = w>=3 ? 2.6 : 1.9;
     let out=`<g opacity="${op}">`;
-    if(pts.length>=2) out+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"/>`;
-    pts.forEach(p=>{ const [x,y]=p.split(","); out+=`<circle cx="${x}" cy="${y}" r="${dr}" fill="${color}"/>`; });
+    if(pts.length>=2) out+=`<polyline points="${pts.map(p=>p[0]+','+p[1]).join(' ')}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"/>`;
+    // [툴팁] 각 점에 "날짜 · 금액 (단지명)". 투명한 큰 원으로 손가락도 잘 잡히게.
+    pts.forEach(([x,y,i,v])=>{
+      out+=`<circle cx="${x}" cy="${y}" r="${dr}" fill="${color}"/>`;
+      out+=`<circle cx="${x}" cy="${y}" r="8" fill="transparent"><title>${months[i]} · ${fmtEok(v)}${label?" · "+label:""}</title></circle>`;
+    });
     return out+"</g>";
   }
+  // 각 선의 이름표(범례와 동일) — 툴팁에 아파트명을 넣기 위함
+  const nmeOf = id => { const u=units[id]||{}; return (u.name||"") + (u.pyeong?` ${u.pyeong}평`:""); };
   // 강조 모드: 강조된 선은 굵고 선명, 나머지는 투명하게
   const hl = highlightId && ids.includes(highlightId) ? highlightId : null;
-  ids.filter(id=>id!==mainId && id!==hl).forEach(id=>g+=line(units[id].prices,colors[id], 1.8, hl?0.22:1));
-  if(mainId!==hl) g+=line(units[mainId].prices,colors[mainId], hl?2.2:3.2, hl?0.25:1);
-  if(hl) g+=line(units[hl].prices,colors[hl], 4, 1);
+  ids.filter(id=>id!==mainId && id!==hl).forEach(id=>g+=line(units[id].prices,colors[id], 1.8, hl?0.22:1, nmeOf(id)));
+  if(mainId!==hl) g+=line(units[mainId].prices,colors[mainId], hl?2.2:3.2, hl?0.25:1, nmeOf(mainId));
+  if(hl) g+=line(units[hl].prices,colors[hl], 4, 1, nmeOf(hl));
   const zoomed = (zoomA > 0 || zoomB < 1);
   const hintInner = zoomed
     ? `🔍 ${months[0]} ~ ${months[months.length-1]} <button onclick="jumpLatest()">최신으로 ▶</button><button onclick="resetZoom()">전체 보기</button>`
@@ -1495,9 +1501,14 @@ function svgChart(months, series){
       g+=`<text x="${X(i)}" y="${H-10}" text-anchor="${a2}" font-size="10" fill="#9AA3AF">${months[i]}</text>`;
     });
   }
-  series.forEach(s=>{const pts=[];s.prices.forEach((v,i)=>{if(v!=null)pts.push(`${X(i)},${Y(v)}`);});
-    if(pts.length>=2)g+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round"/>`;
-    pts.forEach(p=>{const[x,y]=p.split(",");g+=`<circle cx="${x}" cy="${y}" r="1.8" fill="${s.color}"/>`;});});
+  series.forEach(s=>{const pts=[];s.prices.forEach((v,i)=>{if(v!=null)pts.push([X(i),Y(v),i,v]);});
+    if(pts.length>=2)g+=`<polyline points="${pts.map(p=>p[0]+','+p[1]).join(' ')}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round"/>`;
+    // [툴팁] 각 점에 <title> — 마우스 올리면 "2024-03 · 8.3억" 식으로 뜸 (SVG 기본 툴팁)
+    pts.forEach(([x,y,i,v])=>{
+      g+=`<circle cx="${x}" cy="${y}" r="1.8" fill="${s.color}"/>`;
+      // 손이 굵어도 잘 잡히게 투명한 큰 원을 덧대고 거기에 title
+      g+=`<circle cx="${x}" cy="${y}" r="7" fill="transparent"><title>${months[i]} · ${fmtEok(v)}${s.label?" ("+s.label+")":""}</title></circle>`;
+    });});
   return `<svg viewBox="0 0 ${W} ${H}" role="img" style="width:100%;height:auto">${g}</svg>`;
 }
 let detailState=null;
