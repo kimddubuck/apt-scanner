@@ -552,7 +552,7 @@ let searchKey = null;                // 검색으로 선택한 밴드 단지 키
 let filters = {sido:"", region:"", pyeong:"", price:"", pp:"", built:"", hh:""};   // 필터 상태
 let scope = "gu";                    // 비교 범위: "gu"(구) | "si"(시) | "nat"(전국)
 let peerYears = (DATA.defaultYears||5);   // 동급 판정 기준: 처음/최근 N년
-let peerBasis = "past";              // [2026-08] '과거(처음 N년)' 고정. 현재 기준 토글은 삭제됨
+let peerBasis = "past";              // 동급 '판정' 시점: "past"(처음 N년) | "recent"(최근 N년) — 순위 매기기와는 무관
 let peerBuilt = "";                  // 동급 연식 필터: ""(전체) | "lo-hi"(건축년도 구간)
 let peerSido = "";                   // 동급 '비교 지역' 필터: ""(전국 전체) | "대구" 등 시·도 이름
 let peerGu = "";                     // 동급 '비교 구' 필터: ""(전체) | "대구 수성구" 같은 지역 전체 이름
@@ -560,7 +560,7 @@ let peerPy = "";                     // 동급 평형대 필터: ""(내 평수 �
 let peerPp = "";                     // 동급 평당가 필터: ""(전체) | "1500-2000"(만원/평 구간)
 let peerFound = 0;                   // 이번에 찾은 동급 총 개수(화면에 안내용)
 let legendUnits = {};                // 지금 범례(차트)에 그려진 단지들 — 상세보기 버튼이 씀
-let peerHhMin = 0, peerHhMax = 10000; // 동급 세대수 필터 범위 (전체=0~10000, 미상은 항상 통과)
+let peerHhMin = ((DATA.elig&&DATA.elig.hhMin)||0), peerHhMax = 10000; // [7a] 기본 200세대 이상 (사용자가 바꿀 수 있음)
 const $ = s => document.querySelector(s);
 const fmtEok = v => { if(v==null) return "-"; const e=v/10000; return (Number.isInteger(e)?e:e.toFixed(1))+"억"; };
 const PALETTE=["#3E6DA6","#4E9E8F","#7A6DB0","#C07A5B","#5AA0C8","#7E9E4E"];
@@ -690,31 +690,49 @@ function itemRate(it){
 function drawList(){
   const box=$("#list"); box.innerHTML="";
   const frag=document.createDocumentFragment();
-  let count=0;
+  /* ── [순위 규칙 · 2026-08] ────────────────────────────────────────────
+     · 순위는 '과거 기준'일 때만 매깁니다.
+       현재 기준은 동급끼리 지금 같이 움직이는지를 보는 거라
+       "누가 더 저평가인가"를 줄 세울 수 없습니다. → 순위번호 숨김 + 안내문
+     · 기본값 7년은 전부 보여주고,
+       3·5·10년은 상위 500위까지만 (목록이 너무 길어지는 것 방지)          */
+  const ranked = (peerBasis === "past");
+  const LIMIT  = (ranked && peerYears !== 7) ? 500 : Infinity;
+  let shown=0, total=0;
+  const push = (name, sub, rate, star, active, onclick) => {
+    total++;
+    if(shown >= LIMIT) return;                 // 500위 초과분은 그리지 않음
+    shown++;
+    rowEl(frag, name, sub, rate, star, active, onclick, ranked ? shown : 0);
+  };
   if(mode==="region"){
     const r=regionByCode(regionCode);
-    r.candidates.filter(c=>matchFilters(c,r.code)).sort((a,b)=>itemRate(b)-itemRate(a)).forEach(c=>{count++;
-      rowEl(frag, c.name, `${c.pyeong}평 · 현재 ${fmtEok(c.now)}`,
-      itemRate(c), c.star, c.id===activeId, ()=>{ activeId=c.id; highlightId=null; searchKey=null; scope="gu"; render(); scrollToChart(); }, count);});
+    r.candidates.filter(c=>matchFilters(c,r.code)).sort((a,b)=>itemRate(b)-itemRate(a)).forEach(c=>{
+      push(c.name, `${c.pyeong}평 · 현재 ${fmtEok(c.now)}`,
+      itemRate(c), c.star, c.id===activeId, ()=>{ activeId=c.id; highlightId=null; searchKey=null; scope="gu"; render(); scrollToChart(); });});
   } else {
     const t=tierByCode(tierCode);
-    t.items.filter(it=>matchFilters(it,it.regionCode)).sort((a,b)=>itemRate(b)-itemRate(a)).forEach(it=>{count++;
-      rowEl(frag, it.name, `${it.regionName} · ${it.pyeong}평 · ${fmtEok(it.now)}`,
+    t.items.filter(it=>matchFilters(it,it.regionCode)).sort((a,b)=>itemRate(b)-itemRate(a)).forEach(it=>{
+      push(it.name, `${it.regionName} · ${it.pyeong}평 · ${fmtEok(it.now)}`,
       itemRate(it), it.star,
       activeItem&&activeItem.id===it.id&&activeItem.regionCode===it.regionCode,
-      ()=>{ activeItem={regionCode:it.regionCode, id:it.id}; highlightId=null; searchKey=null; render(); scrollToChart(); }, count);});
+      ()=>{ activeItem={regionCode:it.regionCode, id:it.id}; highlightId=null; searchKey=null; render(); scrollToChart(); });});
   }
   box.appendChild(frag);
-  if(!count) box.innerHTML='<div style="padding:14px;color:#9AA3AF;font-size:13px">필터에 맞는 후보가 없어요.</div>';
-  /* ── 목록 안내문 ──────────────────────────────────────────────
-     [2026-08 변경] 예전엔 '전국 매치 랭킹'에서만 기준 연수를 알려줬는데,
-     바로가기에서 시(예: 부산)를 눌러 들어와도 같은 순위 기준이 적용되므로
-     **모든 화면**에 "과거 N년 기준 매력도 순위"를 똑같이 표시합니다.
-     (사용자가 지금 무슨 기준으로 정렬된 목록을 보는지 항상 알 수 있게)      */
+  if(!total) box.innerHTML='<div style="padding:14px;color:#9AA3AF;font-size:13px">필터에 맞는 후보가 없어요.</div>';
+  /* ── 목록 안내문 ───────────────────────────────────────────────
+     [2026-08] 어떤 기준으로 줄 세운 목록인지 항상 알려줍니다.            */
   const hint=$("#listHint");
   if(hint){
     const head = (mode==="tier" && tierCode==="ALL") ? "전국 매치 · " : "";
-    hint.innerHTML=`${head}<b>과거 ${peerYears}년</b> 기준 매력도 순위 · 눌러서 그래프 보기`;
+    if(!ranked){
+      hint.innerHTML=`${head}<b style="color:#C0392B">현재 기준에서는 순위를 매길 수 없어요</b>`
+        +` — 동급끼리 지금 함께 움직이는지를 보는 기준이라, 저평가 줄 세우기가 안 됩니다.`
+        +` 순위를 보시려면 <b>과거 기준</b>을 눌러주세요.`;
+    } else {
+      const cut = (shown < total) ? ` · 상위 <b>${shown}</b>위까지 표시 (전체 ${total.toLocaleString()}곳)` : "";
+      hint.innerHTML=`${head}<b>과거 ${peerYears}년</b> 기준 매력도 순위 · 눌러서 그래프 보기${cut}`;
+    }
   }
 }
 function drawChart(months, units, ids, mainId, colors){
@@ -944,6 +962,20 @@ function computePeers(meKey, years, scp, basis, built){
   const n=Math.min(years*12, pd.months.length);   // 월 단위
   // 판정 구간: 과거 기준이면 그래프 앞부분(처음 N개월), 현재 기준이면 뒷부분(최근 N개월)
   const win = arr => basis==="recent" ? arr.slice(-n) : arr.slice(0,n);
+  /* ── [D. 동급 정교화 · 2026-08] '진짜 거래'가 충분한지 확인 ────────────
+     pd.series 는 채우기 전 원본이라 값이 없는 달은 null 입니다.
+     빌더와 똑같은 두 가지를 봅니다.
+       ① 판정 기간의 15% 이상 달에 실거래 (최소 4개월)
+       ② 판정 기간 '마지막 3분의 1'에 실거래 최소 1건 (끊긴 단지 제외)
+     이걸 안 하면 거래가 뜸한 단지는 직전 값이 일직선으로 이어져
+     "완벽하게 같이 움직인다"고 오판돼 엉뚱한 동급이 잡힙니다.          */
+  const minReal = Math.max(4, Math.floor(n*0.15));
+  const realOk = raw => {
+    const w = win(raw); let c=0, tail=0; const cut=Math.floor(w.length*2/3);
+    for(let i=0;i<w.length;i++){ if(w[i]!=null){ c++; if(i>=cut) tail++; } }
+    return c>=minReal && tail>0;
+  };
+  if(!realOk(pd.series[meKey])) return [];        // 내 단지부터 거래가 너무 적으면 판정 불가
   const me=win(ff(pd.series[meKey])), mi=pd.units[meKey], meSi=siKey(mi.rc);
   const bLo = built ? +built.split("-")[0] : 0;   // 연식 필터 구간
   const bHi = built ? +built.split("-")[1] : 0;
@@ -971,6 +1003,16 @@ function computePeers(meKey, years, scp, basis, built){
       if(!(inf.pyeong>=pa && inf.pyeong<pb)) continue;
     } else {
       if(Math.abs(inf.pyeong-mi.pyeong)/mi.pyeong > pd.py) continue;
+      /* ── [7a · 2026-08] 기본 평형 범위 (23~40평) ────────────────────
+         ±18% 규칙은 그대로 두고, 그 위에 "23~40평만" 조건을 **더** 겁니다.
+         (±18% 를 평형대 필터로 갈아끼우면 총액 비교가 평당가 비교로 바뀌어
+          24평↔39평도 동급이 돼버려서 오히려 느슨해집니다. 그래서 '추가' 방식)
+         단, 내 단지가 23~40평 밖이면(예: 15평·50평) 이 조건을 건너뜁니다.
+         안 그러면 검색으로 들어온 소형·대형 단지는 동급이 0개가 돼버려요.     */
+      const EG=DATA.elig;
+      if(EG && mi.pyeong>=EG.pyMin && mi.pyeong<=EG.pyMax){
+        if(!(inf.pyeong>=EG.pyMin && inf.pyeong<=EG.pyMax)) continue;
+      }
     }
     // ── [동급 평당가 필터] 상대의 '현재 평당가'가 고른 구간일 때만 비교 ──
     if(peerPp){
@@ -981,6 +1023,7 @@ function computePeers(meKey, years, scp, basis, built){
       if(!(ppv>=qa && ppv<qb)) continue;
     }
     if(inf.name===mi.name && inf.rc===mi.rc) continue;
+    if(!realOk(pd.series[k])) continue;          // [D] 상대도 진짜 거래가 충분해야 함
     const vf=ff(pd.series[k]), vp=win(vf);
     // ── [평형대 필터의 핵심] 다른 평형대와 비교할 땐 '평당가'로 급을 잰다 ──
     //    총액으로 재면 34평(6.6억) vs 20평대(3.7억)는 무조건 탈락해 버려요.
@@ -1350,11 +1393,14 @@ function render(){
   //    검색 단지는 같은 구 안에서 즉석 계산합니다 (시·전국과 같은 방식).
   let eff = scope;
 
-  // ── 공통 컨트롤: 평형 선택 (구·시·전국 어디서 시작해도 똑같이 보이게) ──
-  //    [2026-08 변경] '과거 기준 / 현재 기준' 토글은 없앴습니다.
-  //      매력도는 "옛날엔 같은 급 → 지금 뒤처짐"을 보는 지표라 항상 '과거 기준'이 맞습니다.
-  //      (peerBasis 변수는 "past" 로 고정 — 아래 계산 함수들이 그대로 쓰므로 안전)
-  const basisToggle="";
+  /* ── 공통 컨트롤: 평형 선택 + 과거/현재 기준 토글 ──────────────────
+     [2026-08 정정] 토글은 **복구**했습니다. 이 토글이 바꾸는 건
+       → 이 단지의 '동급 아파트를 무엇으로 볼지'(그래프에 같이 그릴 단지들)
+     이고, **목록 순위(오늘의 매치 랭킹)에는 영향을 주지 않습니다.**
+     순위는 항상 '과거 N년 기준'으로만 매깁니다 (itemRate 참고).            */
+  const bBtn=(b,label)=>`<button class="basisBtn" data-b="${b}" style="border:1px solid var(--line);padding:2px 8px;font:inherit;cursor:pointer;border-radius:6px;`
+    +`${peerBasis===b?"background:var(--gold);color:#fff;border-color:var(--gold);font-weight:700":"background:#fff;color:var(--ink)"}">${label}</button>`;
+  const basisToggle=`<span style="display:inline-flex;gap:4px;vertical-align:middle;margin-right:6px">${bBtn("past","과거 기준")}${bBtn("recent","현재 기준")}</span>`;
   const meRc = (pd && pd.units[meKey]) ? pd.units[meKey].rc : "";
   const sameApt = ((pd && pd.units[meKey]) ? Object.keys(pd.units).filter(k => pd.units[k].name===mName && pd.units[k].rc===meRc) : [])
     .map(k => ({key:k, py:pd.units[k].pyeong})).sort((a,b)=>a.py-b.py);
@@ -1469,7 +1515,7 @@ function render(){
      한 화면에 같은 기능이 두 번 나와 헷갈렸기 때문입니다.
      여기(차트 옆)에는 '어떻게 비교할지'만 남깁니다: 구/시/전국 · 과거/현재 · N년 · 평형 */
   // 공통 컨트롤 동작 연결 (구·시·전국 공통, 한 번만) — 구에서 '동급 옵션'을 건드리면 시로 전환
-  // [2026-08] 과거/현재 기준 토글 삭제 → 관련 클릭 핸들러도 함께 제거
+  document.querySelectorAll(".basisBtn").forEach(b=>{ b.onclick=()=>{ peerBasis=b.dataset.b; if(scope==="gu" && !searchKey) scope="si"; highlightId=null; render(); }; });
   const _ys=document.getElementById("peerYearSel");
   if(_ys) _ys.onchange=e=>{ peerYears=+e.target.value; if(scope==="gu" && !searchKey) scope="si"; highlightId=null; render(); };
   const _ps=document.getElementById("mePySel");
