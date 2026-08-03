@@ -583,6 +583,10 @@ let mode = "region";                 // "region"(구별) | "tier"(평당가별)
    zoomA=0, zoomB=1 이면 전체 기간. 손가락을 벌리면 이 폭이 좁아짐(=확대). */
 let zoomA = 0, zoomB = 1;
 let chartFullN = 138;                // 현재 차트의 전체 개월 수 (확대 한계 계산용)
+/* [차트 오버레이 · 2026-08] 판정 구간 음영 + 동급 중앙값 기준선 + 갭 표시용.
+   render() 가 그릴 때마다 채워 넣고, drawChart 가 읽어서 그립니다.
+   null 이면 아무것도 안 그림(예: 동급 0곳, 구별 미리계산 화면 등).            */
+let chartOverlay = null;   // { basis:"past|recent", years:3, medPeer:number, meNow:number, gapPct:number }
 let sido = null;                     // [시별 보기] 선택된 시·도 (null=1단계 시목록, 값=2단계 구목록)
 let regionCode = DATA.defaultRegion;
 let tierCode = DATA.defaultTier;
@@ -863,6 +867,42 @@ function drawChart(months, units, ids, mainId, colors){
   const X=i=>padL+(W-padL-padR)*(i/Math.max(months.length-1,1));
   const Y=v=>padT+(H-padT-padB)*(1-(v-ymin)/(ymax-ymin));
   let g="";
+  /* ── [차트 오버레이 · 2026-08] 판정 구간 음영 + 동급 중앙값 기준선 + 갭 ──
+     "이 구간을 보고, 이 선을 기준으로, 몇 % 차이"인지를 눈에 보이게 합니다.
+     확대(zoom) 중에도 어긋나지 않도록 지금 보이는 창에 맞춰 좌표를 다시 계산.   */
+  if(chartOverlay){
+    const ov=chartOverlay;
+    const nMon=Math.min(ov.years*12, chartFullN);
+    let segI0, segI1;                       // '전체' 인덱스 기준 판정 구간
+    if(ov.basis==="recent"){ segI1=chartFullN-1; segI0=chartFullN-nMon; }
+    else { segI0=0; segI1=nMon-1; }
+    const zoomed=(zoomA>0||zoomB<1);
+    const visA=Math.round(zoomA*(chartFullN-1));
+    const vis0=zoomed?visA:0;
+    const clampX=idxFull=>{                  // 전체 인덱스 → 보이는 배열 인덱스 → x좌표
+      const rel=idxFull-vis0;
+      return X(Math.max(0, Math.min(months.length-1, rel)));
+    };
+    const sx0=clampX(segI0), sx1=clampX(segI1);
+    if(sx1>sx0+1){
+      g+=`<rect x="${sx0}" y="${padT}" width="${sx1-sx0}" height="${H-padT-padB}" fill="#F1C97A" opacity="0.14"/>`;
+      if(sx1-sx0>70){
+        const whenW=ov.basis==="recent"?"최근":"과거";
+        g+=`<text x="${(sx0+sx1)/2}" y="${padT+13}" text-anchor="middle" font-size="10.5" fill="#B08420" font-weight="700">판정 구간 · ${whenW} ${ov.years}년</text>`;
+      }
+    }
+    if(ov.medPeer!=null && ov.medPeer>=ymin && ov.medPeer<=ymax){
+      const yMed=Y(ov.medPeer);
+      g+=`<line x1="${padL}" y1="${yMed}" x2="${W-padR}" y2="${yMed}" stroke="#6B7684" stroke-width="1.3" stroke-dasharray="5 3"/>`;
+      g+=`<text x="${W-padR}" y="${yMed-5}" text-anchor="end" font-size="10.5" fill="#6B7684" font-weight="700">동급 중앙값 ${fmtEok(ov.medPeer)}</text>`;
+      if(ov.meNow!=null && ov.meNow>=ymin && ov.meNow<=ymax && ov.gapPct!=null){
+        const yMe=Y(ov.meNow), xg=W-padR-6, ym=(yMed+yMe)/2;
+        g+=`<line x1="${xg}" y1="${yMed}" x2="${xg}" y2="${yMe}" stroke="#C0392B" stroke-width="1.4"/>`;
+        const sign=ov.gapPct>0?"−":"+";     // 저평가(양수)면 '−N%'(동급보다 싸다)
+        g+=`<text x="${xg-4}" y="${ym+3}" text-anchor="end" font-size="11" fill="#C0392B" font-weight="800">${sign}${Math.abs(ov.gapPct)}%</text>`;
+      }
+    }
+  }
   for(let v=ymin;v<=ymax;v+=step){
     g+=`<line x1="${padL}" y1="${Y(v)}" x2="${W-padR}" y2="${Y(v)}" stroke="#EDEFF2"/>`;
     g+=`<text x="${padL-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="#9AA3AF">${fmtEok(v)}</text>`;
@@ -1589,6 +1629,21 @@ function render(){
     const units=peerUnits(ids);
     const colors={}; colors[meKey]="#C8901E";
     ids.filter(k=>k!==meKey).forEach((k,i)=>colors[k]=PALETTE[i%PALETTE.length]);
+    /* [차트 오버레이] 판정 구간 + 동급 현재가 중앙값 + 갭 계산.
+       중앙값·현재가는 화면에 그려진 값(units[].prices)의 마지막 실측치로.
+       갭% = (동급 중앙값 − 내 현재가) ÷ 중앙값 × 100 → 양수면 '동급보다 쌈(저평가)'. */
+    (function(){
+      const lastOf=id=>{ const p=(units[id]||{}).prices||[]; for(let i=p.length-1;i>=0;i--) if(p[i]!=null) return p[i]; return null; };
+      const meNow=lastOf(meKey);
+      const peerNows=ids.filter(k=>k!==meKey).map(lastOf).filter(v=>v!=null);
+      if(ids.length>=2 && meNow!=null && peerNows.length){
+        const medPeer=medianOf(peerNows);
+        chartOverlay={ basis:peerBasis, years:peerYears, medPeer, meNow,
+                       gapPct: medPeer>0 ? Math.round((medPeer-meNow)/medPeer*100) : null };
+      } else {
+        chartOverlay=null;   // 동급 없으면 오버레이 안 그림
+      }
+    })();
     drawChart(pd.months, units, ids, meKey, colors);
     drawLegend(units, ids, meKey, colors);
     const scWord = eff==="gu" ? "같은 구" : eff==="si" ? "같은 시" : "전국";
@@ -1637,6 +1692,18 @@ function render(){
     const ids=[c.id,...sibs];
     const colors={}; colors[c.id]="#C8901E";
     sibs.forEach((id,i)=>colors[id]=PALETTE[i%PALETTE.length]);
+    /* [차트 오버레이] 구 동급(미리 계산된 sibs)도 동일하게 표시.
+       여기서 판정 기준은 이 후보를 만든 기본값(과거 7년)이므로 그대로 사용. */
+    (function(){
+      const lastOf=id=>{ const p=(r.units[id]||{}).prices||[]; for(let i=p.length-1;i>=0;i--) if(p[i]!=null) return p[i]; return null; };
+      const meNow=lastOf(c.id);
+      const peerNows=sibs.map(lastOf).filter(v=>v!=null);
+      if(ids.length>=2 && meNow!=null && peerNows.length){
+        const medPeer=medianOf(peerNows);
+        chartOverlay={ basis:"past", years:Math.round((DATA.defaultYears||7)), medPeer, meNow,
+                       gapPct: medPeer>0 ? Math.round((medPeer-meNow)/medPeer*100) : null };
+      } else { chartOverlay=null; }
+    })();
     drawChart(r.months, r.units, ids, c.id, colors);
     drawLegend(r.units, ids, c.id, colors);
     $("#ctitle").innerHTML=`<span class="ct-text">${c.name} (${c.pyeong}평) · ${r.name}</span>`;
