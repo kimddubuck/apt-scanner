@@ -195,6 +195,7 @@
   .qcard.big{grid-row:1/3;display:flex;flex-direction:column;justify-content:flex-end;background:linear-gradient(160deg,#1B2940,#2E4260);color:#fff}
   .qcard .qi{font-size:21px;margin-bottom:4px;display:block}
   .qcard b{font-size:15px;font-weight:800;display:block;line-height:1.3}
+  .qcard.big b{font-size:12px;letter-spacing:-.02em;line-height:1.35}
   .qcard span{font-size:12px;color:var(--soft)}
   .qcard.big span{color:#B9C6D8}
   .qcard.big .qnum{font-size:30px;font-weight:800;color:#F1C97A;line-height:1.1}
@@ -543,7 +544,7 @@ let activeId = null;                  // 구별: 후보 id
 let activeItem = null;               // 평당가별: {regionCode, id}
 let highlightId = null;              // 그래프에서 강조된 선 (1탭)
 let searchKey = null;                // 검색으로 선택한 밴드 단지 키 (후보 아니어도)
-let filters = {sido:"", region:"", pyeong:"", price:"", pp:""};   // 필터 상태
+let filters = {sido:"", region:"", pyeong:"", price:"", pp:"", built:"", hh:""};   // 필터 상태
 let scope = "gu";                    // 비교 범위: "gu"(구) | "si"(시) | "nat"(전국)
 let peerYears = (DATA.defaultYears||5);   // 동급 판정 기준: 처음/최근 N년
 let peerBasis = "past";              // 동급 판정 시점: "past"(처음 N년) | "recent"(최근 N년)
@@ -674,20 +675,22 @@ function rowEl(box, name, sub, rate, star, active, onclick){
 }
 function drawList(){
   const box=$("#list"); box.innerHTML="";
+  const frag=document.createDocumentFragment();
   let count=0;
   if(mode==="region"){
     const r=regionByCode(regionCode);
     r.candidates.filter(c=>matchFilters(c,r.code)).forEach(c=>{count++;
-      rowEl(box, c.name, `${c.pyeong}평 · 현재 ${fmtEok(c.now)}`,
+      rowEl(frag, c.name, `${c.pyeong}평 · 현재 ${fmtEok(c.now)}`,
       c.rate, c.star, c.id===activeId, ()=>{ activeId=c.id; highlightId=null; searchKey=null; scope="gu"; render(); });});
   } else {
     const t=tierByCode(tierCode);
     t.items.filter(it=>matchFilters(it,it.regionCode)).forEach(it=>{count++;
-      rowEl(box, it.name, `${it.regionName} · ${it.pyeong}평 · ${fmtEok(it.now)}`,
+      rowEl(frag, it.name, `${it.regionName} · ${it.pyeong}평 · ${fmtEok(it.now)}`,
       it.rate, it.star,
       activeItem&&activeItem.id===it.id&&activeItem.regionCode===it.regionCode,
       ()=>{ activeItem={regionCode:it.regionCode, id:it.id}; highlightId=null; searchKey=null; render(); });});
   }
+  box.appendChild(frag);
   if(!count) box.innerHTML='<div style="padding:14px;color:#9AA3AF;font-size:13px">필터에 맞는 후보가 없어요.</div>';
 }
 function drawChart(months, units, ids, mainId, colors){
@@ -1011,6 +1014,16 @@ function matchFilters(c, regionCode2){
     const [a,b]=filters.pp.split("-").map(Number);
     if(!(c.pp>=a && c.pp<b)) return false;
   }
+  if(filters.built){                                   // 연식(건축년도) 구간
+    const [a,b]=filters.built.split("-").map(Number);
+    const by=c.by||0;
+    if(!by || !(by>=a && by<b)) return false;          // 미상(0)은 구간 지정 시 제외
+  }
+  if(filters.hh){                                      // 세대수 구간
+    const [a,b]=filters.hh.split("-").map(Number);
+    const hh=c.hh||0;
+    if(!(hh>=a && hh<b)) return false;                 // 미상(0)은 구간 지정 시 제외
+  }
   return true;
 }
 function syncChartToFilter(){
@@ -1058,7 +1071,8 @@ function updatePickLabels(){
       rl.innerHTML = r ? `📍 ${r.name}<b>★${r.starCount}</b>` : "📍 지역 선택";
     } else {
       const t=tierByCode(tierCode);
-      rl.innerHTML = t ? `💰 ${t.name}<b>★${t.starCount}</b>` : "💰 구간 선택";
+      const _tp = (t && t.code==="ALL") ? "⭐" : "💰";
+      rl.innerHTML = t ? `${_tp} ${t.name}<b>★${t.starCount}</b>` : "💰 구간 선택";
     }
   }
   const fl=$("#filterPickLabel");
@@ -1111,6 +1125,16 @@ function drawFilters(){
     }
     syncChartToFilter(); render();
   }));
+  // 연식 — 준공 시기 구간 (오늘 기준 'N년 이내'는 자동 계산)
+  const _nowY=new Date().getFullYear();
+  box.appendChild(mk([["","연식 전체"],
+    [`${_nowY-5}-9999`,"5년 이내"],[`${_nowY-10}-9999`,"10년 이내"],[`${_nowY-20}-9999`,"20년 이내"],
+    ["0-2000","~1999년"],["2000-2010","2000~2009년"],["2010-2020","2010~2019년"],["2020-9999","2020년~"]],
+    filters.built, v=>{filters.built=v;syncChartToFilter();render();}));
+  // 세대수 — 단지 규모 구간
+  box.appendChild(mk([["","세대수 전체"],
+    ["0-300","300세대 미만"],["300-500","300~500세대"],["500-1000","500~1000세대"],["1000-99999","1000세대 이상"]],
+    filters.hh, v=>{filters.hh=v;syncChartToFilter();render();}));
 }
 function drawPeerFilters(){
   /* ── [차트 필터] 지금 보는 단지의 '비교 상대(동급)'를 거릅니다. ──
@@ -1499,14 +1523,18 @@ function syncSido(){
 }
 function goScanner(kind){
   $("#home").classList.remove("on"); $("#scanner").classList.add("on");
-  if(kind==="tier"){ mode="tier"; }
-  else { mode="region"; }
   if(kind==="star"){
-    // 저평가 ★ 이 가장 많은 지역으로
-    const best=[...DATA.regions].sort((a,b)=>b.starCount-a.starCount)[0];
-    if(best) regionCode=best.code;
-    syncSido();                        // 그 지역의 시로 2단계 진입
+    // 전국 매치 랭킹: 전국 매치(★)를 매력도 순으로 한 목록에 (상위권부터 스크롤)
+    mode="tier"; tierCode="ALL";
+    if(!tierByCode("ALL")){ const t0=DATA.tiers[0]; if(t0) tierCode=t0.code; }  // ALL 없으면 폴백
+    // 깨끗한 전국 시작: 목록 필터 초기화 (이후 사용자가 원하는 대로 좁힘)
+    filters.sido=""; filters.region=""; filters.pyeong=""; filters.price=""; filters.pp=""; filters.built=""; filters.hh="";
+  } else if(kind==="tier"){
+    // 평당가별 보기: 첫 가격 구간(전국 랭킹 제외)
+    mode="tier";
+    const pt=DATA.tiers.find(t=>t.code!=="ALL"); if(pt) tierCode=pt.code;
   } else {
+    mode="region";
     sido=null;                          // "구별 보기"는 1단계(시 목록)부터
   }
   scope="gu"; highlightId=null; searchKey=null; pickDefault(); render(); window.scrollTo(0,0);
