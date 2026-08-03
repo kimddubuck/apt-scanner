@@ -758,11 +758,25 @@ function rowEl(box, name, sub, rate, star, active, onclick, rank){
 }
 // 조합 매력도 배열의 고정 키 순서 (빌더 RATE_KEY_ORDER와 반드시 동일)
 const RATE_KEYS=["past3","past5","past7","past10"];
-// 현재 선택된 연수에 해당하는 매력도. 조합 배열에 값이 있으면 그걸, 없으면 기본 rate.
+/* ── 순위에 쓸 값 고르기 ────────────────────────────────────────────────
+   [시 순위 · 2026-08]
+   · 전국 랭킹 화면에서 '시·도 필터'가 걸려 있으면(부산 전체 등) → siRate(시 기준 갭)
+     구에선 평범해도 시 전체로 보면 저평가인 단지를 제대로 줄 세웁니다.
+     단, 시 기준은 '과거 7년 하나'만 계산했으므로 연수(3·5·10년) 선택과 무관하게 7년 값 사용.
+   · 그 외(구별 보기, 전국 전체 랭킹) → 기존처럼 구 기준 rate + 연수별 rates      */
+function useSiRank(){
+  return mode==="tier" && tierCode==="ALL" && !!filters.sido && peerBasis==="past";
+}
 function itemRate(it){
-  const idx = RATE_KEYS.indexOf("past" + peerYears);     // 예: 7년 → "past7" → 2
+  if(useSiRank() && it && it.siRate!=null) return it.siRate;   // 시 기준 갭
+  const idx = RATE_KEYS.indexOf("past" + peerYears);           // 예: 7년 → "past7" → 2
   if(it && it.rates && idx>=0 && it.rates[idx]!=null) return it.rates[idx];
   return it ? it.rate : 0;
+}
+// 이 항목이 '지금 기준에서 매치(★)인가' — 시 랭킹이면 siStar, 아니면 star
+function itemStar(it){
+  if(useSiRank()) return !!(it && it.siStar);
+  return !!(it && it.star);
 }
 function drawList(){
   const box=$("#list"); box.innerHTML="";
@@ -791,9 +805,13 @@ function drawList(){
       itemRate(c), c.star, c.id===activeId, ()=>{ activeId=c.id; highlightId=null; searchKey=null; scope="gu"; render(); scrollToChart(); });});
   } else {
     const t=tierByCode(tierCode);
-    t.items.filter(it=>matchFilters(it,it.regionCode)).sort((a,b)=>itemRate(b)-itemRate(a)).forEach(it=>{
+    const _siRank = useSiRank();
+    t.items.filter(it=>matchFilters(it,it.regionCode))
+           // [시 순위] 시 랭킹이면 '시 기준 매치(siRate 있음)'만 보여줌
+           .filter(it=> !_siRank || it.siRate!=null)
+           .sort((a,b)=>itemRate(b)-itemRate(a)).forEach(it=>{
       push(it.name, `${it.regionName} · ${it.pyeong}평 · ${fmtEok(it.now)}`,
-      itemRate(it), it.star,
+      itemRate(it), itemStar(it),
       activeItem&&activeItem.id===it.id&&activeItem.regionCode===it.regionCode,
       ()=>{ activeItem={regionCode:it.regionCode, id:it.id}; highlightId=null; searchKey=null; render(); scrollToChart(); });});
   }
@@ -810,7 +828,12 @@ function drawList(){
         +` 순위를 보시려면 <b>과거 기준</b>을 눌러주세요.`;
     } else {
       const cut = (shown < total) ? ` · 상위 <b>${shown}</b>위까지 표시 (전체 ${total.toLocaleString()}곳)` : "";
-      hint.innerHTML=`${head}<b>과거 ${peerYears}년</b> 기준 매력도 순위 · 눌러서 그래프 보기${cut}`;
+      if(useSiRank()){
+        // 시 기준 랭킹: 같은 시 안에서 동급을 찾아 매긴 순위 (과거 7년 고정)
+        hint.innerHTML=`${head}<b>${filters.sido} 안에서</b> 과거 7년 기준 저평가 순위 · 눌러서 그래프 보기${cut}`;
+      } else {
+        hint.innerHTML=`${head}<b>과거 ${peerYears}년</b> 기준 매력도 순위 · 눌러서 그래프 보기${cut}`;
+      }
     }
   }
 }
