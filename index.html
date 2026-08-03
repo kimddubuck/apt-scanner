@@ -1045,14 +1045,16 @@ function computePeers(meKey, years, scp, basis, built){
      pd.series 는 채우기 전 원본이라 값이 없는 달은 null 입니다.
      빌더와 똑같은 두 가지를 봅니다.
        ① 판정 기간의 15% 이상 달에 실거래 (최소 4개월)
-       ② 판정 기간 '마지막 3분의 1'에 실거래 최소 1건 (끊긴 단지 제외)
+       ② 판정 기간의 '앞 1/3'과 '뒤 1/3' 양쪽 모두에 실거래가 있어야 함
+          앞이 비면 신축(구간 시작 때 없던 단지), 뒤가 비면 끊긴 단지 → 둘 다 제외
      이걸 안 하면 거래가 뜸한 단지는 직전 값이 일직선으로 이어져
      "완벽하게 같이 움직인다"고 오판돼 엉뚱한 동급이 잡힙니다.          */
   const minReal = Math.max(4, Math.floor(n*0.15));
   const realOk = raw => {
-    const w = win(raw); let c=0, tail=0; const cut=Math.floor(w.length*2/3);
-    for(let i=0;i<w.length;i++){ if(w[i]!=null){ c++; if(i>=cut) tail++; } }
-    return c>=minReal && tail>0;
+    const w = win(raw); let c=0, head=0, tail=0;
+    const c3=Math.floor(w.length/3), cut=w.length-c3;
+    for(let i=0;i<w.length;i++){ if(w[i]!=null){ c++; if(i<c3) head++; if(i>=cut) tail++; } }
+    return c>=minReal && head>0 && tail>0;         // 앞·뒤 양쪽에 거래가 있어야 함
   };
   if(!realOk(pd.series[meKey])) return [];        // 내 단지부터 거래가 너무 적으면 판정 불가
   const me=win(ff(pd.series[meKey])), mi=pd.units[meKey], meSi=siKey(mi.rc);
@@ -1111,7 +1113,8 @@ function computePeers(meKey, years, scp, basis, built){
     //    필터를 안 켰을 땐 예전 그대로 총액 비교 → 기존 결과와 100% 동일합니다.
     const adj = peerPy ? (inf.pyeong/mi.pyeong) : 1;
     const rs=[]; for(let i=0;i<n;i++){ if(me[i]!=null && vp[i]!=null && vp[i]>0) rs.push(me[i]/vp[i]*adj); }
-    if(rs.length<12) continue;                             // 최소 1년(12개월) 겹침
+    // [D] 겹침을 '12개월 고정' → '판정 기간의 50% 이상'으로 강화 (빌더와 동일)
+    if(rs.length < Math.max(12, Math.floor(n*0.5))) continue;
     const mean=rs.reduce((a,b)=>a+b,0)/rs.length;
     if(mean<1-pd.lvl || mean>1+pd.lvl) continue;
     const sd=Math.sqrt(rs.reduce((a,b)=>a+(b-mean)**2,0)/rs.length);
