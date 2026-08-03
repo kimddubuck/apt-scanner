@@ -164,6 +164,27 @@
   .filters{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-start;margin-bottom:8px}
   .filters select{border:1px solid var(--line);border-radius:9px;padding:7px 8px;font-size:12.5px;font-family:inherit;color:var(--ink);background:#fff;max-width:118px}
   @media(max-width:820px){.filters{justify-content:flex-start}.filters select{flex:1;min-width:88px}}
+  /* ── [범위 슬라이더 · 2026-08] 얼마부터 얼마까지 손잡이 두 개로 정밀 조절 ── */
+  .frng{flex:1 1 150px;min-width:140px;max-width:210px;border:1px solid var(--line);
+        border-radius:9px;padding:5px 9px 7px;background:#fff}
+  .frng.on{border-color:var(--gold);background:#FFFCF5}
+  .frl{display:flex;align-items:center;justify-content:space-between;gap:4px;
+       font-size:11px;color:var(--soft);margin-bottom:1px;line-height:1.5}
+  .frl b{font-size:11.5px;color:var(--ink);font-weight:800}
+  .frng.on .frl b{color:var(--gold)}
+  .frl i{font-style:normal;cursor:pointer;color:#B9BFC9;padding:0 2px;font-size:13px}
+  .frng.on .frl i{color:var(--gold)}
+  .frs{position:relative;height:20px}
+  .frs .trk{position:absolute;top:9px;left:0;right:0;height:3px;border-radius:3px;background:#E3E6EB}
+  .frs .trkOn{position:absolute;top:9px;height:3px;border-radius:3px;background:var(--gold)}
+  /* 손잡이 2개를 겹쳐 놓고, 막대는 투명하게 해서 '하나의 슬라이더'처럼 보이게 */
+  .frs input[type=range]{position:absolute;top:0;left:0;width:100%;height:20px;margin:0;
+    -webkit-appearance:none;appearance:none;background:none;pointer-events:none}
+  .frs input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;pointer-events:auto;
+    width:15px;height:15px;border-radius:50%;background:#fff;border:2px solid var(--gold);
+    box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:pointer}
+  .frs input[type=range]::-moz-range-thumb{pointer-events:auto;width:15px;height:15px;
+    border-radius:50%;background:#fff;border:2px solid var(--gold);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:pointer}
   /* ── [차트 컨트롤] 제목 바로 아래: 평형·기준·연수 선택 줄 ── */
   .chart-ctrl{display:flex;gap:5px;align-items:center;flex-wrap:nowrap;margin:4px 0 2px;font-size:13px;color:var(--soft);overflow-x:auto;-webkit-overflow-scrolling:touch}
   .chart-ctrl::-webkit-scrollbar{display:none}       /* 스크롤바 숨김(깔끔하게) */
@@ -302,10 +323,10 @@
 
   <div class="home-intro">
     <div class="home-sec" style="margin-bottom:6px">아파트 매치란? 🏘️</div>
-    <p class="ip"><b>과거엔 값이 거의 같이 움직였던 단지들</b>을 '동급'으로 묶고, 그중 지금 동급 평균보다 가격이 낮은 곳을 <b>오늘의 매치</b>로 보여드리는 무료 서비스예요. 국토교통부 실거래가 공공데이터를 바탕으로 매일 자동 갱신됩니다.</p>
+    <p class="ip"><b>과거 7년간 값이 거의 같이 움직였던 단지들</b>을 '동급'으로 묶고, 그중 지금 동급 평균보다 가격이 낮은 곳을 <b>오늘의 매치</b>로 보여드리는 무료 서비스예요. (200세대 이상 · 23~40평 단지 기준) 국토교통부 실거래가 공공데이터를 바탕으로 매일 자동 갱신됩니다.</p>
     <div class="info-step"><div class="n">1</div><div><b>비슷한 크기</b><span>평수가 서로 ±18% 이내 (꼭 같은 평수 아니어도 OK — 24평이면 대략 20~28평까지)</span></div></div>
-    <div class="info-step"><div class="n">2</div><div><b>과거에 비슷한 값</b><span>수집 시작부터 처음 몇 년간 가격이 서로 ±10% 이내</span></div></div>
-    <div class="info-step"><div class="n">3</div><div><b>함께 움직임</b><span>그 시절 두 단지의 가격 비율이 거의 일정 (같이 오르내림)</span></div></div>
+    <div class="info-step"><div class="n">2</div><div><b>과거에 비슷한 값</b><span>수집 시작부터 <b>처음 7년간</b> 가격이 서로 ±10% 이내 (3·5·10년으로 바꿔볼 수 있어요)</span></div></div>
+    <div class="info-step"><div class="n">3</div><div><b>함께 움직임</b><span>그 시절 두 단지의 가격 비율이 거의 일정 (같이 오르내림)</span></div></div><div class="info-step"><div class="n">4</div><div><b>진짜 거래가 충분</b><span>그 기간의 15% 이상 달에 실제 거래가 있어야 해요. 거래가 뜸한 단지는 빈 달을 직전 값으로 채우다 보니 &quot;일직선&quot;이 되어 잘못 동급으로 잡히거든요</span></div></div>
     <p class="ip">이 셋을 다 통과한 단지가 <b>동급</b>이고, 지금 동급 평균보다 가격이 낮은 단지를 매치로 보여줘요.</p>
     <div class="info-note">💡 옛날 반에서 성적이 비슷했던 친구들 중 한 명만 뒤처졌다면, 다시 치고 올라올 여지가 있는지 보는 것과 같아요.<br><br>※ 집값은 재건축·학군·개발 등 여러 이유로 벌어질 수 있으니 <b>참고용</b>이에요.</div>
   </div>
@@ -380,9 +401,17 @@
     <li><strong>함께 움직인 궤적</strong> — 그 기간 동안 두 단지의 가격 비율이 크게 흔들리지 않아야 합니다.
     구체적으로는 월별 가격 비율의 변동계수(CV)가 0.12 이하일 때만 동급으로 인정합니다.
     한쪽만 급등하거나 급락한 관계는 애초에 같은 급이 아니었다고 보는 것입니다.</li>
+    <li><strong>충분한 실거래</strong> — 판정 기간의 <strong>15% 이상 달에 실제 거래</strong>가 있어야 하고,
+    기간의 마지막 3분의 1 구간에도 거래가 최소 한 건 있어야 합니다.
+    거래가 없는 달은 직전 가격으로 채워 넣기 때문에, 거래가 뜸한 단지는 시세가 일직선이 되어
+    &lsquo;아주 안정적으로 함께 움직인다&rsquo;고 잘못 판정될 수 있습니다. 이를 걸러 내기 위한 조건입니다.</li>
+    <li><strong>단지 규모와 평형</strong> — <strong>200세대 이상</strong>이면서 <strong>23평~40평</strong>인
+    단지만 후보와 동급 대상이 됩니다. 나홀로 단지나 극단적인 소형·대형 평형은 비교군이 마땅치 않기 때문입니다.</li>
+    <li><strong>같은 단지 제외</strong> — 같은 아파트의 다른 평형(예: 24평과 33평)은 동급이 될 수 없습니다.
+    한 단지 안에서는 가격이 당연히 함께 움직이므로 비교의 의미가 없기 때문입니다.</li>
   </ol>
   <p>화면의 필터는 역할에 따라 둘로 나뉩니다. 상단의 <strong>검색 필터</strong>는 저평가 후보 목록을
-  시·도, 구, 평형, 가격대, 평당가 조건으로 좁혀 주고, 차트 제목 아래의 <strong>차트 필터</strong>는
+  시·도, 구, 평형, 가격대, 평당가, 연식, 세대수 조건으로 좁혀 주고, 차트 제목 아래의 <strong>차트 필터</strong>는
   지금 보고 있는 단지의 비교 상대(동급)를 지역(시·도와 구), 평형대, 평당가, 연식, 세대수 조건으로
   걸러 줍니다. 예를 들어 부산의 34평 단지를 전국 비교로 보면서 “대구 수성구의 20평대,
   200세대 이상, 준공 10년 이내” 단지들과만 비교하는 식의 정밀한 탐색이 가능합니다.</p>
@@ -399,8 +428,18 @@
   한 시·도에서 최대 두 곳까지만 우선 배치해 여러 지역이 고르게 나타나도록 설계했습니다.</p>
 
   <p>또한 판정 기준을 <strong>‘과거 기준’</strong>과 <strong>‘현재 기준’</strong> 중에서 선택할 수 있습니다.
+  판정 기간은 <strong>과거 3년 · 5년 · 7년 · 10년</strong> 중에서 고를 수 있으며 기본값은 <strong>7년</strong>입니다.
+  기간을 바꾸면 동급 구성이 달라지므로 저평가 목록과 순위도 함께 달라집니다.
   과거 기준은 수집 시작 시점부터 처음 N년간 값이 닮았던 단지를 찾아 “그때는 같았는데 지금은 벌어진” 경우를 발견하는 데 쓰이고,
   현재 기준은 최근 N년간 값이 닮은 단지를 찾아 “지금 비슷한 수준인 단지”를 살펴보는 데 쓰입니다.</p>
+
+  <h2>순위가 매겨지는 방식</h2>
+  <p>목록의 순위는 <strong>동급 그룹의 현재 중앙값 대비 얼마나 낮은가(갭)</strong>로 정해집니다.
+  갭이 클수록 상위에 배치됩니다. 순위는 <strong>과거 기준</strong>에서만 매겨집니다.
+  현재 기준은 &lsquo;지금 함께 움직이는 단지&rsquo;를 찾는 기능이라 저평가 정도를 줄 세울 수 없기 때문에,
+  현재 기준을 선택하면 순위 번호가 표시되지 않습니다.</p>
+  <p>기본값인 과거 7년 기준에서는 전체 목록을 모두 보여 주고,
+  3년·5년·10년을 선택했거나 검색 필터를 적용한 경우에는 상위 500위까지만 표시합니다.</p>
 
   <h2>서비스 이용 가이드</h2>
   <ul>
@@ -409,7 +448,9 @@
     <li><strong>검색</strong> — 아파트 이름을 입력하면 해당 단지가 어떤 동급들과 비교되는지 바로 확인할 수 있습니다. 평형이 여러 개인 단지는 드롭다운으로 전환됩니다.</li>
     <li><strong>차트 조작</strong> — 두 손가락을 벌리면 특정 기간을 확대할 수 있고, 확대한 상태에서 좌우로 밀면 기간을 이동할 수 있습니다. PC에서는 마우스 휠과 드래그로 같은 조작이 가능합니다.</li>
     <li><strong>범례 강조</strong> — 범례의 단지 이름을 누르면 해당 선만 진하게 강조되고, 다시 누르면 해제됩니다. 강조한 상태에서 하단 버튼을 누르면 그 단지의 전체 평형과 거래 이력을 볼 수 있습니다.</li>
-    <li><strong>필터</strong> — 시·도, 구, 평형, 가격대, 평당가, 연식, 세대수 조건으로 결과를 좁힐 수 있습니다.</li>
+    <li><strong>필터</strong> — 시·도와 구는 목록에서 고르고, 평형·가격·평당가·연식·세대수는
+    손잡이 두 개를 끌어 &lsquo;얼마부터 얼마까지&rsquo;를 원하는 대로 정할 수 있습니다.
+    양 끝까지 벌리면 조건이 해제됩니다.</li>
   </ul>
 
   <h2>자주 묻는 질문 (FAQ)</h2>
@@ -483,10 +524,10 @@
     <div class="modal-box info-box" style="max-width:520px">
       <button class="modal-close" onclick="history.back()">×</button>
       <h3>‘동급 아파트’란? 🏘️</h3>
-      <p><b>과거엔 값이 거의 같이 움직였던 단지들</b>을 동급으로 묶어요. 그중 지금 동급 평균보다 가격이 낮은 곳이 <b>오늘의 매치</b>예요.</p>
+      <p><b>과거 7년간 값이 거의 같이 움직였던 단지들</b>을 동급으로 묶어요. 그중 지금 동급 평균보다 가격이 낮은 곳이 <b>오늘의 매치</b>예요. 갭이 클수록 순위가 높아져요.</p>
       <div class="info-step"><div class="n">1</div><div><b>비슷한 크기</b><span>평수가 서로 ±18% 이내 (꼭 같은 평수 아니어도 OK — 24평이면 대략 20~28평까지). 차트의 🎯필터에서 평형대를 직접 고르면 그 평형대와 비교해요 (이땐 총액 대신 <b>평당가</b>로 급을 재요)</span></div></div>
-      <div class="info-step"><div class="n">2</div><div><b>과거에 비슷한 값</b><span>수집 시작부터 처음 몇 년간 가격이 서로 ±10% 이내</span></div></div>
-      <div class="info-step"><div class="n">3</div><div><b>함께 움직임</b><span>그 시절 두 단지의 가격 비율이 거의 일정 (같이 오르내림)</span></div></div>
+      <div class="info-step"><div class="n">2</div><div><b>과거에 비슷한 값</b><span>수집 시작부터 <b>처음 7년간</b> 가격이 서로 ±10% 이내 (3·5·10년으로 바꿔볼 수 있어요)</span></div></div>
+      <div class="info-step"><div class="n">3</div><div><b>함께 움직임</b><span>그 시절 두 단지의 가격 비율이 거의 일정 (같이 오르내림)</span></div></div><div class="info-step"><div class="n">4</div><div><b>진짜 거래가 충분</b><span>그 기간의 15% 이상 달에 실제 거래가 있어야 해요. 거래가 뜸한 단지는 빈 달을 직전 값으로 채우다 보니 &quot;일직선&quot;이 되어 잘못 동급으로 잡히거든요</span></div></div>
       <p style="margin-top:12px">이 셋을 다 통과한 단지가 <b>동급</b>이고, 지금 동급 평균보다 가격이 낮은 단지를 매치로 보여줘요. ‘처음 몇 년’은 전국 동급 보기 화면에서 직접 바꿀 수 있어요.</p>
       <p style="margin-top:8px">🔍 <b>검색 필터</b>(위쪽)는 <b>매치 목록</b>을 거르고, 🎯 <b>차트 필터</b>(차트 제목 아래)는 <b>비교 상대(동급)</b>를 걸러요. 예: 전국 비교에서 <b>대구 수성구 · 20평대 · 200세대 이상 · 10년 이내</b>하고만 비교할 수 있어요.</p>
       <div class="info-note">💡 옛날 반에서 성적이 비슷했던 친구들 중 한 명만 뒤처졌다면, 다시 치고 올라올 여지가 있는지 보는 것과 같아요.<br><br>※ 집값은 재건축·학군·개발 등 여러 이유로 벌어질 수 있으니 <b>참고용</b>이에요.</div>
@@ -730,10 +771,12 @@ function drawList(){
      · 순위는 '과거 기준'일 때만 매깁니다.
        현재 기준은 동급끼리 지금 같이 움직이는지를 보는 거라
        "누가 더 저평가인가"를 줄 세울 수 없습니다. → 순위번호 숨김 + 안내문
-     · 기본값 7년은 전부 보여주고,
-       3·5·10년은 상위 500위까지만 (목록이 너무 길어지는 것 방지)          */
+     · 기본값 7년 + 필터 없음 → 전부 보여줌
+     · 3·5·10년이거나 필터를 걸었을 땐 상위 500위까지만
+       (필터를 조금씩 끌 때마다 수천 줄을 다시 그리면 화면이 버벅여요)      */
   const ranked = (peerBasis === "past");
-  const LIMIT  = (ranked && peerYears !== 7) ? 500 : Infinity;
+  const _anyFilter = !!(filters.pyeong||filters.price||filters.pp||filters.built||filters.hh);
+  const LIMIT  = (ranked && (peerYears !== 7 || _anyFilter)) ? 500 : Infinity;
   let shown=0, total=0;
   const push = (name, sub, rate, star, active, onclick) => {
     total++;
@@ -1182,9 +1225,27 @@ function updatePickLabels(){
   if(fl){
     // 검색 필터(목록용)만 셉니다. 차트 필터는 항상 펼쳐져 있어서 따로 안 세요.
     const on=[filters.sido&&filters.sido, filters.region&&(regionByCode(filters.region)||{}).name,
-              filters.pyeong&&"평형", filters.price&&"가격", filters.pp&&"평당가"].filter(Boolean);
+              filters.pyeong&&"평형", filters.price&&"가격", filters.pp&&"평당가",
+              filters.built&&"연식", filters.hh&&"세대수"].filter(Boolean);
     fl.innerHTML = on.length ? `🔍 검색 필터<b>${on.length}개 적용</b>` : "🔍 검색 필터";
   }
+}
+/* ── [범위 슬라이더용] 실제 데이터의 최소~최대값을 딱 한 번만 계산해 둡니다 ──
+   손잡이를 끝까지 밀면 '전체'가 되도록, 실제로 존재하는 값의 양 끝을 씁니다.
+   (예: 전국에 20평~65평 단지만 있으면 슬라이더도 20~65 로 만들어요)        */
+let _FRANGE=null;
+function filterRanges(){
+  if(_FRANGE) return _FRANGE;
+  let all=[];
+  const t=tierByCode("ALL");
+  if(t && t.items && t.items.length) all=t.items;
+  else (DATA.regions||[]).forEach(r=>{ all=all.concat(r.candidates||[]); });
+  const mm=f=>{ let lo=Infinity, hi=-Infinity;
+    all.forEach(x=>{ const v=+f(x); if(v>0){ if(v<lo)lo=v; if(v>hi)hi=v; } });
+    return (lo===Infinity) ? [0,1] : [lo,hi]; };
+  _FRANGE={ py:mm(x=>x.pyeong), price:mm(x=>x.now), pp:mm(x=>x.pp),
+            by:mm(x=>x.by), hh:mm(x=>x.hh) };
+  return _FRANGE;
 }
 function drawFilters(){
   /* ── [검색 필터] 아래 '저평가 후보 목록'만 거릅니다. ──
@@ -1215,29 +1276,60 @@ function drawFilters(){
     if(v){ const r=regionByCode(v); if(r){ regionCode=v; sido=r.name.split(" ")[0]; filters.sido=sido; } }
     pickDefault(); syncChartToFilter(); render();
   }));
-  box.appendChild(mk([["","평형 전체"],["0-20","20평 미만"],["20-30","20평대"],["30-40","30평대"],["40-999","40평 이상"]], filters.pyeong, v=>{filters.pyeong=v;syncChartToFilter();render();}));
-  box.appendChild(mk(PRICE_OPTS, filters.price, v=>{filters.price=v;syncChartToFilter();render();}));
-  box.appendChild(mk(PP_OPTS, filters.pp, v=>{
-    filters.pp=v;
-    // ── [평당가별 보기 연동] 검색 필터의 평당가를 바꾸면 아래 '평당가 블록'(tier)도 그 구간으로 이동 ──
-    //    (구별 보기에서는 기존처럼 목록만 거른다)
-    if(mode==="tier" && v){
-      const lo = Number(v.split("-")[0]);
-      const t = (DATA.tiers||[]).find(t=>parseInt(t.name,10)===lo);
-      if(t){ tierCode=t.code; searchKey=null; pickDefault(); }
-    }
-    syncChartToFilter(); render();
-  }));
-  // 연식 — 준공 시기 구간 (오늘 기준 'N년 이내'는 자동 계산)
-  const _nowY=new Date().getFullYear();
-  box.appendChild(mk([["","연식 전체"],
-    [`${_nowY-5}-9999`,"5년 이내"],[`${_nowY-10}-9999`,"10년 이내"],[`${_nowY-20}-9999`,"20년 이내"],
-    ["0-2000","~1999년"],["2000-2010","2000~2009년"],["2010-2020","2010~2019년"],["2020-9999","2020년~"]],
-    filters.built, v=>{filters.built=v;syncChartToFilter();render();}));
-  // 세대수 — 단지 규모 구간
-  box.appendChild(mk([["","세대수 전체"],
-    ["0-300","300세대 미만"],["300-500","300~500세대"],["500-1000","500~1000세대"],["1000-99999","1000세대 이상"]],
-    filters.hh, v=>{filters.hh=v;syncChartToFilter();render();}));
+  /* ── [범위 슬라이더 · 2026-08] ────────────────────────────────────────
+     예전엔 "20평대 / 30평대" 같은 정해진 칸만 고를 수 있었어요.
+     이제 손잡이 두 개를 끌어서 "23평 ~ 40평"처럼 원하는 대로 정합니다.
+
+     ▸ 저장 형식은 예전 그대로 "시작-끝" 문자열이라 목록 거르는 코드는 안 바뀝니다.
+     ▸ 다만 거르는 규칙이 '시작 이상 ~ 끝 미만'이라, 끝값을 +1 해서 저장합니다.
+       (예: 화면 23~40평 → 저장 "23-41" → 40평도 포함됨)
+     ▸ 손잡이를 양 끝까지 벌리면 '전체'가 되어 필터가 꺼집니다.            */
+  const _rngCache = filterRanges();
+  const rangeCtl = (title, key, lo, hi, step, fmt) => {
+    lo=Math.floor(lo); hi=Math.ceil(hi);
+    if(hi<=lo) hi=lo+step;
+    const cur = filters[key] ? filters[key].split("-").map(Number) : null;
+    let a = cur ? Math.max(lo, Math.min(hi, cur[0])) : lo;
+    let b = cur ? Math.max(lo, Math.min(hi, cur[1]-1)) : hi;   // 저장은 +1 되어 있으므로 되돌림
+    if(a>b) a=b;
+    const wrap=document.createElement("div");
+    wrap.className="frng"+((a>lo||b<hi)?" on":"");
+    const isAll = (a<=lo && b>=hi);
+    wrap.innerHTML=`<div class="frl"><span>${title}</span>`
+      + `<span><b class="frv">${isAll?"전체":fmt(a)+" ~ "+fmt(b)}</b>`
+      + `${isAll?"":' <i title="전체로">✕</i>'}</span></div>`
+      + `<div class="frs"><div class="trk"></div><div class="trkOn"></div>`
+      + `<input type="range" class="r1" min="${lo}" max="${hi}" step="${step}" value="${a}">`
+      + `<input type="range" class="r2" min="${lo}" max="${hi}" step="${step}" value="${b}"></div>`;
+    const r1=wrap.querySelector(".r1"), r2=wrap.querySelector(".r2");
+    const on=wrap.querySelector(".trkOn"), lab=wrap.querySelector(".frv");
+    const paint=()=>{                       // 노란 막대와 글자만 갱신 (끌 때마다 화면 전체를 다시 그리면 버벅여요)
+      const A=+r1.value, B=+r2.value, W=hi-lo;
+      on.style.left=((A-lo)/W*100)+"%"; on.style.width=((B-A)/W*100)+"%";
+      const all=(A<=lo && B>=hi);
+      lab.textContent = all ? "전체" : fmt(A)+" ~ "+fmt(B);
+      wrap.classList.toggle("on", !all);
+    };
+    const commit=()=>{                      // 손을 뗐을 때만 목록을 다시 계산
+      const A=+r1.value, B=+r2.value;
+      filters[key] = (A<=lo && B>=hi) ? "" : `${A}-${B+1}`;
+      syncChartToFilter(); render();
+    };
+    // 두 손잡이가 서로를 지나치지 않게 막기
+    r1.oninput=()=>{ if(+r1.value > +r2.value) r1.value=r2.value; paint(); };
+    r2.oninput=()=>{ if(+r2.value < +r1.value) r2.value=r1.value; paint(); };
+    r1.onchange=commit; r2.onchange=commit;
+    const x=wrap.querySelector(".frl i");
+    if(x) x.onclick=()=>{ filters[key]=""; syncChartToFilter(); render(); };
+    paint();
+    box.appendChild(wrap);
+  };
+  const _eok = v => v>=10000 ? (v/10000).toFixed(1).replace(/\.0$/,"")+"억" : v+"만";
+  rangeCtl("평형",  "pyeong", _rngCache.py[0],    _rngCache.py[1],    1,    v=>v+"평");
+  rangeCtl("가격",  "price",  _rngCache.price[0], _rngCache.price[1], 500,  _eok);
+  rangeCtl("평당가","pp",     _rngCache.pp[0],    _rngCache.pp[1],    50,   v=>v+"만");
+  rangeCtl("연식",  "built",  _rngCache.by[0],    _rngCache.by[1],    1,    v=>v+"년");
+  rangeCtl("세대수","hh",     _rngCache.hh[0],    _rngCache.hh[1],    10,   v=>v.toLocaleString()+"세대");
 }
 function drawPeerFilters(){
   /* ── [차트 필터] 지금 보는 단지의 '비교 상대(동급)'를 거릅니다. ──
