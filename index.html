@@ -894,7 +894,10 @@ function drawChart(months, units, ids, mainId, colors){
     if(ov.medPeer!=null && ov.medPeer>=ymin && ov.medPeer<=ymax){
       const yMed=Y(ov.medPeer);
       g+=`<line x1="${padL}" y1="${yMed}" x2="${W-padR}" y2="${yMed}" stroke="#6B7684" stroke-width="1.3" stroke-dasharray="5 3"/>`;
-      g+=`<text x="${W-padR}" y="${yMed-5}" text-anchor="end" font-size="10.5" fill="#6B7684" font-weight="700">동급 중앙값 ${fmtEok(ov.medPeer)}</text>`;
+      // [설명] 라벨을 클릭하면 '중앙값이 어떻게 나왔나' 팝업. 물음표로 클릭 가능함을 표시.
+      g+=`<text x="${W-padR}" y="${yMed-5}" text-anchor="end" font-size="10.5" fill="#6B7684" font-weight="700" style="cursor:pointer" onclick="showMedianExplain()">동급 중앙값 ${fmtEok(ov.medPeer)} ⓘ</text>`;
+      // 라벨 전체를 덮는 투명 클릭영역(손가락도 잘 눌리게)
+      g+=`<rect x="${W-padR-150}" y="${yMed-18}" width="150" height="20" fill="transparent" style="cursor:pointer" onclick="showMedianExplain()"/>`;
       if(ov.meNow!=null && ov.meNow>=ymin && ov.meNow<=ymax && ov.gapPct!=null){
         const yMe=Y(ov.meNow), xg=W-padR-6, ym=(yMed+yMe)/2;
         g+=`<line x1="${xg}" y1="${yMed}" x2="${xg}" y2="${yMe}" stroke="#C0392B" stroke-width="1.4"/>`;
@@ -963,6 +966,52 @@ function drawChart(months, units, ids, mainId, colors){
 }
 /* ── [차트 확대] 손가락 두 개(핀치)·마우스 휠로 기간을 좁히거나 넓힘 ── */
 function resetZoom(){ zoomA=0; zoomB=1; render(); }
+
+/* ── [동급 중앙값 설명 · 2026-08] 점선 라벨 클릭 시 '이 값이 어떻게 나왔나' ── */
+function showMedianExplain(){
+  const ov=chartOverlay;
+  if(!ov || !ov.peers || !ov.peers.length){ return; }
+  const sorted=[...ov.peers].sort((a,b)=>a.now-b.now);
+  const rows=sorted.map(p=>`<tr><td style="padding:2px 10px 2px 0">${p.name} ${p.py?p.py+"평":""}</td>`
+    +`<td style="text-align:right;font-weight:700">${fmtEok(p.now)}</td></tr>`).join("");
+  const n=sorted.length;
+  const midDesc = n%2 ? `${n}곳 중 가운데(${Math.floor(n/2)+1}번째) 값`
+                      : `${n}곳 중 가운데 두 값(${n/2}·${n/2+1}번째)의 평균`;
+  const gapWord = ov.gapPct>0 ? `${ov.gapPct}% 낮은(저평가)` : ov.gapPct<0 ? `${Math.abs(ov.gapPct)}% 높은` : "비슷한";
+  const html=`
+    <div style="font-size:14px;line-height:1.6">
+      <p style="margin:0 0 10px"><b>동급 중앙값 ${fmtEok(ov.medPeer)}</b> 는 이렇게 나왔어요.</p>
+      <p style="margin:0 0 6px;color:#555">화면에 함께 그린 <b>동급 ${n}곳</b>의 <b>현재가</b>를 작은 값부터 줄 세운 뒤,
+      <b>${midDesc}</b>을 고른 거예요. (평균이 아니라 중앙값이라, 유난히 비싸거나 싼 한두 곳에 휘둘리지 않아요.)</p>
+      <table style="margin:8px 0;border-collapse:collapse;font-size:13px">${rows}</table>
+      <p style="margin:8px 0 0;padding-top:8px;border-top:1px solid #eee">
+        이 단지(${ov.meName||"내 단지"})의 현재가는 <b>${fmtEok(ov.meNow)}</b> 라,
+        동급 중앙값보다 <b style="color:${ov.gapPct>0?'#C0392B':'#333'}">${gapWord}</b> 가격대예요.</p>
+      <p style="margin:8px 0 0;font-size:12px;color:#9AA3AF">
+        ※ 현재가는 증여성 급락 거래를 뺀 최근 실거래 기준이에요.</p>
+    </div>`;
+  showInfoModal("저평가율은 어떻게 나오나요?", html);
+}
+/* 간단 정보 모달 (없으면 만들어 씀) */
+function showInfoModal(title, innerHTML){
+  let m=$("#infoModal");
+  if(!m){
+    m=document.createElement("div"); m.id="infoModal";
+    m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px";
+    m.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:420px;width:100%;max-height:80vh;overflow:auto;padding:20px 22px;box-shadow:0 10px 40px rgba(0,0,0,.2)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 id="infoModalTitle" style="margin:0;font-size:16px"></h3>
+        <button onclick="document.getElementById('infoModal').style.display='none'" style="border:0;background:#F0F1F4;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:16px">×</button>
+      </div>
+      <div id="infoModalBody"></div>
+    </div>`;
+    m.onclick=e=>{ if(e.target===m) m.style.display="none"; };
+    document.body.appendChild(m);
+  }
+  $("#infoModalTitle").textContent=title;
+  $("#infoModalBody").innerHTML=innerHTML;
+  m.style.display="flex";
+}
 /* [최신으로] 확대 폭은 그대로 두고 오른쪽 끝(가장 최근)으로 이동 */
 function jumpLatest(){ const w=zoomB-zoomA; zoomB=1; zoomA=Math.max(0,1-w); render(); }
 function bindZoom(fullN){
@@ -1646,11 +1695,13 @@ function render(){
     (function(){
       const lastOf=id=>{ const p=(units[id]||{}).prices||[]; for(let i=p.length-1;i>=0;i--) if(p[i]!=null) return p[i]; return null; };
       const meNow=lastOf(meKey);
-      const peerNows=ids.filter(k=>k!==meKey).map(lastOf).filter(v=>v!=null);
+      const peers=ids.filter(k=>k!==meKey).map(k=>({name:(units[k]||{}).name||"", py:(units[k]||{}).pyeong||0, now:lastOf(k)})).filter(x=>x.now!=null);
+      const peerNows=peers.map(x=>x.now);
       if(ids.length>=2 && meNow!=null && peerNows.length){
         const medPeer=medianOf(peerNows);
         chartOverlay={ basis:peerBasis, years:peerYears, medPeer, meNow,
-                       gapPct: medPeer>0 ? Math.round((medPeer-meNow)/medPeer*100) : null };
+                       gapPct: medPeer>0 ? Math.round((medPeer-meNow)/medPeer*100) : null,
+                       peers, meName:mName };   // [설명용] 동급 목록·내 이름
       } else {
         chartOverlay=null;   // 동급 없으면 오버레이 안 그림
       }
@@ -1708,11 +1759,13 @@ function render(){
     (function(){
       const lastOf=id=>{ const p=(r.units[id]||{}).prices||[]; for(let i=p.length-1;i>=0;i--) if(p[i]!=null) return p[i]; return null; };
       const meNow=lastOf(c.id);
-      const peerNows=sibs.map(lastOf).filter(v=>v!=null);
+      const peers=sibs.map(id=>({name:(r.units[id]||{}).name||"", py:(r.units[id]||{}).pyeong||0, now:lastOf(id)})).filter(x=>x.now!=null);
+      const peerNows=peers.map(x=>x.now);
       if(ids.length>=2 && meNow!=null && peerNows.length){
         const medPeer=medianOf(peerNows);
         chartOverlay={ basis:"past", years:Math.round((DATA.defaultYears||7)), medPeer, meNow,
-                       gapPct: medPeer>0 ? Math.round((medPeer-meNow)/medPeer*100) : null };
+                       gapPct: medPeer>0 ? Math.round((medPeer-meNow)/medPeer*100) : null,
+                       peers, meName:c.name };
       } else { chartOverlay=null; }
     })();
     drawChart(r.months, r.units, ids, c.id, colors);
