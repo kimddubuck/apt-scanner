@@ -307,7 +307,7 @@
 </div>
 
 <div id="scanner">
-  <button class="back-home" onclick="goHome()">← 홈으로</button>
+  <button class="back-home" onclick="history.back()">← 홈으로</button>
   <div class="topbar">
     <div>
       <div class="eyebrow">아파트 매치</div>
@@ -474,9 +474,9 @@
 
 
 </div>
-  <div class="modal" id="infoModal" onclick="if(event.target===this)closeInfo()">
+  <div class="modal" id="infoModal" onclick="if(event.target===this)history.back()">
     <div class="modal-box info-box" style="max-width:520px">
-      <button class="modal-close" onclick="closeInfo()">×</button>
+      <button class="modal-close" onclick="history.back()">×</button>
       <h3>‘동급 아파트’란? 🏘️</h3>
       <p><b>과거엔 값이 거의 같이 움직였던 단지들</b>을 동급으로 묶어요. 그중 지금 동급 평균보다 가격이 낮은 곳이 <b>오늘의 매치</b>예요.</p>
       <div class="info-step"><div class="n">1</div><div><b>비슷한 크기</b><span>평수가 서로 ±18% 이내 (꼭 같은 평수 아니어도 OK — 24평이면 대략 20~28평까지). 차트의 🎯필터에서 평형대를 직접 고르면 그 평형대와 비교해요 (이땐 총액 대신 <b>평당가</b>로 급을 재요)</span></div></div>
@@ -487,9 +487,9 @@
       <div class="info-note">💡 옛날 반에서 성적이 비슷했던 친구들 중 한 명만 뒤처졌다면, 다시 치고 올라올 여지가 있는지 보는 것과 같아요.<br><br>※ 집값은 재건축·학군·개발 등 여러 이유로 벌어질 수 있으니 <b>참고용</b>이에요.</div>
     </div>
   </div>
-  <div class="modal" id="modal" onclick="if(event.target===this)closeDetail()">
+  <div class="modal" id="modal" onclick="if(event.target===this)history.back()">
     <div class="modal-box">
-      <button class="modal-close" onclick="closeDetail()">×</button>
+      <button class="modal-close" onclick="history.back()">×</button>
       <h3 id="dTitle"></h3><div class="meta" id="dMeta"></div>
       <div class="sec-row"><div class="sec-title">전체 평형 실거래가</div><div class="pyfilter" id="dFilter"></div></div>
       <div id="dChart"></div><div class="legend" id="dLegend"></div>
@@ -681,14 +681,14 @@ function drawList(){
     const r=regionByCode(regionCode);
     r.candidates.filter(c=>matchFilters(c,r.code)).forEach(c=>{count++;
       rowEl(frag, c.name, `${c.pyeong}평 · 현재 ${fmtEok(c.now)}`,
-      c.rate, c.star, c.id===activeId, ()=>{ activeId=c.id; highlightId=null; searchKey=null; scope="gu"; render(); });});
+      c.rate, c.star, c.id===activeId, ()=>{ activeId=c.id; highlightId=null; searchKey=null; scope="gu"; render(); scrollToChart(); });});
   } else {
     const t=tierByCode(tierCode);
     t.items.filter(it=>matchFilters(it,it.regionCode)).forEach(it=>{count++;
       rowEl(frag, it.name, `${it.regionName} · ${it.pyeong}평 · ${fmtEok(it.now)}`,
       it.rate, it.star,
       activeItem&&activeItem.id===it.id&&activeItem.regionCode===it.regionCode,
-      ()=>{ activeItem={regionCode:it.regionCode, id:it.id}; highlightId=null; searchKey=null; render(); });});
+      ()=>{ activeItem={regionCode:it.regionCode, id:it.id}; highlightId=null; searchKey=null; render(); scrollToChart(); });});
   }
   box.appendChild(frag);
   if(!count) box.innerHTML='<div style="padding:14px;color:#9AA3AF;font-size:13px">필터에 맞는 후보가 없어요.</div>';
@@ -1275,6 +1275,7 @@ function openDetail(apt, rc){
   $("#dMeta").textContent=(r.name||"")+(d.buildYear?" · "+d.buildYear+"년 준공":"");
   redrawDetail();
   $("#modal").style.display="flex";
+  pushHist("detail");
 }
 function redrawDetail(){
   const {r,d,series,selected}=detailState;
@@ -1297,7 +1298,7 @@ function redrawDetail(){
                       : "선택한 평형의 거래이력이 없어요.") + `</td></tr>`;
 }
 function closeDetail(){ $("#modal").style.display="none"; }
-function openInfo(){ $("#infoModal").style.display="flex"; }
+function openInfo(){ $("#infoModal").style.display="flex"; pushHist("info"); }
 function closeInfo(){ $("#infoModal").style.display="none"; }
 function render(){
   drawModes(); drawPills(); drawStats(); drawFilters(); drawPeerFilters(); drawList(); updatePickLabels();
@@ -1498,6 +1499,16 @@ function setupSearch(){
 }
 // ── 홈 ↔ 스캐너 화면 전환 ──
 function goHome(){ $("#home").classList.add("on"); $("#scanner").classList.remove("on"); window.scrollTo(0,0); }
+// ── [뒤로가기 지원] 브라우저·모바일 뒤로가기로 상세 → ⓘ모달 → 스캐너 → 홈 순으로 닫기 ──
+//    (예전엔 스캐너에서 뒤로가기 누르면 사이트가 통째로 나가버렸음)
+function pushHist(v){ try{ history.pushState({v:v}, ""); }catch(e){} }
+function _isOpen(el){ return el && el.style.display && el.style.display!=="none"; }
+window.addEventListener("popstate", function(){
+  const detail=$("#modal"), info=$("#infoModal");
+  if(_isOpen(detail)){ closeDetail(); return; }                       // 상세부터
+  if(_isOpen(info)){ closeInfo(); return; }                           // 그다음 ⓘ 모달
+  if($("#scanner").classList.contains("on")){ goHome(); return; }     // 스캐너면 홈으로
+});
 /* [검색 개선] 검색으로 아파트를 고르면 차트가 바로 보이게 스크롤.
    - 모바일(좁은 화면): 지역칩·통계를 건너뛰고 차트 카드로 이동
    - PC(넓은 화면): 차트가 오른쪽에 이미 보이므로 그냥 맨 위로       */
@@ -1538,6 +1549,7 @@ function goScanner(kind){
     sido=null;                          // "구별 보기"는 1단계(시 목록)부터
   }
   scope="gu"; highlightId=null; searchKey=null; pickDefault(); render(); window.scrollTo(0,0);
+  pushHist("scanner");                 // 뒤로가기로 홈 복귀 가능하게
 }
 function setupHome(){
   const total=DATA.regions.reduce((s,r)=>s+r.starCount,0);
