@@ -621,6 +621,22 @@ function drawPills(){
       back.innerHTML="◀ 시·도";
       back.onclick=()=>{ sido=null; render(); };
       box.appendChild(back);
+      /* ── [시 전체 랭킹 · 2026-08] "부산 전체" 칩 ──────────────────────
+         예전엔 부산을 누르면 해운대구 하나만 보여서 '부산 전체 순위'를 볼 수 없었어요.
+         이 칩을 누르면 그 시·도의 모든 구를 한 목록에 모아 순위를 매깁니다.
+         (전국 매치 랭킹 화면에 '시·도 = 부산' 필터를 걸어주는 방식)          */
+      const sidoStar = list.filter(g=>sidoOf(g.name)===sido).reduce((s,g)=>s+g.starCount, 0);
+      const allBtn=document.createElement("button");
+      allBtn.className="pill";
+      allBtn.innerHTML=`⭐ ${sido} 전체<b>${sidoStar}</b>`;
+      allBtn.onclick=()=>{
+        if(tierByCode("ALL")){                  // 전국 랭킹 구간이 있어야 동작
+          mode="tier"; tierCode="ALL";
+          filters.sido=sido; filters.region=""; peerSido=sido;
+          searchKey=null; pickDefault(); closePick("regions"); render(); window.scrollTo(0,0);
+        }
+      };
+      box.appendChild(allBtn);
       list.filter(g=>sidoOf(g.name)===sido).forEach(g=>{
         const b=document.createElement("button");
         b.className="pill"+(g.code===active?" on":"");
@@ -636,11 +652,25 @@ function drawPills(){
     }
     return;
   }
+  // ── [시 전체 랭킹] 랭킹 화면에서 다시 '구별'로 돌아가는 칩 ──
+  if(mode==="tier" && tierCode==="ALL" && filters.sido){
+    const back=document.createElement("button");
+    back.className="pill";
+    back.innerHTML=`◀ ${filters.sido} 구별`;
+    back.onclick=()=>{
+      const first=DATA.regions.find(r=>r.name.startsWith(filters.sido));
+      if(first){ mode="region"; sido=filters.sido; regionCode=first.code; filters.region="";
+                 searchKey=null; pickDefault(); render(); }
+    };
+    box.appendChild(back);
+  }
   // 평당가별 모드는 기존 그대로
   list.forEach(g=>{
     const b=document.createElement("button");
     b.className="pill"+(g.code===active?" on":"");
-    b.innerHTML=`${g.name}<b>${g.starCount}</b>`;
+    // [시 전체 랭킹] 시·도 필터가 걸려 있으면 "전국 매치 랭킹" 대신 "부산 매치 랭킹"으로 표시
+    const _label = (g.code==="ALL" && filters.sido) ? `${filters.sido} 매치 랭킹` : g.name;
+    b.innerHTML=`${_label}<b>${g.starCount}</b>`;
     b.onclick=()=>{ if(mode==="region") regionCode=g.code; else { tierCode=g.code; filters.pp=""; } searchKey=null; pickDefault(); closePick("regions"); render(); };
     box.appendChild(b);
   });
@@ -651,7 +681,11 @@ function pickDefault(){
     activeId=(r.candidates.find(c=>c.star)||r.candidates[0]).id;
   } else {
     const t=tierByCode(tierCode);
-    const f=t.items.find(x=>x.star)||t.items[0];
+    /* [2026-08] 시·도 필터가 걸려 있으면 그 안에서 첫 매치를 고릅니다.
+       (안 그러면 "부산 전체"를 눌렀는데 그래프엔 서울 단지가 뜨는 일이 생겨요) */
+    const pool=t.items.filter(it=>matchFilters(it,it.regionCode));
+    const src=pool.length?pool:t.items;                 // 하나도 없으면 옛 동작으로 폴백
+    const f=src.find(x=>x.star)||src[0];
     activeItem={regionCode:f.regionCode, id:f.id};
   }
 }
@@ -664,10 +698,12 @@ function drawStats(){
       <div class="stat"><b>${r.months.length}</b><span>개월 시세</span></div>`;
   } else {
     const t=tierByCode(tierCode);
-    const nreg=new Set(t.items.map(x=>x.regionName)).size;
+    // [2026-08] 시·도 필터가 걸리면 그 범위의 숫자를 보여줍니다 (전국 숫자가 뜨면 헷갈려요)
+    const items=t.items.filter(it=>matchFilters(it,it.regionCode));
+    const nreg=new Set(items.map(x=>x.regionName)).size;
     $("#stats").innerHTML=`
-      <div class="stat"><b>${t.items.length}</b><span>후보 단지</span></div>
-      <div class="stat gold"><b>${t.starCount}</b><span>매치 ★</span></div>
+      <div class="stat"><b>${items.length}</b><span>후보 단지</span></div>
+      <div class="stat gold"><b>${items.filter(x=>x.star).length}</b><span>매치 ★</span></div>
       <div class="stat"><b>${nreg}</b><span>지역 수</span></div>`;
   }
 }
@@ -724,7 +760,7 @@ function drawList(){
      [2026-08] 어떤 기준으로 줄 세운 목록인지 항상 알려줍니다.            */
   const hint=$("#listHint");
   if(hint){
-    const head = (mode==="tier" && tierCode==="ALL") ? "전국 매치 · " : "";
+    const head = (mode==="tier" && tierCode==="ALL") ? `${filters.sido||"전국"} 매치 · ` : "";
     if(!ranked){
       hint.innerHTML=`${head}<b style="color:#C0392B">현재 기준에서는 순위를 매길 수 없어요</b>`
         +` — 동급끼리 지금 함께 움직이는지를 보는 기준이라, 저평가 줄 세우기가 안 됩니다.`
