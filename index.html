@@ -1152,6 +1152,17 @@ const aptOf = id => id.split("|")[0];
 // 시 단위 키: 광역시·특별시·세종은 시도(앞 2자리), 그 외는 시(앞 4자리)
 function siKey(rc){ const M=["11","26","27","28","29","30","31","36"]; return M.includes(rc.slice(0,2))?rc.slice(0,2):rc.slice(0,4); }
 // 숫자 배열의 중앙값 (없으면 null)
+/* ── [현재가 정합 · 2026-08] 화면에서 쓰는 '깨끗한 현재가' ──────────────────
+   pd.series(월별 값)의 마지막 값을 현재가로 쓰면 증여 거래(예: 12억짜리가 6.9억)가
+   그대로 현재가가 됩니다. 그래서 빌더가 미리 걸러 놓은 pd.now 를 우선 씁니다.
+   단위는 series 와 같은 '억×10'. 옛날 data.js(=now 없음)면 예전 방식으로 자동 폴백. */
+function nowOf(key){
+  const pd=DATA.peerdata; if(!pd) return null;
+  if(pd.now && pd.now[key]) return pd.now[key];
+  const sr=(pd.series||{})[key]; if(!sr) return null;
+  for(let i=sr.length-1;i>=0;i--) if(sr[i]!=null) return sr[i];
+  return null;
+}
 function medianOf(a){ if(!a||!a.length) return null; const s=[...a].sort((x,y)=>x-y); const m=s.length>>1; return s.length%2? s[m] : (s[m-1]+s[m])/2; }
 function computePeers(meKey, years, scp, basis, built){
   const pd=DATA.peerdata; if(!pd||!pd.series[meKey]) return [];
@@ -1216,8 +1227,7 @@ function computePeers(meKey, years, scp, basis, built){
     // ── [동급 평당가 필터] 상대의 '현재 평당가'가 고른 구간일 때만 비교 ──
     if(peerPp){
       const [qa,qb]=peerPp.split("-").map(Number);
-      let lv=0; const sr=pd.series[k];
-      for(let i=sr.length-1;i>=0;i--){ if(sr[i]!=null){lv=sr[i];break;} }
+      const lv = nowOf(k) || 0;     // [정합] 증여 제외 현재가 사용
       const ppv=(lv*1000)/inf.pyeong;             // 총액(만원)÷평 = 평당가(만원/평)
       if(!(ppv>=qa && ppv<qb)) continue;
     }
@@ -1237,7 +1247,7 @@ function computePeers(meKey, years, scp, basis, built){
     if(mean<1-pd.lvl || mean>1+pd.lvl) continue;
     const sd=Math.sqrt(rs.reduce((a,b)=>a+(b-mean)**2,0)/rs.length);
     if(sd/mean > pd.cv) continue;
-    let lastv=0; for(let i=vf.length-1;i>=0;i--){ if(vf[i]!=null){lastv=vf[i];break;} }
+    const lastv = nowOf(k) || 0;    // [정합] 증여 제외 현재가 사용 (예전: 월별 마지막 값)
     out.push({key:k, last:lastv, sim:Math.abs(mean-1)+(sd/mean), sido:siKey(inf.rc)});
   }
   /* ── [전국 비교 개선] ──
@@ -1681,7 +1691,7 @@ function render(){
     // ── 새 차트 필터들도 서버 미리계산 동급(sibs)에 똑같이 적용 ──
     const regOk = k => { const rn=(pd.units[k]&&pd.units[k].rn)||""; if(peerGu) return rn===peerGu; if(peerSido) return rn.startsWith(peerSido); return true; };
     const pyOk  = k => { if(!peerPy) return true; const py=(pd.units[k]&&pd.units[k].pyeong)||0; const [pa,pb]=peerPy.split("-").map(Number); return py>=pa && py<pb; };
-    const ppOk  = k => { if(!peerPp) return true; const u=pd.units[k]; if(!u) return false; let lv=0; const sr=pd.series[k]||[]; for(let i=sr.length-1;i>=0;i--){ if(sr[i]!=null){lv=sr[i];break;} } const ppv=(lv*1000)/u.pyeong; const [qa,qb]=peerPp.split("-").map(Number); return ppv>=qa && ppv<qb; };
+    const ppOk  = k => { if(!peerPp) return true; const u=pd.units[k]; if(!u) return false; const lv=nowOf(k)||0; const ppv=(lv*1000)/u.pyeong; const [qa,qb]=peerPp.split("-").map(Number); return ppv>=qa && ppv<qb; };
     const localKeys = (ctx && peerBasis==="past") ? ctx.c.sibs.map(s=>ctx.r.code+"|"+s).filter(k=>pd.series[k] && builtOk(k) && hhOk(k) && regOk(k) && pyOk(k) && ppOk(k)) : [];
     const far=computePeers(meKey, peerYears, eff, peerBasis, peerBuilt).filter(k=>!localKeys.includes(k));
     let list=[meKey, ...localKeys.slice(0,4), ...far];
@@ -1693,7 +1703,11 @@ function render(){
        중앙값·현재가는 화면에 그려진 값(units[].prices)의 마지막 실측치로.
        갭% = (동급 중앙값 − 내 현재가) ÷ 중앙값 × 100 → 양수면 '동급보다 쌈(저평가)'. */
     (function(){
-      const lastOf=id=>{ const p=(units[id]||{}).prices||[]; for(let i=p.length-1;i>=0;i--) if(p[i]!=null) return p[i]; return null; };
+      /* [정합 · 2026-08] 갭(%)은 '증여 제외 현재가'(nowOf)로 계산합니다.
+         그래프에 그려진 선·점은 예전 그대로라, 급락 점이 보여도 숫자는 안 흔들립니다.
+         nowOf 는 억×10 단위라 ×1000 해서 만원으로 맞춥니다. 없으면 예전 방식으로 폴백. */
+      const lastOf=id=>{ const nv=nowOf(id); if(nv) return nv*1000;
+                         const p=(units[id]||{}).prices||[]; for(let i=p.length-1;i>=0;i--) if(p[i]!=null) return p[i]; return null; };
       const meNow=lastOf(meKey);
       const peers=ids.filter(k=>k!==meKey).map(k=>({name:(units[k]||{}).name||"", py:(units[k]||{}).pyeong||0, now:lastOf(k)})).filter(x=>x.now!=null);
       const peerNows=peers.map(x=>x.now);
@@ -1757,7 +1771,10 @@ function render(){
     /* [차트 오버레이] 구 동급(미리 계산된 sibs)도 동일하게 표시.
        여기서 판정 기준은 이 후보를 만든 기본값(과거 7년)이므로 그대로 사용. */
     (function(){
-      const lastOf=id=>{ const p=(r.units[id]||{}).prices||[]; for(let i=p.length-1;i>=0;i--) if(p[i]!=null) return p[i]; return null; };
+      /* [정합 · 2026-08] 여기도 갭(%)은 '증여 제외 현재가' 기준.
+         r.units 의 열쇠(id)에는 지역코드가 없어서 "지역코드|id" 로 만들어 찾습니다. */
+      const lastOf=id=>{ const nv=nowOf(r.code+"|"+id); if(nv) return nv*1000;
+                         const p=(r.units[id]||{}).prices||[]; for(let i=p.length-1;i>=0;i--) if(p[i]!=null) return p[i]; return null; };
       const meNow=lastOf(c.id);
       const peers=sibs.map(id=>({name:(r.units[id]||{}).name||"", py:(r.units[id]||{}).pyeong||0, now:lastOf(id)})).filter(x=>x.now!=null);
       const peerNows=peers.map(x=>x.now);
