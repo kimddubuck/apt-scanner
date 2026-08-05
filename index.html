@@ -1172,6 +1172,21 @@ function medianOf(a){ if(!a||!a.length) return null; const s=[...a].sort((x,y)=>
 function computePeers(meKey, years, scp, basis, built){
   const pd=DATA.peerdata; if(!pd||!pd.series[meKey]) return [];
   const ff=arr=>{let last=null;return arr.map(v=>{if(v!=null)last=v;return last;});};
+  /* ── [판정 정합 · 2026-08] 동급 '판정'에만 쓰는 깨끗한 시세 ────────────
+     그래프용 pd.series 에는 증여 거래(예: 6.9억)가 남아 있습니다(일부러).
+     하지만 그걸로 궤적을 판정하면, 현재 기준(최근 7년)에서 증여값이 궤적을
+     뚝 떨어뜨려 동급이 통째로 사라집니다(실측: 0곳 ↔ 제거 시 14곳).
+     그래서 판정할 때만 pd.giftIdx 에 표시된 '증여 달'을 null(거래 없음)로 바꿉니다.
+     ※ 화면 그래프·현재가는 이 함수를 안 쓰므로 6.9억 점은 그대로 보입니다. */
+  const gift = (pd.giftIdx)||{};
+  const judgeSeries = key => {
+    const raw = pd.series[key]; if(!raw) return raw;
+    const gi = gift[key];
+    if(!gi || !gi.length) return raw;           // 증여 없으면 원본 그대로
+    const copy = raw.slice();
+    for(const idx of gi) if(idx>=0 && idx<copy.length) copy[idx]=null;  // 증여 달 제거
+    return copy;
+  };
   const n=Math.min(years*12, pd.months.length);   // 월 단위
   // 판정 구간: 과거 기준이면 그래프 앞부분(처음 N개월), 현재 기준이면 뒷부분(최근 N개월)
   const win = arr => basis==="recent" ? arr.slice(-n) : arr.slice(0,n);
@@ -1190,8 +1205,8 @@ function computePeers(meKey, years, scp, basis, built){
     for(let i=0;i<w.length;i++){ if(w[i]!=null){ c++; if(i<c3) head++; if(i>=cut) tail++; } }
     return c>=minReal && head>0 && tail>0;         // 앞·뒤 양쪽에 거래가 있어야 함
   };
-  if(!realOk(pd.series[meKey])) return [];        // 내 단지부터 거래가 너무 적으면 판정 불가
-  const me=win(ff(pd.series[meKey])), mi=pd.units[meKey], meSi=siKey(mi.rc);
+  if(!realOk(judgeSeries(meKey))) return [];      // 내 단지부터 거래가 너무 적으면 판정 불가
+  const me=win(ff(judgeSeries(meKey))), mi=pd.units[meKey], meSi=siKey(mi.rc);
   const bLo = built ? +built.split("-")[0] : 0;   // 연식 필터 구간
   const bHi = built ? +built.split("-")[1] : 0;
   const out=[];
@@ -1237,8 +1252,9 @@ function computePeers(meKey, years, scp, basis, built){
       if(!(ppv>=qa && ppv<qb)) continue;
     }
     if(inf.name===mi.name && inf.rc===mi.rc) continue;
-    if(!realOk(pd.series[k])) continue;          // [D] 상대도 진짜 거래가 충분해야 함
-    const vf=ff(pd.series[k]), vp=win(vf);
+    const jsK=judgeSeries(k);                     // [정합] 상대도 증여 제외한 판정용 시세
+    if(!realOk(jsK)) continue;                    // [D] 상대도 진짜 거래가 충분해야 함
+    const vf=ff(jsK), vp=win(vf);
     // ── [평형대 필터의 핵심] 다른 평형대와 비교할 땐 '평당가'로 급을 잰다 ──
     //    총액으로 재면 34평(6.6억) vs 20평대(3.7억)는 무조건 탈락해 버려요.
     //    그래서 평형대 필터를 켰을 땐 평 크기 차이를 보정한 비율(=평당가 비교)을 씁니다.
