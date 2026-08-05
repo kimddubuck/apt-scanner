@@ -301,9 +301,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.05 15:14 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.05 15:34 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 자동으로 갱신</b>합니다 · 위 시각이 마지막 갱신 시점이에요</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.05 15:34</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -1001,24 +1001,27 @@ function showMedianExplain(){
     </div>`;
   showInfoModal("저평가율은 어떻게 나오나요?", html);
 }
-/* 간단 정보 모달 (없으면 만들어 씀) */
+/* 간단 정보 모달 (없으면 만들어 씀)
+   [2026-08 버그수정] 예전엔 id 를 "infoModal" 로 썼는데, 그건 홈의 '동급 아파트란?'
+   설명 모달이 이미 쓰는 id 라서 충돌했습니다. → ⓘ 를 눌러도 아무 반응이 없었어요.
+   이제 전용 id "calcModal" 로 분리합니다. */
 function showInfoModal(title, innerHTML){
-  let m=$("#infoModal");
+  let m=$("#calcModal");
   if(!m){
-    m=document.createElement("div"); m.id="infoModal";
+    m=document.createElement("div"); m.id="calcModal";
     m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px";
     m.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:420px;width:100%;max-height:80vh;overflow:auto;padding:20px 22px;box-shadow:0 10px 40px rgba(0,0,0,.2)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <h3 id="infoModalTitle" style="margin:0;font-size:16px"></h3>
-        <button onclick="document.getElementById('infoModal').style.display='none'" style="border:0;background:#F0F1F4;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:16px">×</button>
+        <h3 id="calcModalTitle" style="margin:0;font-size:16px"></h3>
+        <button onclick="document.getElementById('calcModal').style.display='none'" style="border:0;background:#F0F1F4;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:16px">×</button>
       </div>
-      <div id="infoModalBody"></div>
+      <div id="calcModalBody"></div>
     </div>`;
     m.onclick=e=>{ if(e.target===m) m.style.display="none"; };
     document.body.appendChild(m);
   }
-  $("#infoModalTitle").textContent=title;
-  $("#infoModalBody").innerHTML=innerHTML;
+  $("#calcModalTitle").textContent=title;
+  $("#calcModalBody").innerHTML=innerHTML;
   m.style.display="flex";
 }
 /* [최신으로] 확대 폭은 그대로 두고 오른쪽 끝(가장 최근)으로 이동 */
