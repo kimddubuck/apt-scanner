@@ -817,7 +817,11 @@ function drawList(){
       push(it.name, `${it.regionName} · ${it.pyeong}평 · ${fmtEok(it.now)}`,
       itemRate(it), itemStar(it),
       activeItem&&activeItem.id===it.id&&activeItem.regionCode===it.regionCode,
-      ()=>{ activeItem={regionCode:it.regionCode, id:it.id}; highlightId=null; searchKey=null; render(); scrollToChart(); });});
+      ()=>{ activeItem={regionCode:it.regionCode, id:it.id}; highlightId=null; searchKey=null;
+            // [2026-08] 부산 전체(시) 랭킹에서 누르면 상세도 '시 동급' 비교로 엽니다.
+            //   예전엔 scope 를 안 건드려 직전 값(구)이 남아, 시 랭킹인데 "같은 구 동급"이 떴어요.
+            scope = _siRank ? "si" : scope;
+            render(); scrollToChart(); });});
   }
   box.appendChild(frag);
   if(!total) box.innerHTML='<div style="padding:14px;color:#9AA3AF;font-size:13px">필터에 맞는 후보가 없어요.</div>';
@@ -1789,9 +1793,15 @@ function render(){
     drawLegend(r.units, ids, c.id, colors);
     $("#ctitle").innerHTML=`<span class="ct-text">${c.name} (${c.pyeong}평) · ${r.name}</span>`;
     $("#chartCtrl").innerHTML = `${ctrlBar}${yearSel}`;   // 평형·기준·연수 컨트롤
-    $("#cnote").innerHTML = (c.rate>=0
-      ? `과거엔 동급이었지만, 지금은 <b>같은 구 동급</b>보다 <b>${c.rate}% 낮은 가격대</b>예요. (신뢰도 ${c.conf})`
-      : `이 단지는 <b>같은 구 동급</b>들보다 <b>${Math.abs(c.rate)}% 앞서</b> 있어요. (신뢰도 ${c.conf})`);
+    // [2026-08] 문구를 '지금 보고 있는 비교 범위(eff)'에 맞춰 바꿉니다.
+    //   예전엔 무조건 "같은 구 동급 + c.rate(구 기준 갭)"로 고정돼 있어서,
+    //   부산 전체(시) 랭킹에서 눌러도 "같은 구 동급보다 39%"처럼 잘못 떴어요.
+    //   시 범위면 siRate(시 기준 갭), 전국이면 그대로, 구면 c.rate 를 씁니다.
+    const _scopeWord = eff==="si" ? "같은 시 동급" : eff==="nat" ? "전국 동급" : "같은 구 동급";
+    const _gapNum = (eff==="si" && c.siRate!=null) ? c.siRate : c.rate;
+    $("#cnote").innerHTML = (_gapNum>=0
+      ? `과거엔 동급이었지만, 지금은 <b>${_scopeWord}</b>보다 <b>${_gapNum}% 낮은 가격대</b>예요. (신뢰도 ${c.conf})`
+      : `이 단지는 <b>${_scopeWord}</b>들보다 <b>${Math.abs(_gapNum)}% 앞서</b> 있어요. (신뢰도 ${c.conf})`);
   }
   // 비교 범위 토글 (구 / 시 / 전국) — 검색 단지는 구 비활성
   const oldT=$("#scopeToggle"); if(oldT) oldT.remove();
