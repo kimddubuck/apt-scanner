@@ -596,6 +596,7 @@ let highlightId = null;              // 그래프에서 강조된 선 (1탭)
 let searchKey = null;                // 검색으로 선택한 밴드 단지 키 (후보 아니어도)
 let filters = {sido:"", region:"", pyeong:"", price:"", pp:"", built:"", hh:""};   // 필터 상태
 let scope = "gu";                    // 비교 범위: "gu"(구) | "si"(시) | "nat"(전국)
+let scopeUserSet = false;            // [2026-08] 사용자가 구/시/전국 버튼을 '직접' 눌렀는지
 let peerYears = (DATA.defaultYears||5);   // 동급 판정 기준: 처음/최근 N년
 let peerBasis = "past";              // 동급 '판정' 시점: "past"(처음 N년) | "recent"(최근 N년) — 순위 매기기와는 무관
 let peerBuilt = "";                  // 동급 연식 필터: ""(전체) | "lo-hi"(건축년도 구간)
@@ -716,7 +717,7 @@ function drawPills(){
     // [시 전체 랭킹] 시·도 필터가 걸려 있으면 "전국 매치 랭킹" 대신 "부산 매치 랭킹"으로 표시
     const _label = (g.code==="ALL" && filters.sido) ? `${filters.sido} 매치 랭킹` : g.name;
     b.innerHTML=`${_label}<b>${g.starCount}</b>`;
-    b.onclick=()=>{ if(mode==="region") regionCode=g.code; else { tierCode=g.code; filters.pp=""; } searchKey=null; pickDefault(); closePick("regions"); render(); };
+    b.onclick=()=>{ if(mode==="region") regionCode=g.code; else { tierCode=g.code; filters.pp=""; } searchKey=null; scopeUserSet=false; pickDefault(); closePick("regions"); render(); };
     box.appendChild(b);
   });
 }
@@ -806,7 +807,7 @@ function drawList(){
     const r=regionByCode(regionCode);
     r.candidates.filter(c=>matchFilters(c,r.code)).sort((a,b)=>itemRate(b)-itemRate(a)).forEach(c=>{
       push(c.name, `${c.pyeong}평 · 현재 ${fmtEok(c.now)}`,
-      itemRate(c), c.star, c.id===activeId, ()=>{ activeId=c.id; highlightId=null; searchKey=null; scope="gu"; render(); scrollToChart(); });});
+      itemRate(c), c.star, c.id===activeId, ()=>{ activeId=c.id; highlightId=null; searchKey=null; scope="gu"; scopeUserSet=true; render(); scrollToChart(); });});
   } else {
     const t=tierByCode(tierCode);
     const _siRank = useSiRank();
@@ -818,9 +819,9 @@ function drawList(){
       itemRate(it), itemStar(it),
       activeItem&&activeItem.id===it.id&&activeItem.regionCode===it.regionCode,
       ()=>{ activeItem={regionCode:it.regionCode, id:it.id}; highlightId=null; searchKey=null;
-            // [2026-08] 부산 전체(시) 랭킹에서 누르면 상세도 '시 동급' 비교로 엽니다.
-            //   예전엔 scope 를 안 건드려 직전 값(구)이 남아, 시 랭킹인데 "같은 구 동급"이 떴어요.
-            scope = _siRank ? "si" : scope;
+            // [2026-08] 카드를 새로 누르면 '범위 직접 선택'을 해제합니다.
+            //   → 시 랭킹이면 eff 로직이 자동으로 '시 동급'으로 열어줍니다.
+            scopeUserSet=false;
             render(); scrollToChart(); });});
   }
   box.appendChild(frag);
@@ -1660,6 +1661,12 @@ function render(){
   //    후보(목록 클릭)는 서버가 미리 계산한 구-동급을 쓰고,
   //    검색 단지는 같은 구 안에서 즉석 계산합니다 (시·전국과 같은 방식).
   let eff = scope;
+  // [2026-08 · 재수정2] 부산 전체(시) 랭킹에서는 기본을 '시 동급'으로 엽니다.
+  //   문제였던 점: 탭을 눌러 자동 선택된 첫 카드는 scope가 직전값(구)이라 구로 열렸어요.
+  //   구분 열쇠: scopeUserSet — 사용자가 카드 옆 구/시/전국 버튼을 '직접' 누르면 true.
+  //     · 직접 안 눌렀는데(=자동) 시 랭킹이면 → 시로 엽니다.
+  //     · 직접 눌렀으면 그 선택(구/시/전국)을 그대로 존중합니다.
+  if(useSiRank() && !scopeUserSet) eff = "si";
 
   /* ── 공통 컨트롤: 평형 선택 + 과거/현재 기준 토글 ──────────────────
      [2026-08 정정] 토글은 **복구**했습니다. 이 토글이 바꾸는 건
@@ -1813,7 +1820,8 @@ function render(){
     b.style.cssText="border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:700;cursor:"+(disabled?"not-allowed":"pointer")+";opacity:"+(disabled?"0.4":"1")+";background:"+(on?"var(--ink)":"#fff")+";color:"+(on?"#fff":"var(--soft)");
     b.textContent=label;
     if(!disabled) b.onclick=()=>{
-      scope=s; highlightId=null;
+      scope=s; scopeUserSet=true;      // [2026-08] 사용자가 직접 범위를 골랐음
+      highlightId=null;
       // ── [변경] 예전엔 '전국'을 누르면 비교지역을 지웠지만, 이제는 유지합니다.
       //    "전국에서 대구 수성구하고만 비교"가 차트 필터의 핵심 기능이 됐기 때문이에요.
       //    대신 '구'나 '시'로 돌아가면 비교지역을 지웁니다 (내 지역 비교로 복귀). ──
