@@ -208,6 +208,9 @@
   .home-logo em{color:var(--gold);font-style:normal}
   /* [버전 배지] 홈 오른쪽 상단, 빌드 날짜 자동 표시 */
   .ver-badge{font-size:11px;color:var(--soft);background:#EFF2F5;border-radius:999px;padding:4px 10px;font-weight:600}
+  /* [2026-08] 매일 갱신 안내 — 배지 아래 작게. 눈에 안 띄지만 필요할 때 읽히는 크기 */
+  .update-note{font-size:11.5px;color:var(--soft);margin:2px 0 10px;line-height:1.5}
+  .update-note b{color:var(--ink);font-weight:700}
   .home-search{position:relative;margin-bottom:10px}
   .home-search input{width:100%;box-sizing:border-box;border:1.5px solid var(--line);border-radius:14px;padding:12px 16px;font-size:15px;font-family:inherit;background:#fff}
   .home-search input:focus{outline:2px solid #EAD9A8}
@@ -298,8 +301,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge">매일 갱신 · 2026.08.05</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.05 15:14 갱신</div>
   </div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 자동으로 갱신</b>합니다 · 위 시각이 마지막 갱신 시점이에요</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -333,7 +337,7 @@
 </div>
 
 <div id="scanner">
-  <button class="back-home" onclick="history.back()">← 홈으로</button>
+  <button class="back-home" onclick="goHome()">← 홈으로</button>
   <div class="topbar">
     <div>
       <div class="eyebrow">아파트 매치</div>
