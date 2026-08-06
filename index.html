@@ -301,9 +301,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.06 09:38 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.06 21:37 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.06 09:38</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.06 21:37</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -614,6 +614,27 @@ let legendUnits = {};                // 지금 범례(차트)에 그려진 단�
 let peerHhMin = ((DATA.elig&&DATA.elig.hhMin)||0), peerHhMax = 10000; // [7a] 기본 200세대 이상 (사용자가 바꿀 수 있음)
 const $ = s => document.querySelector(s);
 const fmtEok = v => { if(v==null) return "-"; const e=v/10000; return (Number.isInteger(e)?e:e.toFixed(1))+"억"; };
+
+/* [차트 점 툴팁 · 2026-08] 점을 클릭/터치하면 날짜·가격 말풍선.
+   기존 <title>은 마우스 hover 전용이라 모바일에서 안 떴어요.
+   화면 어디든 다시 누르면 사라집니다. */
+function showPtTip(evt, ym, price, label){
+  evt.stopPropagation();
+  let tip=document.getElementById("ptTip");
+  if(!tip){
+    tip=document.createElement("div"); tip.id="ptTip";
+    tip.style.cssText="position:fixed;z-index:99999;background:#1a1f26;color:#fff;"
+      +"font-size:12px;font-weight:700;padding:6px 10px;border-radius:8px;"
+      +"box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none;white-space:nowrap";
+    document.body.appendChild(tip);
+    document.addEventListener("click",()=>{ tip.style.display="none"; });
+  }
+  tip.innerHTML=`${ym} · <span style="color:#FFD98E">${price}</span>${label?`<span style="opacity:.7;font-weight:500"> ${label}</span>`:""}`;
+  const px=evt.clientX, py=evt.clientY;
+  tip.style.display="block";
+  tip.style.left=Math.min(px+10, window.innerWidth-150)+"px";
+  tip.style.top=(py-38)+"px";
+}
 const PALETTE=["#3E6DA6","#4E9E8F","#7A6DB0","#C07A5B","#5AA0C8","#7E9E4E"];
 const regionByCode = c => DATA.regions.find(r=>r.code===c);
 const tierByCode = c => DATA.tiers.find(t=>t.code===c);
@@ -946,7 +967,9 @@ function drawChart(months, units, ids, mainId, colors){
     // [툴팁] 각 점에 "날짜 · 금액 (단지명)". 투명한 큰 원으로 손가락도 잘 잡히게.
     pts.forEach(([x,y,i,v])=>{
       out+=`<circle cx="${x}" cy="${y}" r="${dr}" fill="${color}"/>`;
-      out+=`<circle cx="${x}" cy="${y}" r="8" fill="transparent"><title>${months[i]} · ${fmtEok(v)}${label?" · "+label:""}</title></circle>`;
+      out+=`<circle cx="${x}" cy="${y}" r="10" fill="transparent" style="cursor:pointer"
+             onclick="showPtTip(evt,'${months[i]}','${fmtEok(v)}','${(label||"").replace(/'/g,"")}')">`
+         +`<title>${months[i]} · ${fmtEok(v)}${label?" · "+label:""}</title></circle>`;
     });
     return out+"</g>";
   }
@@ -1593,11 +1616,14 @@ function svgChart(months, series){
   }
   series.forEach(s=>{const pts=[];s.prices.forEach((v,i)=>{if(v!=null)pts.push([X(i),Y(v),i,v]);});
     if(pts.length>=2)g+=`<polyline points="${pts.map(p=>p[0]+','+p[1]).join(' ')}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round"/>`;
-    // [툴팁] 각 점에 <title> — 마우스 올리면 "2024-03 · 8.3억" 식으로 뜸 (SVG 기본 툴팁)
+    // [툴팁 v2 · 2026-08] 마우스 hover(<title>)만으론 모바일에서 안 떠서,
+    //   점을 '클릭/터치'하면 말풍선(showPtTip)이 뜨게 바꿨습니다.
     pts.forEach(([x,y,i,v])=>{
       g+=`<circle cx="${x}" cy="${y}" r="1.8" fill="${s.color}"/>`;
-      // 손이 굵어도 잘 잡히게 투명한 큰 원을 덧대고 거기에 title
-      g+=`<circle cx="${x}" cy="${y}" r="7" fill="transparent"><title>${months[i]} · ${fmtEok(v)}${s.label?" ("+s.label+")":""}</title></circle>`;
+      // 손이 굵어도 잘 잡히게 투명한 큰 원. 클릭하면 말풍선.
+      g+=`<circle cx="${x}" cy="${y}" r="9" fill="transparent" style="cursor:pointer"
+            onclick="showPtTip(evt,'${months[i]}','${fmtEok(v)}','${(s.label||"").replace(/'/g,"")}')">`
+        +`<title>${months[i]} · ${fmtEok(v)}${s.label?" ("+s.label+")":""}</title></circle>`;
     });});
   return `<svg viewBox="0 0 ${W} ${H}" role="img" style="width:100%;height:auto">${g}</svg>`;
 }
@@ -2036,6 +2062,36 @@ function setupHome(){
   });
   document.addEventListener("click",e=>{ if(!e.target.closest(".home-search")) hide(); });
 }
-if(DATA.regions && DATA.regions.length){ pickDefault(); render(); setupSearch(); setupHome(); }
+/* [지도 연동 · 2026-08] URL 해시로 특정 단지 바로 열기.
+   지도(map.html)에서 "상세 보기"를 누르면 index.html#u=지역코드|단지명 으로 옵니다.
+   그 단지의 밴드 키를 찾아 검색으로 연 것과 똑같이 보여줍니다(시 동급 기준).
+   예: index.html#u=26350|센텀롯데캐슬아파트                                  */
+function openFromHash(){
+  const h = decodeURIComponent(location.hash||"");
+  const m = h.match(/^#u=([^|]+)\|(.+)$/);
+  if(!m) return false;
+  const rc = m[1], nm = m[2];
+  const pd = DATA.peerdata; if(!pd) return false;
+  // 그 지역·이름의 유닛 키 찾기 (평형 여러 개면 첫 번째)
+  let found = null;
+  for(const k in pd.units){
+    const u = pd.units[k];
+    if(u.rc===rc && u.name===nm){ found=k; break; }
+  }
+  if(!found){                         // 지역 안 맞으면 이름만으로
+    for(const k in pd.units){ if(pd.units[k].name===nm){ found=k; break; } }
+  }
+  if(!found) return false;
+  searchKey = found; mode="region"; scope="si"; highlightId=null;
+  const _u = pd.units[found];
+  if(_u && _u.rc && regionByCode(_u.rc)) regionCode = _u.rc;
+  syncSido();
+  const scanner=$("#scanner"), home=$("#home");
+  if(scanner && home){ home.classList.remove("on"); scanner.classList.add("on"); }
+  render(); scrollToChart();
+  return true;
+}
+if(DATA.regions && DATA.regions.length){ pickDefault(); render(); setupSearch(); setupHome(); openFromHash(); }
 else { $("#list").innerHTML="<p>표시할 데이터가 없어요. collect_all.py 로 먼저 모으세요.</p>"; }
+window.addEventListener("hashchange", openFromHash);
 </script></body></html>
