@@ -172,6 +172,27 @@
     <option value="500">500세대~</option>
     <option value="1000">1000세대~</option>
   </select>
+  <select id="fBy">
+    <option value="">입주 전체</option>
+    <option value="0-5">5년 이내</option>
+    <option value="5-10">5~10년</option>
+    <option value="10-20">10~20년</option>
+    <option value="20-99">20년 이상</option>
+  </select>
+  <select id="fNow">
+    <option value="">가격 전체</option>
+    <option value="0-30000">3억 이하</option>
+    <option value="30000-50000">3~5억</option>
+    <option value="50000-100000">5~10억</option>
+    <option value="100000-999999999">10억 이상</option>
+  </select>
+  <select id="fPp">
+    <option value="">평당가 전체</option>
+    <option value="0-1500">1500만 이하</option>
+    <option value="1500-2500">1500~2500만</option>
+    <option value="2500-4000">2500~4000만</option>
+    <option value="4000-999999">4000만 이상</option>
+  </select>
 </div>
 
 <div id="map"></div>
@@ -212,12 +233,26 @@ function fmtEok(man){ if(!man)return'-'; return (man/10000).toFixed(1)+'억'; }
 
 let map, layerTags, layerDots, selCircle=null, selKey=null;
 /* [필터 · 2026-08] 저평가율·평형·세대수 조건. 바꾸면 핀이 즉시 걸러짐 */
-const FILTER = { rate:0, py:null, hh:0 };
+const NOW_YEAR = new Date().getFullYear();
+const FILTER = { rate:0, py:null, hh:0, by:null, now:null, pp:null };
 function passFilter(b){
   if(!b) return false;
   if((b.rate||0) < FILTER.rate) return false;
   if(FILTER.hh && (b.hh||0) < FILTER.hh) return false;
   if(FILTER.py && !(b.pyeong>=FILTER.py[0] && b.pyeong<=FILTER.py[1])) return false;
+  // 입주년차 = 올해 - 건축년도 (by 0이면 미상 → 필터 켜면 제외)
+  if(FILTER.by){
+    const age = b.by ? (NOW_YEAR - b.by) : -1;
+    if(age<0 || age<FILTER.by[0] || age>FILTER.by[1]) return false;
+  }
+  // 현재가(만원)
+  if(FILTER.now){
+    if(!b.now || b.now<FILTER.now[0] || b.now>FILTER.now[1]) return false;
+  }
+  // 평당가(만원)
+  if(FILTER.pp){
+    if(!b.pp || b.pp<FILTER.pp[0] || b.pp>FILTER.pp[1]) return false;
+  }
   return true;
 }
 function applyFilter(){
@@ -251,7 +286,8 @@ async function boot(){
       if(!prev || (c.rate||0) > prev.rate){
         BEST[key] = { key, name:c.name, rname:reg.name, rate:c.rate||0,
                       pyeong:c.pyeong, now:c.now||0, sibMed:c.sibMed||0,
-                      sibs:c.sibs||[], regionCode:reg.code, hh:c.hh||0 };
+                      sibs:c.sibs||[], regionCode:reg.code, hh:c.hh||0,
+                      pp:c.pp||0, by:c.by||0 };   // [필터용] 평당가·건축년도 추가
       }
     }
   }
@@ -260,7 +296,7 @@ async function boot(){
   /* [스타일 v3] 배경 지도를 VWorld(국토부) 타일로.
      · 한국 학교·상가·역·등산로가 네이버 수준으로 표시됨 (Voyager는 서양용이라 텅 비었음)
      · 아래 VWORLD_KEY 에 발급받은 키를 넣어야 합니다 (collect_coords.py 와 같은 키) */
-  const VWORLD_KEY = "D5FA780D-E92F-3BB0-BBA2-7DD5F5FBECF7";   // ← 여기에 VWorld 키 입력!
+  const VWORLD_KEY = "";   // ← 여기에 VWorld 키 입력!
   if(VWORLD_KEY){
     L.tileLayer(`https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_KEY}/Base/{z}/{y}/{x}.png`,
       {maxZoom:19, attribution:'© VWorld 국토교통부'}).addTo(map);
@@ -313,17 +349,17 @@ async function boot(){
 }
 
 function setupFilters(){
-  const fr=document.getElementById('fRate'),
-        fp=document.getElementById('fPy'),
-        fh=document.getElementById('fHh');
+  const g=id=>document.getElementById(id);
+  const fr=g('fRate'), fp=g('fPy'), fh=g('fHh'), fb=g('fBy'), fn=g('fNow'), fpp=g('fPp');
   if(!fr) return;
-  fr.onchange=()=>{ FILTER.rate=parseFloat(fr.value)||0; applyFilter(); };
-  fh.onchange=()=>{ FILTER.hh=parseInt(fh.value)||0; applyFilter(); };
-  fp.onchange=()=>{
-    if(!fp.value){ FILTER.py=null; }
-    else{ const [lo,hi]=fp.value.split('-').map(Number); FILTER.py=[lo,hi]; }
-    applyFilter();
-  };
+  // 범위 문자열("10-20")을 [10,20] 배열로. 빈 값이면 null.
+  const range=v=> v ? v.split('-').map(Number) : null;
+  fr.onchange =()=>{ FILTER.rate=parseFloat(fr.value)||0; applyFilter(); };
+  fh.onchange =()=>{ FILTER.hh=parseInt(fh.value)||0; applyFilter(); };
+  fp.onchange =()=>{ FILTER.py=range(fp.value); applyFilter(); };
+  fb.onchange =()=>{ FILTER.by=range(fb.value); applyFilter(); };
+  fn.onchange =()=>{ FILTER.now=range(fn.value); applyFilter(); };
+  fpp.onchange=()=>{ FILTER.pp=range(fpp.value); applyFilter(); };
 }
 
 /* ── [검색 · 2026-08] 아파트 이름 검색 → 그 위치로 지도 이동 ──
