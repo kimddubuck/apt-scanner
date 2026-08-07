@@ -1,0 +1,2117 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>아파트매치 | 국토교통부 실거래가 기반 동급 단지 비교 분석</title>
+<meta name="description" content="국토교통부 아파트 실거래가 공공데이터를 기반으로, 과거에 가격이 함께 움직였던 '동급 아파트'를 찾아 지금 혼자 뒤처진 저평가 후보 단지를 보여주는 무료 분석 서비스입니다. 매일 자동 갱신되며, 전국 시·도별, 평당가 구간별로 최근 10년치 월별 시세 흐름을 차트로 비교할 수 있습니다.">
+<meta name="keywords" content="아파트 실거래가, 저평가 아파트, 부동산 분석, 동급 단지 비교, 평당가, 국토교통부 실거래가, 아파트 시세, 부동산 스캐너, 아파트 가격 비교">
+<meta name="author" content="아파트매치">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://kimddubuck.github.io/apt-scanner/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="아파트매치">
+<meta property="og:title" content="아파트매치 | 실거래가 기반 동급 단지 비교">
+<meta property="og:description" content="과거엔 같은 급이었던 단지와 지금의 가격 차이를 비교해 드립니다. 국토교통부 실거래가 공공데이터 기반 무료 분석.">
+<meta property="og:url" content="https://kimddubuck.github.io/apt-scanner/">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="아파트매치">
+<meta name="twitter:description" content="동급 단지와 최근 10년치 실거래가 시세를 비교해 보세요. 아파트매치.">
+<!-- 애드센스 미설정 (build_all.py 위쪽 ADSENSE_CLIENT/SLOT 에 ID를 넣으면 켜집니다) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ZYJNWJ8B5S"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-ZYJNWJ8B5S');
+</script>
+<style>
+  :root{--bg:#F4F5F7;--card:#FFF;--ink:#16202E;--soft:#5B6675;--line:#E4E7EC;
+    --gold:#C8901E;--gold-bg:#FBF2DA;--steel:#9BB4D2;--neg:#9AA3AF}
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;line-height:1.5;
+    word-break:keep-all;overflow-wrap:anywhere}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px 18px 60px}
+  .eyebrow{font-size:12px;letter-spacing:.14em;color:var(--gold);font-weight:700;text-transform:uppercase}
+  h1{margin:.2em 0 .1em;font-size:26px;font-weight:800;letter-spacing:-.02em}
+  .sub{color:var(--soft);font-size:14px}
+  .regions{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 4px}
+  .pill{border:1px solid var(--line);background:var(--card);border-radius:999px;
+    padding:8px 15px;font-size:14px;font-weight:600;cursor:pointer;color:var(--soft);transition:.12s}
+  .pill:hover{border-color:#CBD3DD}
+  .pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .pill b{color:var(--gold);margin-left:4px}
+  .pill.on b{color:#F1C97A}
+  .modes{display:inline-flex;background:#EDEFF2;border-radius:999px;padding:3px;margin-bottom:14px}
+  .modes button{border:0;background:transparent;padding:7px 16px;border-radius:999px;font-size:14px;font-weight:700;color:var(--soft);cursor:pointer}
+  .modes button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 4px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 16px}
+  .stat b{display:block;font-size:20px;font-weight:800}
+  .stat span{font-size:12px;color:var(--soft)}
+  .stat.gold b{color:var(--gold)}
+  .grid{display:grid;grid-template-columns:340px 1fr;gap:16px;margin-top:8px}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .card h2{margin:0 0 4px;font-size:15px;font-weight:700}
+  .card .hint{font-size:12px;color:var(--soft);margin-bottom:10px}
+  .list{max-height:520px;overflow:auto;margin:0 -6px}
+  .row{display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:10px;cursor:pointer}
+  .row:hover{background:#F1F3F6}
+  .row.active{background:var(--gold-bg);outline:1px solid #EAD9A8}
+  .row .nm{flex:1;min-width:0}
+  .row .nm b{font-size:14px;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .rk{color:var(--gold);font-weight:800;margin-right:3px}
+  .row .nm span{font-size:12px;color:var(--soft)}
+  .rate{font-weight:800;font-size:15px;text-align:right;white-space:nowrap}
+  .rate.up{color:var(--gold)} .rate.down{color:var(--neg)}
+  .star{color:var(--gold)}
+  /* ── [한 줄 고정] 제목이 길어도 다음 줄로 안 넘어가게: 넘치면 …으로 줄임 ── */
+  .chart-title{font-size:16px;font-weight:800;margin-bottom:2px;display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:nowrap}
+  /* ── [줄넘김 방지] 제목이 길면 다음 줄로 넘기지 않고 …으로 줄임 ── */
+  .chart-title .ct-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+  #scopeToggle{flex-shrink:0}
+  .chart-title .ct-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .chart-title #scopeToggle{flex:none}
+  @media(max-width:820px){.chart-title{font-size:14.5px}}
+  .chart-note{font-size:13px;color:var(--soft);margin-bottom:12px}
+  .chart-note b{color:var(--gold)}
+  svg{width:100%;height:auto;display:block}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:12px;font-size:13px}
+  /* ── [광고] 실수 클릭 방지: 콘텐츠와 확실히 떨어뜨리고 '광고' 라벨을 붙임 ──
+     min-height 로 미리 자리를 잡아 광고 로딩 시 화면이 덜컹거리지 않게 함(CLS 방지) */
+  .adbox{margin:34px 0 10px;padding-top:18px;border-top:1px solid var(--line);text-align:center}
+  .adlabel{font-size:11px;color:#B6BDC7;margin-bottom:6px;letter-spacing:.05em}
+  .adslot{min-height:280px;background:#F1F5F9;border-radius:10px;display:flex;
+          align-items:center;justify-content:center;overflow:hidden}
+  .adslot ins{width:100%}
+  /* ── [상세 설명] 검색엔진·심사용 텍스트 콘텐츠 ── */
+  .doc{margin:40px 0 0;padding:24px 0 0;border-top:1px solid var(--line);
+       color:var(--soft);font-size:14px;line-height:1.75}
+  .doc h2{color:var(--ink);font-size:17px;font-weight:800;margin:26px 0 10px;letter-spacing:-.01em}
+  .doc h2:first-child{margin-top:0}
+  .doc p{margin:10px 0}
+  .doc strong{color:var(--ink)}
+  .doc ol,.doc ul{margin:10px 0;padding-left:20px}
+  .doc li{margin:7px 0}
+  .doc a{color:var(--gold)}
+  /* ── [푸터] 정책 링크 + 출처 표기 ── */
+  .sitefoot{margin-top:32px;padding:20px 0 6px;border-top:1px solid var(--line);text-align:center}
+  .footlinks{font-size:13px;font-weight:700}
+  .footlinks a{color:var(--ink);text-decoration:none;padding:0 8px}
+  .footlinks a:hover{color:var(--gold)}
+  .footlinks span{color:#CBD3DD}
+  .footnote{margin-top:10px;font-size:12px;color:#9AA3AF;line-height:1.6}
+  /* ── [컴팩트] 지역·필터 접기 ──
+     화면 크기 규칙(@media)에 의존하지 않고 '항상' 접히게 합니다.
+     일부 앱 내장 브라우저가 화면을 넓게 인식해 모바일 규칙이 안 먹는 경우가
+     있어서, 그런 환경에서도 확실히 동작하도록 이렇게 처리했습니다.        */
+  .picker{display:flex;align-items:center;justify-content:space-between;width:100%;
+          border:1px solid var(--line);background:var(--card);border-radius:12px;
+          padding:11px 14px;font-size:14px;font-weight:700;color:var(--ink);
+          cursor:pointer;margin:12px 0 10px;text-align:left}
+  .picker i{font-style:normal;color:var(--soft);transition:transform .15s;font-size:12px}
+  .picker.open i{transform:rotate(180deg)}
+  .picker b{color:var(--gold);margin-left:6px}
+  .regions:not(.open),.filters:not(.open){display:none}
+  .regions.open{max-height:44vh;overflow-y:auto}
+  /* ── [차트 확대] 차트 영역에서는 페이지가 같이 확대되지 않게 막음 ── */
+  #chart{touch-action:pan-y}   /* 세로 페이지 스크롤은 그대로, 확대·좌우이동은 직접 처리 */
+  .zoombar{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px;
+           font-size:12px;color:var(--ink);font-weight:600}
+  .zoombar.zoomhint{font-size:11px;color:#9AA3AF;font-weight:400}
+  .zoombar button{border:1px solid var(--line);background:#fff;border-radius:999px;
+                  padding:4px 10px;font-size:11px;cursor:pointer;font-weight:600}
+  .zoombar button:hover{border-color:#CBD3DD}
+  /* ── [한 줄 고정] 범례도 항목마다 한 줄: 긴 이름은 …으로, 가격은 안 잘리게 ── */
+  .legend .it{display:flex;align-items:center;gap:6px;max-width:100%;min-width:0;white-space:nowrap}
+  /* ── [줄넘김 방지] 긴 단지명은 다음 줄로 넘기지 않고 …으로 줄임. 가격은 항상 보이게 ── */
+  .legend .it .lgtxt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .legend .it .val{flex-shrink:0}
+  .legend .it .swatch{flex:none}
+  .legend .it .lg-nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .legend .it .val{white-space:nowrap;flex:none}
+  .swatch{width:16px;height:3px;border-radius:2px;display:inline-block}
+  .legend .val{color:var(--soft);font-variant-numeric:tabular-nums}
+  footer{margin-top:24px;font-size:12px;color:var(--soft);text-align:center}
+  .detail-link{margin-top:12px}
+  .detail-link button{background:var(--ink);color:#fff;border:0;border-radius:9px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer}
+  .modal{display:none;position:fixed;inset:0;background:rgba(20,30,45,.5);z-index:50;align-items:center;justify-content:center;padding:16px}
+  .modal-box{background:#fff;border-radius:16px;max-width:760px;width:100%;max-height:90vh;overflow:auto;padding:22px}
+  .modal-box h3{margin:0;font-size:20px;font-weight:800}
+  .modal-box .meta{color:var(--soft);font-size:13px;margin:2px 0 8px}
+  .modal-close{float:right;border:0;background:#EDEFF2;border-radius:8px;width:32px;height:32px;font-size:18px;cursor:pointer;color:var(--soft)}
+  .sec-title{font-size:13px;font-weight:700;color:var(--soft);margin:16px 0 4px}
+  .dtable{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+  .dtable th{text-align:left;color:var(--soft);font-weight:600;border-bottom:1px solid var(--line);padding:6px 8px}
+  .dtable td{border-bottom:1px solid #F1F3F6;padding:6px 8px;font-variant-numeric:tabular-nums}
+  .dtable td.price{font-weight:700}
+  .pyfilter{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px}
+  .pyfilter button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--soft);cursor:pointer}
+  .pyfilter button.on{color:#fff;border-color:transparent}
+  .sec-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+  .search{position:relative;max-width:320px;width:100%;margin-left:auto}
+  .search input{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px;font-family:inherit}
+  .search input:focus{outline:2px solid #EAD9A8;border-color:#EAD9A8}
+  .sresults{position:absolute;top:46px;left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(20,30,45,.12);max-height:320px;overflow:auto;z-index:20;display:none}
+  .sresults .sr{padding:10px 14px;cursor:pointer;border-bottom:1px solid #F1F3F6}
+  .sresults .sr:hover{background:#F1F3F6}
+  .sresults .sr b{font-size:14px}
+  .sresults .sr span{font-size:12px;color:var(--soft)}
+  .sresults .empty{padding:14px;color:var(--soft);font-size:13px}
+  .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  .filters{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-start;margin-bottom:8px}
+  .filters select{border:1px solid var(--line);border-radius:9px;padding:7px 8px;font-size:12.5px;font-family:inherit;color:var(--ink);background:#fff;max-width:118px}
+  @media(max-width:820px){.filters{justify-content:flex-start}.filters select{flex:1;min-width:88px}}
+  /* ── [범위 슬라이더 · 2026-08] 얼마부터 얼마까지 손잡이 두 개로 정밀 조절 ── */
+  .frng{flex:1 1 150px;min-width:140px;max-width:210px;border:1px solid var(--line);
+        border-radius:9px;padding:5px 9px 7px;background:#fff}
+  .frng.on{border-color:var(--gold);background:#FFFCF5}
+  .frl{display:flex;align-items:center;justify-content:space-between;gap:4px;
+       font-size:11px;color:var(--soft);margin-bottom:1px;line-height:1.5}
+  .frl b{font-size:11.5px;color:var(--ink);font-weight:800}
+  .frng.on .frl b{color:var(--gold)}
+  .frl i{font-style:normal;cursor:pointer;color:#B9BFC9;padding:0 2px;font-size:13px}
+  .frng.on .frl i{color:var(--gold)}
+  .frs{position:relative;height:20px}
+  .frs .trk{position:absolute;top:9px;left:0;right:0;height:3px;border-radius:3px;background:#E3E6EB}
+  .frs .trkOn{position:absolute;top:9px;height:3px;border-radius:3px;background:var(--gold)}
+  /* 손잡이 2개를 겹쳐 놓고, 막대는 투명하게 해서 '하나의 슬라이더'처럼 보이게 */
+  .frs input[type=range]{position:absolute;top:0;left:0;width:100%;height:20px;margin:0;
+    -webkit-appearance:none;appearance:none;background:none;pointer-events:none}
+  .frs input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;pointer-events:auto;
+    width:15px;height:15px;border-radius:50%;background:#fff;border:2px solid var(--gold);
+    box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:pointer}
+  .frs input[type=range]::-moz-range-thumb{pointer-events:auto;width:15px;height:15px;
+    border-radius:50%;background:#fff;border:2px solid var(--gold);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:pointer}
+  /* ── [차트 컨트롤] 제목 바로 아래: 평형·기준·연수 선택 줄 ── */
+  .chart-ctrl{display:flex;gap:5px;align-items:center;flex-wrap:nowrap;margin:4px 0 2px;font-size:13px;color:var(--soft);overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .chart-ctrl::-webkit-scrollbar{display:none}       /* 스크롤바 숨김(깔끔하게) */
+  .chart-ctrl > *{flex-shrink:0}                      /* 항목이 찌그러지지 않게 */
+  .chart-ctrl select{padding:2px 4px}                 /* 좁은 화면에서 한 줄에 들어가도록 여백 축소 */
+  /* ── [차트 필터] 차트 제목 아래, 비교 상대(동급)를 거르는 작은 필터 줄 ── */
+  .peerbar{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin:6px 0 4px}
+  .peerbar select{border:1px solid var(--line);border-radius:8px;padding:5px 6px;font-size:12px;font-family:inherit;color:var(--ink);background:#FDFBF7;max-width:110px}
+  .peerbar select.on{border-color:var(--gold);color:var(--gold);font-weight:700}
+  .peerbar .pf-label{font-size:11.5px;color:#9AA3AF;font-weight:700;margin-right:2px}
+  .peerbar .pf-reset{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 8px;font-size:11.5px;color:var(--soft);cursor:pointer}
+  @media(max-width:820px){.peerbar select{flex:1;min-width:80px;max-width:none}}
+  .chart-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+  /* ── 아실풍 시작화면 ── */
+  #home{display:none}
+  #home.on{display:block}
+  #scanner{display:none}
+  #scanner.on{display:block}
+  .home-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .home-logo{font-size:24px;font-weight:800;letter-spacing:-.02em}
+  .home-logo em{color:var(--gold);font-style:normal}
+  /* [버전 배지] 홈 오른쪽 상단, 빌드 날짜 자동 표시 */
+  .ver-badge{font-size:11px;color:var(--soft);background:#EFF2F5;border-radius:999px;padding:4px 10px;font-weight:600}
+  /* [2026-08] 매일 갱신 안내 — 배지 아래 작게. 눈에 안 띄지만 필요할 때 읽히는 크기 */
+  .update-note{font-size:11.5px;color:var(--soft);margin:2px 0 10px;line-height:1.5}
+  .update-note b{color:var(--ink);font-weight:700}
+  .home-search{position:relative;margin-bottom:10px}
+  .home-search input{width:100%;box-sizing:border-box;border:1.5px solid var(--line);border-radius:14px;padding:12px 16px;font-size:15px;font-family:inherit;background:#fff}
+  .home-search input:focus{outline:2px solid #EAD9A8}
+  .qcards{display:grid;grid-template-columns:1.1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;margin-bottom:12px}
+  .qcard{background:#F0F1F4;border:0;border-radius:14px;padding:13px 14px;text-align:left;cursor:pointer;font-family:inherit}
+  .qcard:active{background:#E8EAEE}
+  .qcard.big{grid-row:1/3;display:flex;flex-direction:column;justify-content:flex-end;background:linear-gradient(160deg,#1B2940,#2E4260);color:#fff}
+  .qcard .qi{font-size:21px;margin-bottom:4px;display:block}
+  .qcard b{font-size:15px;font-weight:800;display:block;line-height:1.3}
+  .qcard.big b{font-size:12px;letter-spacing:-.02em;line-height:1.35}
+  .qcard span{font-size:12px;color:var(--soft)}
+  .qcard.big span{color:#B9C6D8}
+  .qcard.big .qnum{font-size:30px;font-weight:800;color:#F1C97A;line-height:1.1}
+  /* [2026-08] 매치 카드 소제목 — '동급 대비 가격 매력 단지' 바로 위에 붙는 금색 라벨 */
+  .qcard.big .qtop{display:block;font-size:12px;font-weight:800;color:#F1C97A;
+                   letter-spacing:-.01em;line-height:1.3;margin-top:2px}
+  .home-sec{font-size:15px;font-weight:800;margin:2px 0 8px}
+  /* [바로가기] 항목이 많아져서 아이콘·여백을 줄여 한 화면에 들어가게 함 */
+  .igrid{display:grid;grid-template-columns:repeat(8,1fr);gap:8px 4px;margin-bottom:6px}
+  @media(max-width:820px){.igrid{grid-template-columns:repeat(5,1fr);gap:7px 3px}}
+  @media(max-width:400px){.igrid{grid-template-columns:repeat(4,1fr)}}
+  .ibtn{border:0;background:transparent;cursor:pointer;text-align:center;font-family:inherit;padding:0}
+  .ibtn .ic{width:38px;height:38px;border-radius:12px;background:#F0F1F4;display:flex;align-items:center;justify-content:center;font-size:17px;margin:0 auto 3px}
+  .ibtn span{font-size:11px;color:var(--ink);font-weight:600;line-height:1.25;display:block;
+             word-break:keep-all}
+  .ibtn b{color:var(--gold);margin-left:2px}
+  .back-home{border:0;background:transparent;color:var(--soft);font-size:13.5px;font-weight:700;cursor:pointer;padding:0;margin-bottom:8px;font-family:inherit}
+  .infobtn{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#E3E6EB;color:var(--soft);font-size:12px;font-weight:800;cursor:pointer;margin-left:7px;vertical-align:middle;font-style:normal}
+  .infobtn:hover{background:var(--gold);color:#fff}
+  .info-box h3{margin:0 0 10px;font-size:18px;font-weight:800}
+  .info-box p{margin:0 0 12px;font-size:14px;color:#3a4658}
+  .info-step{display:flex;gap:10px;margin:10px 0}
+  .info-step .n{flex:0 0 24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+  .info-step b{font-size:14px}
+  .info-step span{display:block;font-size:13px;color:var(--soft)}
+  .info-note{background:#F4F6F8;border-radius:10px;padding:12px 14px;font-size:13px;color:var(--soft);margin-top:12px}
+  .home-intro{margin-top:26px;padding-top:22px;border-top:1px solid var(--line)}
+  .home-intro .ip{font-size:14px;color:var(--soft);margin:10px 0;line-height:1.65}
+  .home-intro .ip b{color:var(--ink)}
+  /* ===== 모바일 전용 (맨 아래에 둬서 위 기본 규칙을 확실히 덮음) ===== */
+  @media(max-width:820px){
+    .wrap{padding:14px 12px 40px}
+    h1{font-size:21px}
+    .sub{font-size:13px}
+    .regions{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;scrollbar-width:none}
+    .regions::-webkit-scrollbar{display:none}
+    .pill{flex:0 0 auto;padding:9px 14px}
+    .stats{gap:8px}
+    .stat{padding:9px 12px;min-width:0;flex:1}
+    .stat b{font-size:18px}
+    .list{max-height:300px}
+    .row{padding:12px 8px}
+    .modal-box{padding:14px;border-radius:14px}
+    .search{max-width:100%}
+    /* ── [모바일 개선] 차트를 목록 위로 올리기 ──
+       HTML 순서는 [목록카드, 차트카드] 그대로 두고,
+       '보이는 순서'만 바꿔서 모바일에서 차트가 먼저 뜨게 합니다.
+       (PC는 이 규칙 밖이라 원래대로 좌우 배치 유지)                      */
+    .grid{display:flex;flex-direction:column}   /* 세로로 쌓고 순서 지정 가능하게 */
+    .grid > .card:nth-child(2){order:1}          /* 둘째(차트) → 맨 위로  */
+    .grid > .card:nth-child(1){order:2}          /* 첫째(목록) → 그 아래로 */
+    .list{max-height:260px}                      /* 목록은 살짝 낮춰 스크롤 편하게(위 300 덮어씀) */
+    /* ── [순서] 차트 카드 내부: 제목 → 차트 필터 → 차트 → 범례 → 설명 ──
+       (검색 필터는 이제 카드 밖, 보기 모드 탭 아래에 있습니다)              */
+    .grid > .card:nth-child(2){display:flex;flex-direction:column}
+    .grid > .card:nth-child(2) > .chart-title{order:1}   /* 어느 아파트인지 */
+    .grid > .card:nth-child(2) > .chart-ctrl {order:2}   /* 평형·기준·연수  */
+    .grid > .card:nth-child(2) > .peerbar    {order:3}   /* 🎯 차트 필터   */
+    .grid > .card:nth-child(2) > #chart      {order:4}   /* 📉 차트        */
+    .grid > .card:nth-child(2) > .legend     {order:5}   /* 어떤 선인지    */
+    .grid > .card:nth-child(2) > .chart-note {order:6}   /* 설명           */
+    .grid > .card:nth-child(2) > .detail-link{order:7}
+    /* [스크롤 최소화] 통계 3개는 차트를 본 뒤 봐도 되므로 아래로 내림 */
+    #scanner.on{display:flex;flex-direction:column}
+    #scanner > .grid{order:4}       /* 차트+목록 먼저 */
+    #scanner > .stats{order:5}      /* 통계는 그 아래 */
+    #scanner > footer{order:6}
+    /* 제목 영역·통계 압축 (한 화면에 더 많이 보이게) */
+    .eyebrow{display:none}                       /* h1과 중복되는 작은 제목 숨김 */
+    .sub{font-size:12px;margin-bottom:8px}
+    .stat{padding:7px 10px}
+    .stat b{font-size:16px}
+    .stat span{font-size:10px}
+  }
+</style></head>
+<body><div class="wrap">
+
+<div id="home" class="on">
+  <div class="home-top">
+    <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.07 08:47 갱신</div>
+  </div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.07 08:47</div>
+  <div class="home-search">
+    <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
+    <div class="sresults" id="homeResults"></div>
+  </div>
+  <div class="qcards">
+    <button class="qcard big" onclick="goScanner('star')">
+      <span class="qi">⭐</span>
+      <span class="qnum" id="homeStarCount">0</span>
+      <span class="qtop">오늘의 매치</span>
+      <b>동급 대비 가격 매력 단지</b>
+    </button>
+    <button class="qcard" onclick="goScanner('region')">
+      <span class="qi">🗺️</span><b>구별 보기</b><span>지역별 스캔</span>
+    </button>
+    <button class="qcard" onclick="goScanner('tier')">
+      <span class="qi">💰</span><b>평당가별 보기</b><span>1000~30000만 구간</span>
+    </button>
+  </div>
+  <div class="home-sec">바로가기</div>
+  <div class="igrid" id="homeGrid"></div>
+
+  <div class="home-intro">
+    <div class="home-sec" style="margin-bottom:6px">아파트 매치란? 🏘️</div>
+    <p class="ip"><b>과거 7년간 값이 거의 같이 움직였던 단지들</b>을 '동급'으로 묶고, 그중 지금 동급 평균보다 가격이 낮은 곳을 <b>오늘의 매치</b>로 보여드리는 무료 서비스예요. (200세대 이상 · 23~40평 단지 기준) 국토교통부 실거래가 공공데이터를 바탕으로 매일 자동 갱신됩니다.</p>
+    <div class="info-step"><div class="n">1</div><div><b>비슷한 크기</b><span>평수가 서로 ±18% 이내 (꼭 같은 평수 아니어도 OK — 24평이면 대략 20~28평까지)</span></div></div>
+    <div class="info-step"><div class="n">2</div><div><b>과거에 비슷한 값</b><span>수집 시작부터 <b>처음 7년간</b> 가격이 서로 ±10% 이내 (3·5·10년으로 바꿔볼 수 있어요)</span></div></div>
+    <div class="info-step"><div class="n">3</div><div><b>함께 움직임</b><span>그 시절 두 단지의 가격 비율이 거의 일정 (같이 오르내림)</span></div></div><div class="info-step"><div class="n">4</div><div><b>진짜 거래가 충분</b><span>그 기간의 15% 이상 달에 실제 거래가 있어야 해요. 거래가 뜸한 단지는 빈 달을 직전 값으로 채우다 보니 &quot;일직선&quot;이 되어 잘못 동급으로 잡히거든요</span></div></div>
+    <p class="ip">이 셋을 다 통과한 단지가 <b>동급</b>이고, 지금 동급 평균보다 가격이 낮은 단지를 매치로 보여줘요.</p>
+    <p class="ip" style="background:#F7F9FC;border-radius:10px;padding:10px 12px;font-size:13px;color:#3a4658">📊 <b>기준을 바꿔가며 볼 수 있어요.</b><br>· <b>기간</b>: 과거 3년 · 5년 · 7년 · 10년 (차트에서 선택)<br>· <b>시점</b>: <b>과거 기준</b>(처음 N년이 닮았나) 또는 <b>현재 기준</b>(최근 N년이 닮았나)<br>같은 단지도 기간·시점을 바꾸면 동급과 저평가율이 달라져요.</p>
+    <div class="info-note">💡 옛날 반에서 성적이 비슷했던 친구들 중 한 명만 뒤처졌다면, 다시 치고 올라올 여지가 있는지 보는 것과 같아요.<br><br>※ 집값은 재건축·학군·개발 등 여러 이유로 벌어질 수 있으니 <b>참고용</b>이에요.</div>
+  </div>
+</div>
+
+<div id="scanner">
+  <button class="back-home" onclick="goHome()">← 홈으로</button>
+  <div class="topbar">
+    <div>
+      <div class="eyebrow">아파트 매치</div>
+      <h1>아파트 매치 <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></h1>
+      <div class="sub">과거엔 같은 급이었던 단지 중, 지금 가격 차이가 있는 곳을 찾아드려요.</div>
+    </div>
+    <div class="search">
+      <input id="searchInput" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
+      <div class="sresults" id="searchResults"></div>
+    </div>
+  </div>
+  <div class="modes" id="modes"></div>
+  <!-- ── [검색 필터] 아래 '저평가 후보 목록'을 거르는 필터입니다. ──
+       차트의 비교 대상을 거르는 '차트 필터'와는 별개예요 (차트 제목 아래에 따로 있음) -->
+  <button class="picker" id="filterPicker" onclick="togglePick('filters')"><span id="filterPickLabel">🔍 검색 필터</span><i>▾</i></button>
+  <div class="filters" id="filters"></div>
+  <button class="picker" id="regionPicker" onclick="togglePick('regions')"><span id="regionPickLabel">지역 선택</span><i>▾</i></button>
+  <div class="regions" id="regions"></div>
+  <div class="stats" id="stats"></div>
+  <div class="grid">
+    <div class="card"><h2>오늘의 매치</h2>
+      <div class="hint" id="listHint">가격 매력 높은 순 · 눌러서 그래프 보기</div>
+      <div class="list" id="list"></div></div>
+    <div class="card">
+      <div class="chart-title" id="ctitle"></div>
+      <!-- ── [차트 컨트롤] 평형 선택 · 과거/현재 기준 · 기준 연수 (제목 바로 아래) ── -->
+      <div class="chart-ctrl" id="chartCtrl"></div>
+      <!-- ── [차트 필터] 지금 보는 단지의 '비교 상대(동급)'를 거르는 필터입니다. ──
+           예: 전국 비교에서 대구 수성구·20평대·200세대 이상·10년 이내하고만 비교 -->
+      <div class="peerbar" id="peerFilters"></div>
+      <div class="chart-note" id="cnote"></div>
+      <div id="chart"></div><div class="legend" id="legend"></div>
+      <div class="detail-link"><button id="detailBtn">📋 이 단지 전체 평형·거래이력 보기</button></div></div>
+  </div>
+  <footer>데이터: 국토교통부 실거래가 · 세로축=실거래가(매매), 비슷한 평수끼리 비교</footer>
+</div><!-- /scanner -->
+
+<!-- ══════ 항상 보이는 상세 설명 (검색엔진·심사용 텍스트 콘텐츠) ══════ -->
+<article class="doc">
+  <h2>부동산 저평가 아파트 분석 알고리즘 원리</h2>
+  <p>본 서비스는 국토교통부가 공공데이터포털을 통해 무료로 개방한 <strong>아파트 매매 실거래가 자료</strong>를 내려받아,
+  <strong>최근 10년치</strong> 거래 내역을 단지별·평형별로 재구성한 뒤 분석합니다.
+  데이터는 <strong>매일 자동으로 갱신</strong>되어 최신 실거래 신고가 꾸준히 반영됩니다.
+  핵심 아이디어는 단순합니다. <strong>“과거에 값이 거의 나란히 움직였던 아파트들은 서로 비슷한 급(級)”</strong>이라고 보고,
+  그 무리 안에서 <strong>지금 혼자만 뒤처진 단지</strong>를 저평가 후보로 제시하는 것입니다.</p>
+
+  <p>부동산 가격은 지역·학군·교통·연식·브랜드 등 수많은 요인이 얽혀 결정되기 때문에, 단순히
+  “평당가가 싸다”는 이유만으로 저평가라고 말하기는 어렵습니다. 강남의 낡은 아파트와 지방의 신축 아파트를
+  평당가만으로 비교하는 것은 의미가 없기 때문입니다. 그래서 본 서비스는 절대적인 가격이 아니라
+  <strong>“같이 움직였던 이력(履歷)”</strong>을 기준으로 삼습니다. 오랜 기간 서로 같은 흐름으로 오르내렸다면,
+  시장이 두 단지를 비슷한 가치로 평가해 왔다는 뜻으로 해석할 수 있습니다.</p>
+
+  <h2>동급 단지 판정 매칭 로직</h2>
+  <p>두 단지가 ‘동급’으로 묶이려면 다음 세 가지 조건을 <strong>모두</strong> 통과해야 합니다.</p>
+  <ol>
+    <li><strong>비슷한 크기</strong> — 기본값으로는 공급면적 기준 평수가 서로 ±18% 이내면 동급으로 봅니다.
+    꼭 같은 평수일 필요는 없고, 예를 들어 24평은 대략 20~28평까지 함께 비교됩니다.
+    너무 크게 차이 나는 평형만 아니면 되는, 넉넉한 조건입니다.
+    전용면적을 전용률 0.75로 나눠 공급면적을 구하고, 3.3058로 나눠 평으로 환산합니다.
+    다만 차트 필터에서 사용자가 평형대(예: 20평대)를 직접 선택한 경우에는 그 평형대와 비교하며,
+    이때는 크기 차이를 보정하기 위해 총액이 아닌 <strong>평당가</strong> 기준으로 가격 수준을 비교합니다.</li>
+    <li><strong>과거에 비슷한 가격대</strong> — 비교 기준 기간(처음 N년 또는 최근 N년) 동안
+    두 단지의 평균 가격 수준이 서로 ±10% 이내여야 합니다.
+    애초에 가격대가 완전히 다르면 같은 급으로 볼 수 없기 때문입니다.</li>
+    <li><strong>함께 움직인 궤적</strong> — 그 기간 동안 두 단지의 가격 비율이 크게 흔들리지 않아야 합니다.
+    구체적으로는 월별 가격 비율의 변동계수(CV)가 0.12 이하일 때만 동급으로 인정합니다.
+    한쪽만 급등하거나 급락한 관계는 애초에 같은 급이 아니었다고 보는 것입니다.</li>
+    <li><strong>충분한 실거래</strong> — 판정 기간의 <strong>15% 이상 달에 실제 거래</strong>가 있어야 하고,
+    기간의 마지막 3분의 1 구간에도 거래가 최소 한 건 있어야 합니다.
+    거래가 없는 달은 직전 가격으로 채워 넣기 때문에, 거래가 뜸한 단지는 시세가 일직선이 되어
+    &lsquo;아주 안정적으로 함께 움직인다&rsquo;고 잘못 판정될 수 있습니다. 이를 걸러 내기 위한 조건입니다.</li>
+    <li><strong>단지 규모와 평형</strong> — <strong>200세대 이상</strong>이면서 <strong>23평~40평</strong>인
+    단지만 후보와 동급 대상이 됩니다. 나홀로 단지나 극단적인 소형·대형 평형은 비교군이 마땅치 않기 때문입니다.</li>
+    <li><strong>같은 단지 제외</strong> — 같은 아파트의 다른 평형(예: 24평과 33평)은 동급이 될 수 없습니다.
+    한 단지 안에서는 가격이 당연히 함께 움직이므로 비교의 의미가 없기 때문입니다.</li>
+  </ol>
+  <p>화면의 필터는 역할에 따라 둘로 나뉩니다. 상단의 <strong>검색 필터</strong>는 저평가 후보 목록을
+  시·도, 구, 평형, 가격대, 평당가, 연식, 세대수 조건으로 좁혀 주고, 차트 제목 아래의 <strong>차트 필터</strong>는
+  지금 보고 있는 단지의 비교 상대(동급)를 지역(시·도와 구), 평형대, 평당가, 연식, 세대수 조건으로
+  걸러 줍니다. 예를 들어 부산의 34평 단지를 전국 비교로 보면서 “대구 수성구의 20평대,
+  200세대 이상, 준공 10년 이내” 단지들과만 비교하는 식의 정밀한 탐색이 가능합니다.</p>
+
+  <p>이 세 조건을 통과한 단지들을 모아 ‘동급 그룹’을 만들고, 그룹의 현재 평균 가격과
+  각 단지의 현재 가격을 비교합니다. 동급 평균보다 눈에 띄게 낮은 단지가 <strong>저평가 후보(★)</strong>로 표시됩니다.
+  반대로 동급보다 높으면 상대적으로 앞서 있다는 뜻입니다.</p>
+
+  <h2>분석 대상과 범위</h2>
+  <p>분석 대상은 <strong>평당 1,000만원 이상 3억원 이하</strong> 구간의 아파트입니다.
+  이 범위를 벗어나는 초고가·초저가 단지는 비교 대상이 마땅치 않아 제외했습니다.
+  비교 범위는 <strong>같은 구</strong>, <strong>같은 시</strong>, <strong>전국</strong> 세 가지 중에서 고를 수 있습니다.
+  전국 비교의 경우 특정 지역에 결과가 쏠리지 않도록, 가장 닮은 순으로 정렬하되
+  한 시·도에서 최대 두 곳까지만 우선 배치해 여러 지역이 고르게 나타나도록 설계했습니다.</p>
+
+  <p>또한 판정 기준을 <strong>‘과거 기준’</strong>과 <strong>‘현재 기준’</strong> 중에서 선택할 수 있습니다.
+  판정 기간은 <strong>과거 3년 · 5년 · 7년 · 10년</strong> 중에서 고를 수 있으며 기본값은 <strong>7년</strong>입니다.
+  기간을 바꾸면 동급 구성이 달라지므로 저평가 목록과 순위도 함께 달라집니다.
+  과거 기준은 수집 시작 시점부터 처음 N년간 값이 닮았던 단지를 찾아 “그때는 같았는데 지금은 벌어진” 경우를 발견하는 데 쓰이고,
+  현재 기준은 최근 N년간 값이 닮은 단지를 찾아 “지금 비슷한 수준인 단지”를 살펴보는 데 쓰입니다.</p>
+
+  <h2>순위가 매겨지는 방식</h2>
+  <p>목록의 순위는 <strong>동급 그룹의 현재 중앙값 대비 얼마나 낮은가(갭)</strong>로 정해집니다.
+  갭이 클수록 상위에 배치됩니다. 순위는 <strong>과거 기준</strong>에서만 매겨집니다.
+  현재 기준은 &lsquo;지금 함께 움직이는 단지&rsquo;를 찾는 기능이라 저평가 정도를 줄 세울 수 없기 때문에,
+  현재 기준을 선택하면 순위 번호가 표시되지 않습니다.</p>
+  <p>기본값인 과거 7년 기준에서는 전체 목록을 모두 보여 주고,
+  3년·5년·10년을 선택했거나 검색 필터를 적용한 경우에는 상위 500위까지만 표시합니다.</p>
+
+  <h2>서비스 이용 가이드</h2>
+  <ul>
+    <li><strong>구별 보기</strong> — 시·도를 먼저 고른 뒤 그 안의 구·시를 선택하면, 해당 지역의 저평가 후보 목록과 차트를 볼 수 있습니다.</li>
+    <li><strong>평당가별 보기</strong> — 지역과 무관하게 평당가 구간(1,000~1,500만원 등)별로 전국 후보를 모아서 봅니다.</li>
+    <li><strong>검색</strong> — 아파트 이름을 입력하면 해당 단지가 어떤 동급들과 비교되는지 바로 확인할 수 있습니다. 평형이 여러 개인 단지는 드롭다운으로 전환됩니다.</li>
+    <li><strong>차트 조작</strong> — 두 손가락을 벌리면 특정 기간을 확대할 수 있고, 확대한 상태에서 좌우로 밀면 기간을 이동할 수 있습니다. PC에서는 마우스 휠과 드래그로 같은 조작이 가능합니다.</li>
+    <li><strong>범례 강조</strong> — 범례의 단지 이름을 누르면 해당 선만 진하게 강조되고, 다시 누르면 해제됩니다. 강조한 상태에서 하단 버튼을 누르면 그 단지의 전체 평형과 거래 이력을 볼 수 있습니다.</li>
+    <li><strong>필터</strong> — 시·도와 구는 목록에서 고르고, 평형·가격·평당가·연식·세대수는
+    손잡이 두 개를 끌어 &lsquo;얼마부터 얼마까지&rsquo;를 원하는 대로 정할 수 있습니다.
+    양 끝까지 벌리면 조건이 해제됩니다.</li>
+  </ul>
+
+  <h2>자주 묻는 질문 (FAQ)</h2>
+  <p><strong>Q. 저평가 후보로 나오면 반드시 오르나요?</strong><br>
+  아닙니다. 본 서비스는 과거 거래 데이터의 통계적 패턴을 보여줄 뿐이며, 미래 가격을 예측하지 않습니다.
+  단지가 뒤처진 데에는 재건축 불가, 학군 변화, 개발 계획 취소, 하자 이슈 등 데이터에 드러나지 않는 이유가 있을 수 있습니다.
+  반드시 현장 확인과 전문가 상담을 병행하시기 바랍니다.</p>
+
+  <p><strong>Q. 왜 우리 아파트가 안 보이나요?</strong><br>
+  평당가가 분석 범위(1,000만원~3억원)를 벗어났거나, 해당 기간에 거래가 거의 없어 시세 흐름을 그릴 수 없는 경우입니다.
+  또한 행정구역이 최근 개편된 일부 지역은 공공 API의 지역 코드가 바뀌어 일시적으로 수집되지 않을 수 있습니다.</p>
+
+  <p><strong>Q. 데이터는 얼마나 최신인가요?</strong><br>
+  데이터는 <strong>매일 자동으로 갱신</strong>됩니다. 매일 아침 최근 3개월치 실거래 신고를 다시 내려받아
+  새로 등록되거나 취소·정정된 거래까지 반영합니다. 다만 국토교통부 실거래가는 계약 후 신고까지 최대 30일이
+  걸리기 때문에, 가장 최근 한두 달 자료는 실제보다 적게 집계될 수 있습니다. 이 신고 지연은 실거래가를 다루는
+  모든 서비스가 동일하게 겪는 것으로, 화면 오른쪽 위 <strong>매일 갱신</strong> 배지의 날짜가 마지막 갱신일입니다.</p>
+
+  <p><strong>Q. 이 서비스는 유료인가요?</strong><br>
+  아닙니다. 누구나 무료로 이용할 수 있으며, 회원가입이나 개인정보 입력이 필요하지 않습니다.</p>
+
+  <h2 id="about">서비스 소개</h2>
+  <p>아파트매치는 개인이 만든 비영리 성격의 데이터 분석 도구입니다.
+  공개된 공공데이터를 누구나 이해하기 쉬운 형태로 시각화하여, 아파트 시세를 비교·판단하는 데 참고할 수 있도록 만들었습니다.
+  중개·상담·투자 자문을 제공하지 않으며, 특정 단지를 추천하거나 홍보하지 않습니다.
+  본 서비스가 제공하는 정보는 참고 자료일 뿐이며, 이를 근거로 한 어떠한 의사결정의 결과에 대해서도 책임지지 않습니다.</p>
+
+  <h2 id="privacy">개인정보처리방침</h2>
+  <p>본 서비스는 <strong>회원가입 기능이 없으며, 이용자의 개인정보를 직접 수집·저장하지 않습니다.</strong>
+  이름, 연락처, 이메일 등 어떠한 식별 정보도 요구하지 않습니다.</p>
+  <ul>
+    <li><strong>브라우저 저장소 사용</strong> — 광고 표시 여부 등 최소한의 환경 설정값을 이용자의 브라우저(localStorage)에만 저장합니다.
+    이 값은 서버로 전송되지 않으며, 브라우저 데이터를 삭제하면 함께 사라집니다.</li>
+    <li><strong>광고 및 쿠키</strong> — 본 사이트는 구글 애드센스를 통해 광고를 게재할 수 있습니다.
+    구글을 포함한 제3자 공급업체는 쿠키를 사용하여 이용자의 이전 방문 기록을 바탕으로 광고를 게재할 수 있습니다.
+    이용자는 <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">구글 광고 설정</a>에서
+    맞춤 광고를 해제할 수 있으며, <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener">aboutads.info</a>에서
+    제3자 공급업체의 쿠키 사용을 차단할 수 있습니다.</li>
+    <li><strong>접속 통계</strong> — GitHub Pages 호스팅 특성상 접속 로그가 남을 수 있으나, 본 서비스 운영자는 이를 수집하거나 분석하지 않습니다.</li>
+  </ul>
+
+  <h2 id="contact">문의하기</h2>
+  <p>서비스 오류 제보, 데이터 정정 요청, 광고·제휴 문의 등 궁금한 점이 있으시면 아래로 연락해 주세요.
+  확인하는 대로 답변드리겠습니다.</p>
+  <p>· <strong>이메일</strong>: <a href="mailto:insk1811@kakao.com">insk1811@kakao.com</a></p>
+
+  <h2>데이터 출처 및 저작권</h2>
+  <p>본 서비스가 사용하는 아파트 매매 실거래가 자료의 출처는 <strong>국토교통부</strong>이며,
+  <strong>공공데이터포털(data.go.kr)</strong>이 제공하는 「국토교통부_아파트매매 실거래가 상세 자료」 오픈 API를 통해 제공받았습니다.
+  해당 자료는 공공누리 제1유형(출처표시) 조건에 따라 이용하고 있습니다.
+  실거래가는 신고 지연·정정·해제 등의 사유로 실제와 다를 수 있으며, 최종 확인은
+  <a href="https://rt.molit.go.kr" target="_blank" rel="noopener">국토교통부 실거래가 공개시스템</a>에서 하시기 바랍니다.</p>
+</article>
+
+<footer class="sitefoot">
+  <div class="footlinks">
+    <a href="#about">서비스 소개</a><span>·</span>
+    <a href="#privacy">개인정보처리방침</a><span>·</span>
+    <a href="#contact">문의하기</a>
+  </div>
+  <div class="footnote">
+    문의: <a href="mailto:insk1811@kakao.com">insk1811@kakao.com</a><br>
+    데이터 출처: 국토교통부 · 공공데이터포털 실거래가 오픈 API<br>
+    본 사이트의 정보는 참고용이며, 투자 판단의 책임은 이용자 본인에게 있습니다.
+  </div>
+</footer>
+
+
+</div>
+  <div class="modal" id="infoModal" onclick="if(event.target===this)history.back()">
+    <div class="modal-box info-box" style="max-width:520px">
+      <button class="modal-close" onclick="history.back()">×</button>
+      <h3>‘동급 아파트’란? 🏘️</h3>
+      <p><b>과거 7년간 값이 거의 같이 움직였던 단지들</b>을 동급으로 묶어요. 그중 지금 동급 평균보다 가격이 낮은 곳이 <b>오늘의 매치</b>예요. 갭이 클수록 순위가 높아져요.</p>
+      <div class="info-step"><div class="n">1</div><div><b>비슷한 크기</b><span>평수가 서로 ±18% 이내 (꼭 같은 평수 아니어도 OK — 24평이면 대략 20~28평까지). 차트의 🎯필터에서 평형대를 직접 고르면 그 평형대와 비교해요 (이땐 총액 대신 <b>평당가</b>로 급을 재요)</span></div></div>
+      <div class="info-step"><div class="n">2</div><div><b>과거에 비슷한 값</b><span>수집 시작부터 <b>처음 7년간</b> 가격이 서로 ±10% 이내 (3·5·10년으로 바꿔볼 수 있어요)</span></div></div>
+      <div class="info-step"><div class="n">3</div><div><b>함께 움직임</b><span>그 시절 두 단지의 가격 비율이 거의 일정 (같이 오르내림)</span></div></div><div class="info-step"><div class="n">4</div><div><b>진짜 거래가 충분</b><span>그 기간의 15% 이상 달에 실제 거래가 있어야 해요. 거래가 뜸한 단지는 빈 달을 직전 값으로 채우다 보니 &quot;일직선&quot;이 되어 잘못 동급으로 잡히거든요</span></div></div>
+      <p style="margin-top:12px">이 셋을 다 통과한 단지가 <b>동급</b>이고, 지금 동급 평균보다 가격이 낮은 단지를 매치로 보여줘요. ‘처음 몇 년’은 전국 동급 보기 화면에서 직접 바꿀 수 있어요.</p>
+      <p style="margin-top:8px">🔍 <b>검색 필터</b>(위쪽)는 <b>매치 목록</b>을 거르고, 🎯 <b>차트 필터</b>(차트 제목 아래)는 <b>비교 상대(동급)</b>를 걸러요. 예: 전국 비교에서 <b>대구 수성구 · 20평대 · 200세대 이상 · 10년 이내</b>하고만 비교할 수 있어요.</p>
+      <div class="info-note">💡 옛날 반에서 성적이 비슷했던 친구들 중 한 명만 뒤처졌다면, 다시 치고 올라올 여지가 있는지 보는 것과 같아요.<br><br>※ 집값은 재건축·학군·개발 등 여러 이유로 벌어질 수 있으니 <b>참고용</b>이에요.</div>
+    </div>
+  </div>
+  <div class="modal" id="modal" onclick="if(event.target===this)history.back()">
+    <div class="modal-box">
+      <button class="modal-close" onclick="history.back()">×</button>
+      <h3 id="dTitle"></h3><div class="meta" id="dMeta"></div>
+      <div class="sec-row"><div class="sec-title">전체 평형 실거래가</div><div class="pyfilter" id="dFilter"></div></div>
+      <div id="dChart"></div><div class="legend" id="dLegend"></div>
+      <div class="sec-title">거래 이력 (최근순)</div>
+      <table class="dtable"><thead><tr><th>계약일</th><th>평형</th><th>층</th><th>거래가</th></tr></thead>
+      <tbody id="dDeals"></tbody></table>
+    </div>
+  </div>
+<script src="data.js"></script>
+<script>
+const DATA = window.__APTDATA__ || {};
+/* ── [용량 절약 복원] ──
+   data.js 파일에는 시세를 '억×10'(예: 4.5억 → 45)으로 압축해 저장합니다.
+   숫자 자릿수가 줄어 파일이 절반 이하로 작아지고, 친구가 받는 양도 줄어듭니다.
+   여기서 딱 한 번 만원 단위로 되돌려 두면, 아래 모든 화면 코드는 그대로 동작합니다. */
+(function restorePrices(){
+  /* 파일에는 '거래 없는 달'을 0 으로, 시세는 억×10 으로 저장합니다.
+     여기서 0 → 없음(null), 억×10 → 만원 으로 한 번에 되돌립니다.        */
+  const ex = a => Array.isArray(a) ? a.map(v => (v==null || v===0) ? null : v*1000) : a;
+  (DATA.regions||[]).forEach(r=>{
+    Object.values(r.units||{}).forEach(u=>{ u.prices = ex(u.prices); });
+    Object.values(r.details||{}).forEach(d=>{ (d.types||[]).forEach(t=>{ t.prices = ex(t.prices); }); });
+  });
+  Object.values(DATA.hiddenDetails||{}).forEach(r=>{
+    Object.values((r&&r.details)||{}).forEach(d=>{ (d.types||[]).forEach(t=>{ t.prices = ex(t.prices); }); });
+  });
+  /* peerdata 는 억×10 단위 그대로 쓰므로(계산용) 0 → null 만 되돌립니다. */
+  const pd = DATA.peerdata;
+  if(pd && pd.series){
+    for(const k in pd.series){
+      const a = pd.series[k];
+      for(let i=0;i<a.length;i++) if(a[i]===0) a[i]=null;
+    }
+  }
+  /* 지역명(rn)은 파일에서 뺐으므로 rmap 대조표를 보고 다시 채워 넣습니다. */
+  if(pd && pd.units && pd.rmap){
+    for(const k in pd.units){
+      const u = pd.units[k];
+      if(u.rn === undefined) u.rn = pd.rmap[u.rc] || "";
+    }
+  }
+})();
+let mode = "region";                 // "region"(구별) | "tier"(평당가별)
+/* [차트 확대] 보여줄 기간 구간을 0~1 비율로 저장.
+   zoomA=0, zoomB=1 이면 전체 기간. 손가락을 벌리면 이 폭이 좁아짐(=확대). */
+let zoomA = 0, zoomB = 1;
+let chartFullN = 138;                // 현재 차트의 전체 개월 수 (확대 한계 계산용)
+/* [차트 오버레이 · 2026-08] 판정 구간 음영 + 동급 중앙값 기준선 + 갭 표시용.
+   render() 가 그릴 때마다 채워 넣고, drawChart 가 읽어서 그립니다.
+   null 이면 아무것도 안 그림(예: 동급 0곳, 구별 미리계산 화면 등).            */
+let chartOverlay = null;   // { basis:"past|recent", years:3, medPeer:number, meNow:number, gapPct:number }
+let sido = null;                     // [시별 보기] 선택된 시·도 (null=1단계 시목록, 값=2단계 구목록)
+let regionCode = DATA.defaultRegion;
+let tierCode = DATA.defaultTier;
+let activeId = null;                  // 구별: 후보 id
+let activeItem = null;               // 평당가별: {regionCode, id}
+let highlightIds = [];               // [2026-08 다중선택] 강조된 선들 (누른 순서 유지)
+//   · 하나 누르면 그것만 선명, 나머지 반투명
+//   · 또 누르면 추가 (선택된 것들끼리 비교) · 다시 누르면 해제
+//   · '전체 평형·거래이력' 버튼은 마지막에 누른 단지 기준
+let searchKey = null;                // 검색으로 선택한 밴드 단지 키 (후보 아니어도)
+let filters = {sido:"", region:"", pyeong:"", price:"", pp:"", built:"", hh:""};   // 필터 상태
+let scope = "gu";                    // 비교 범위: "gu"(구) | "si"(시) | "nat"(전국)
+let scopeUserSet = false;            // [2026-08] 사용자가 구/시/전국 버튼을 '직접' 눌렀는지
+let peerYears = (DATA.defaultYears||5);   // 동급 판정 기준: 처음/최근 N년
+let peerBasis = "past";              // 동급 '판정' 시점: "past"(처음 N년) | "recent"(최근 N년) — 순위 매기기와는 무관
+let peerBuilt = "";                  // 동급 연식 필터: ""(전체) | "lo-hi"(건축년도 구간)
+let peerSido = "";                   // 동급 '비교 지역' 필터: ""(전국 전체) | "대구" 등 시·도 이름
+let peerGu = "";                     // 동급 '비교 구' 필터: ""(전체) | "대구 수성구" 같은 지역 전체 이름
+let peerPy = "";                     // 동급 평형대 필터: ""(내 평수 ±18% 기본) | "20-30"(20평대) 등
+let peerPp = "";                     // 동급 평당가 필터: ""(전체) | "1500-2000"(만원/평 구간)
+let peerFound = 0;                   // 이번에 찾은 동급 총 개수(화면에 안내용)
+let legendUnits = {};                // 지금 범례(차트)에 그려진 단지들 — 상세보기 버튼이 씀
+let peerHhMin = ((DATA.elig&&DATA.elig.hhMin)||0), peerHhMax = 10000; // [7a] 기본 200세대 이상 (사용자가 바꿀 수 있음)
+const $ = s => document.querySelector(s);
+const fmtEok = v => { if(v==null) return "-"; const e=v/10000; return (Number.isInteger(e)?e:e.toFixed(1))+"억"; };
+
+/* [차트 점 툴팁 · 2026-08] 점을 클릭/터치하면 날짜·가격 말풍선.
+   기존 <title>은 마우스 hover 전용이라 모바일에서 안 떴어요.
+   화면 어디든 다시 누르면 사라집니다. */
+function showPtTip(evt, ym, price, label){
+  evt.stopPropagation();
+  let tip=document.getElementById("ptTip");
+  if(!tip){
+    tip=document.createElement("div"); tip.id="ptTip";
+    tip.style.cssText="position:fixed;z-index:99999;background:#1a1f26;color:#fff;"
+      +"font-size:12px;font-weight:700;padding:6px 10px;border-radius:8px;"
+      +"box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none;white-space:nowrap";
+    document.body.appendChild(tip);
+    document.addEventListener("click",()=>{ tip.style.display="none"; });
+  }
+  tip.innerHTML=`${ym} · <span style="color:#FFD98E">${price}</span>${label?`<span style="opacity:.7;font-weight:500"> ${label}</span>`:""}`;
+  const px=evt.clientX, py=evt.clientY;
+  tip.style.display="block";
+  tip.style.left=Math.min(px+10, window.innerWidth-150)+"px";
+  tip.style.top=(py-38)+"px";
+}
+const PALETTE=["#3E6DA6","#4E9E8F","#7A6DB0","#C07A5B","#5AA0C8","#7E9E4E"];
+const regionByCode = c => DATA.regions.find(r=>r.code===c);
+const tierByCode = c => DATA.tiers.find(t=>t.code===c);
+
+// 현재 선택된 (지역객체, 후보객체) — 두 모드 공통. 그래프는 항상 후보의 '자기 지역' 데이터로 그림.
+function current(){
+  if(mode==="region"){
+    const r=regionByCode(regionCode);
+    return {r, c: r.candidates.find(x=>x.id===activeId) || r.candidates[0]};
+  }
+  const r=regionByCode(activeItem.regionCode);
+  return {r, c: r.candidates.find(x=>x.id===activeItem.id)};
+}
+
+function drawModes(){
+  const box=$("#modes"); box.innerHTML="";
+  [["region","구별 보기"],["tier","평당가별 보기"]].forEach(([m,label])=>{
+    const b=document.createElement("button");
+    b.className=(mode===m?"on":""); b.textContent=label;
+    b.onclick=()=>{ mode=m; searchKey=null; pickDefault(); render(); };
+    box.appendChild(b);
+  });
+}
+function drawPills(){
+  const box=$("#regions"); box.innerHTML="";
+  const list = mode==="region" ? DATA.regions : DATA.tiers;
+  const active = mode==="region" ? regionCode : tierCode;
+  /* ── [시별 보기] 구별 모드는 2단계로: 시·도 먼저 → 시를 고르면 그 안의 구들 ──
+     지역 이름("서울 종로구")의 첫 단어("서울")를 시·도로 사용.
+     데이터 구조는 그대로 두고 '보여주는 방식'만 바꿈.                       */
+  if(mode==="region"){
+    const sidoOf = n => n.split(" ")[0];               // "서울 종로구" → "서울"
+    if(!sido){
+      // [1단계] 시·도 칩들 (별 개수는 그 시 전체 합계)
+      const groups={};
+      list.forEach(g=>{ const s=sidoOf(g.name); (groups[s]=groups[s]||{star:0,n:0}); groups[s].star+=g.starCount; groups[s].n++; });
+      Object.keys(groups).forEach(s=>{
+        const b=document.createElement("button");
+        b.className="pill"+(sidoOf(regionByCode(regionCode).name)===s?" on":"");
+        b.innerHTML=`${s}<b>${groups[s].star}</b>`;
+        b.onclick=()=>{
+          sido=s;
+          // 그 시의 첫 지역(또는 현재 선택이 그 시면 유지)으로 이동
+          const cur=regionByCode(regionCode);
+          if(sidoOf(cur.name)!==s){ regionCode=list.find(g=>sidoOf(g.name)===s).code; }
+          // ── [칩↔드롭박스 동기화] 아래 필터도 이 시로 맞춤 (구는 전체로 초기화) ──
+          filters.sido=s; filters.region="";
+          searchKey=null; pickDefault(); render();
+        };
+        box.appendChild(b);
+      });
+    } else {
+      // [2단계] 뒤로가기 칩 + 그 시의 구들만
+      const back=document.createElement("button");
+      back.className="pill";
+      back.innerHTML="◀ 시·도";
+      back.onclick=()=>{ sido=null; render(); };
+      box.appendChild(back);
+      /* ── [시 전체 랭킹 · 2026-08] "부산 전체" 칩 ──────────────────────
+         예전엔 부산을 누르면 해운대구 하나만 보여서 '부산 전체 순위'를 볼 수 없었어요.
+         이 칩을 누르면 그 시·도의 모든 구를 한 목록에 모아 순위를 매깁니다.
+         (전국 매치 랭킹 화면에 '시·도 = 부산' 필터를 걸어주는 방식)          */
+      const sidoStar = list.filter(g=>sidoOf(g.name)===sido).reduce((s,g)=>s+g.starCount, 0);
+      const allBtn=document.createElement("button");
+      allBtn.className="pill";
+      allBtn.innerHTML=`⭐ ${sido} 전체<b>${sidoStar}</b>`;
+      allBtn.onclick=()=>{
+        if(tierByCode("ALL")){                  // 전국 랭킹 구간이 있어야 동작
+          mode="tier"; tierCode="ALL";
+          filters.sido=sido; filters.region=""; peerSido=sido;
+          searchKey=null; pickDefault(); closePick("regions"); render(); window.scrollTo(0,0);
+        }
+      };
+      box.appendChild(allBtn);
+      list.filter(g=>sidoOf(g.name)===sido).forEach(g=>{
+        const b=document.createElement("button");
+        b.className="pill"+(g.code===active?" on":"");
+        b.innerHTML=`${g.name.split(" ").slice(1).join(" ")||g.name}<b>${g.starCount}</b>`;  // "서울 종로구"→"종로구"
+        b.onclick=()=>{
+          regionCode=g.code;
+          // ── [칩↔드롭박스 동기화] 아래 필터·차트 비교지역도 이 시·구로 맞춤 ──
+          filters.sido=sido; filters.region=g.code; peerSido=sido;
+          searchKey=null; pickDefault(); closePick("regions"); render();
+        };
+        box.appendChild(b);
+      });
+    }
+    return;
+  }
+  // ── [시 전체 랭킹] 랭킹 화면에서 다시 '구별'로 돌아가는 칩 ──
+  if(mode==="tier" && tierCode==="ALL" && filters.sido){
+    const back=document.createElement("button");
+    back.className="pill";
+    back.innerHTML=`◀ ${filters.sido} 구별`;
+    back.onclick=()=>{
+      const first=DATA.regions.find(r=>r.name.startsWith(filters.sido));
+      if(first){ mode="region"; sido=filters.sido; regionCode=first.code; filters.region="";
+                 searchKey=null; pickDefault(); render(); }
+    };
+    box.appendChild(back);
+  }
+  // 평당가별 모드는 기존 그대로
+  list.forEach(g=>{
+    const b=document.createElement("button");
+    b.className="pill"+(g.code===active?" on":"");
+    // [시 전체 랭킹] 시·도 필터가 걸려 있으면 "전국 매치 랭킹" 대신 "부산 매치 랭킹"으로 표시
+    const _label = (g.code==="ALL" && filters.sido) ? `${filters.sido} 매치 랭킹` : g.name;
+    b.innerHTML=`${_label}<b>${g.starCount}</b>`;
+    b.onclick=()=>{ if(mode==="region") regionCode=g.code; else { tierCode=g.code; filters.pp=""; } searchKey=null; scopeUserSet=false; pickDefault(); closePick("regions"); render(); };
+    box.appendChild(b);
+  });
+}
+function pickDefault(){
+  if(mode==="region"){
+    const r=regionByCode(regionCode);
+    activeId=(r.candidates.find(c=>c.star)||r.candidates[0]).id;
+  } else {
+    const t=tierByCode(tierCode);
+    /* [2026-08] 시·도 필터가 걸려 있으면 그 안에서 첫 매치를 고릅니다.
+       (안 그러면 "부산 전체"를 눌렀는데 그래프엔 서울 단지가 뜨는 일이 생겨요) */
+    const pool=t.items.filter(it=>matchFilters(it,it.regionCode));
+    const src=pool.length?pool:t.items;                 // 하나도 없으면 옛 동작으로 폴백
+    const f=src.find(x=>x.star)||src[0];
+    activeItem={regionCode:f.regionCode, id:f.id};
+  }
+}
+function drawStats(){
+  if(mode==="region"){
+    const r=regionByCode(regionCode);
+    $("#stats").innerHTML=`
+      <div class="stat"><b>${r.unitCount}</b><span>분석 단위</span></div>
+      <div class="stat gold"><b>${r.starCount}</b><span>매치 ★</span></div>
+      <div class="stat"><b>${r.months.length}</b><span>개월 시세</span></div>`;
+  } else {
+    const t=tierByCode(tierCode);
+    // [2026-08] 시·도 필터가 걸리면 그 범위의 숫자를 보여줍니다 (전국 숫자가 뜨면 헷갈려요)
+    const items=t.items.filter(it=>matchFilters(it,it.regionCode));
+    const nreg=new Set(items.map(x=>x.regionName)).size;
+    $("#stats").innerHTML=`
+      <div class="stat"><b>${items.length}</b><span>후보 단지</span></div>
+      <div class="stat gold"><b>${items.filter(x=>x.star).length}</b><span>매치 ★</span></div>
+      <div class="stat"><b>${nreg}</b><span>지역 수</span></div>`;
+  }
+}
+function rowEl(box, name, sub, rate, star, active, onclick, rank){
+  const up=rate>=0, el=document.createElement("div");
+  el.className="row"+(active?" active":""); el.onclick=onclick;
+  const rk = rank ? `<span class="rk">${rank}</span>` : "";
+  el.innerHTML=`<div class="nm"><b>${rk}${star?'<span class="star">★</span> ':''}${name}</b>
+    <span>${sub}</span></div><div class="rate ${up?'up':'down'}">${up?'+':''}${rate}%</div>`;
+  box.appendChild(el);
+}
+// 조합 매력도 배열의 고정 키 순서 (빌더 RATE_KEY_ORDER와 반드시 동일)
+const RATE_KEYS=["past3","past5","past7","past10"];
+/* ── 순위에 쓸 값 고르기 ────────────────────────────────────────────────
+   [시 순위 · 2026-08]
+   · '전국 매치 랭킹(ALL)' 화면이면 → siRate(시 기준 갭)로 순위·비교를 합니다.
+     - 부산 전체처럼 시·도 필터가 걸려 있어도, 전국 전체(필터 없음)여도 동일하게 시 기준.
+     - 이유: 각 단지를 '자기가 속한 시' 동급과 비교해야 대장급끼리 제대로 줄 세워집니다.
+       (예: 동탄퍼스트파크 → 경기 시 동급과 비교. 예전엔 '구 동급'이라 좁게 잡혔음)
+     - 시 기준은 '과거 7년 하나'만 계산했으므로 연수(3·5·10년) 선택과 무관하게 7년 값 사용.
+   · 그 외(구별 보기) → 기존처럼 구 기준 rate + 연수별 rates                     */
+function useSiRank(){
+  return mode==="tier" && tierCode==="ALL" && peerBasis==="past";
+}
+function itemRate(it){
+  if(useSiRank() && it && it.siRate!=null) return it.siRate;   // 시 기준 갭
+  const idx = RATE_KEYS.indexOf("past" + peerYears);           // 예: 7년 → "past7" → 2
+  if(it && it.rates && idx>=0 && it.rates[idx]!=null) return it.rates[idx];
+  return it ? it.rate : 0;
+}
+// 이 항목이 '지금 기준에서 매치(★)인가' — 시 랭킹이면 siStar, 아니면 star
+function itemStar(it){
+  if(useSiRank()) return !!(it && it.siStar);
+  return !!(it && it.star);
+}
+function drawList(){
+  const box=$("#list"); box.innerHTML="";
+  const frag=document.createDocumentFragment();
+  /* ── [순위 규칙 · 2026-08] ────────────────────────────────────────────
+     · 순위는 '과거 기준'일 때만 매깁니다.
+       현재 기준은 동급끼리 지금 같이 움직이는지를 보는 거라
+       "누가 더 저평가인가"를 줄 세울 수 없습니다. → 순위번호 숨김 + 안내문
+     · 기본값 7년 + 필터 없음 → 전부 보여줌
+     · 3·5·10년이거나 필터를 걸었을 땐 상위 500위까지만
+       (필터를 조금씩 끌 때마다 수천 줄을 다시 그리면 화면이 버벅여요)      */
+  const ranked = (peerBasis === "past");
+  const _anyFilter = !!(filters.pyeong||filters.price||filters.pp||filters.built||filters.hh);
+  const LIMIT  = (ranked && (peerYears !== 7 || _anyFilter)) ? 500 : Infinity;
+  let shown=0, total=0;
+  const push = (name, sub, rate, star, active, onclick) => {
+    total++;
+    if(shown >= LIMIT) return;                 // 500위 초과분은 그리지 않음
+    shown++;
+    rowEl(frag, name, sub, rate, star, active, onclick, ranked ? shown : 0);
+  };
+  if(mode==="region"){
+    const r=regionByCode(regionCode);
+    r.candidates.filter(c=>matchFilters(c,r.code)).sort((a,b)=>itemRate(b)-itemRate(a)).forEach(c=>{
+      push(c.name, `${c.pyeong}평 · 현재 ${fmtEok(c.now)}`,
+      itemRate(c), c.star, c.id===activeId, ()=>{ activeId=c.id; highlightIds=[]; searchKey=null; scope="gu"; scopeUserSet=true; render(); scrollToChart(); });});
+  } else {
+    const t=tierByCode(tierCode);
+    const _siRank = useSiRank();
+    t.items.filter(it=>matchFilters(it,it.regionCode))
+           // [시 순위] 시 랭킹이면 '시 기준 매치(siRate 있음)'만 보여줌
+           .filter(it=> !_siRank || it.siRate!=null)
+           .sort((a,b)=>itemRate(b)-itemRate(a)).forEach(it=>{
+      push(it.name, `${it.regionName} · ${it.pyeong}평 · ${fmtEok(it.now)}`,
+      itemRate(it), itemStar(it),
+      activeItem&&activeItem.id===it.id&&activeItem.regionCode===it.regionCode,
+      ()=>{ activeItem={regionCode:it.regionCode, id:it.id}; highlightIds=[]; searchKey=null;
+            // [2026-08] 카드를 새로 누르면 '범위 직접 선택'을 해제합니다.
+            //   → 시 랭킹이면 eff 로직이 자동으로 '시 동급'으로 열어줍니다.
+            scopeUserSet=false;
+            render(); scrollToChart(); });});
+  }
+  box.appendChild(frag);
+  if(!total) box.innerHTML='<div style="padding:14px;color:#9AA3AF;font-size:13px">필터에 맞는 후보가 없어요.</div>';
+  /* ── 목록 안내문 ───────────────────────────────────────────────
+     [2026-08] 어떤 기준으로 줄 세운 목록인지 항상 알려줍니다.            */
+  const hint=$("#listHint");
+  if(hint){
+    const head = (mode==="tier" && tierCode==="ALL") ? `${filters.sido||"전국"} 매치 · ` : "";
+    if(!ranked){
+      hint.innerHTML=`${head}<b style="color:#C0392B">현재 기준에서는 순위를 매길 수 없어요</b>`
+        +` — 동급끼리 지금 함께 움직이는지를 보는 기준이라, 저평가 줄 세우기가 안 됩니다.`
+        +` 순위를 보시려면 <b>과거 기준</b>을 눌러주세요.`;
+    } else {
+      const cut = (shown < total) ? ` · 상위 <b>${shown}</b>위까지 표시 (전체 ${total.toLocaleString()}곳)` : "";
+      if(useSiRank()){
+        // 시 기준 랭킹: 같은 시 안에서 동급을 찾아 매긴 순위 (과거 7년 고정)
+        hint.innerHTML=`${head}<b>${filters.sido} 안에서</b> 과거 7년 기준 저평가 순위 · 눌러서 그래프 보기${cut}`;
+      } else {
+        hint.innerHTML=`${head}<b>과거 ${peerYears}년</b> 기준 매력도 순위 · 눌러서 그래프 보기${cut}`;
+      }
+    }
+  }
+}
+function drawChart(months, units, ids, mainId, colors){
+  /* ── [차트 확대] 보여줄 기간만 잘라내기 ──
+     손가락을 벌리면(zoomA~zoomB 폭이 좁아지면) 그 구간만 크게 보입니다.
+     months(가로축 날짜)와 각 아파트 prices(값)를 '같은 위치'로 함께 잘라야
+     날짜와 값이 어긋나지 않습니다.                                        */
+  const FULL_N = months.length;
+  chartFullN = FULL_N;
+  if(FULL_N > 4 && (zoomA > 0 || zoomB < 1)){
+    let i0 = Math.round(zoomA * (FULL_N - 1));
+    let i1 = Math.round(zoomB * (FULL_N - 1));
+    if(i1 - i0 < 3) i1 = Math.min(FULL_N - 1, i0 + 3);   // 최소 4개월은 보이게
+    months = months.slice(i0, i1 + 1);
+    const cut = {};                                      // 값도 같은 구간으로 자름
+    ids.forEach(id => { cut[id] = Object.assign({}, units[id], {prices: units[id].prices.slice(i0, i1 + 1)}); });
+    units = cut;
+  }
+  const W=680,H=420,padL=58,padR=30,padT=16,padB=36;  // [2026-08] 차트 높이 360→420
+  let vals=[]; ids.forEach(id=>units[id].prices.forEach(v=>{if(v!=null)vals.push(v);}));
+  if(!vals.length){$("#chart").innerHTML="<p>시세 없음</p>";return;}
+  let ymin=Math.min(...vals),ymax=Math.max(...vals);
+  function niceStep(x){const raw=x/5,p=Math.pow(10,Math.floor(Math.log10(raw))),n=raw/p;return (n<1.5?1:n<3?2:n<7?5:10)*p;}
+  const step=niceStep((ymax-ymin)||1);
+  ymin=Math.floor(ymin/step)*step; ymax=Math.ceil(ymax/step)*step; if(ymax===ymin)ymax+=step;
+  const X=i=>padL+(W-padL-padR)*(i/Math.max(months.length-1,1));
+  const Y=v=>padT+(H-padT-padB)*(1-(v-ymin)/(ymax-ymin));
+  let g="";
+  /* ── [차트 오버레이 · 2026-08] 판정 구간 음영 + 동급 중앙값 기준선 + 갭 ──
+     "이 구간을 보고, 이 선을 기준으로, 몇 % 차이"인지를 눈에 보이게 합니다.
+     확대(zoom) 중에도 어긋나지 않도록 지금 보이는 창에 맞춰 좌표를 다시 계산.   */
+  if(chartOverlay){
+    const ov=chartOverlay;
+    const nMon=Math.min(ov.years*12, chartFullN);
+    let segI0, segI1;                       // '전체' 인덱스 기준 판정 구간
+    if(ov.basis==="recent"){ segI1=chartFullN-1; segI0=chartFullN-nMon; }
+    else { segI0=0; segI1=nMon-1; }
+    const zoomed=(zoomA>0||zoomB<1);
+    const visA=Math.round(zoomA*(chartFullN-1));
+    const vis0=zoomed?visA:0;
+    const clampX=idxFull=>{                  // 전체 인덱스 → 보이는 배열 인덱스 → x좌표
+      const rel=idxFull-vis0;
+      return X(Math.max(0, Math.min(months.length-1, rel)));
+    };
+    const sx0=clampX(segI0), sx1=clampX(segI1);
+    if(sx1>sx0+1){
+      g+=`<rect x="${sx0}" y="${padT}" width="${sx1-sx0}" height="${H-padT-padB}" fill="#F1C97A" opacity="0.14"/>`;
+      if(sx1-sx0>70){
+        const whenW=ov.basis==="recent"?"최근":"과거";
+        g+=`<text x="${(sx0+sx1)/2}" y="${padT+13}" text-anchor="middle" font-size="10.5" fill="#B08420" font-weight="700">판정 구간 · ${whenW} ${ov.years}년</text>`;
+      }
+    }
+    if(ov.medPeer!=null && ov.medPeer>=ymin && ov.medPeer<=ymax){
+      const yMed=Y(ov.medPeer);
+      g+=`<line x1="${padL}" y1="${yMed}" x2="${W-padR}" y2="${yMed}" stroke="#6B7684" stroke-width="1.3" stroke-dasharray="5 3"/>`;
+      // [설명] 라벨을 클릭하면 '중앙값이 어떻게 나왔나' 팝업. 물음표로 클릭 가능함을 표시.
+      g+=`<text x="${W-padR}" y="${yMed-5}" text-anchor="end" font-size="10.5" fill="#6B7684" font-weight="700" style="cursor:pointer" onclick="showMedianExplain()">동급 중앙값 ${fmtEok(ov.medPeer)} ⓘ</text>`;
+      // 라벨 전체를 덮는 투명 클릭영역(손가락도 잘 눌리게)
+      g+=`<rect x="${W-padR-150}" y="${yMed-18}" width="150" height="20" fill="transparent" style="cursor:pointer" onclick="showMedianExplain()"/>`;
+      if(ov.meNow!=null && ov.meNow>=ymin && ov.meNow<=ymax && ov.gapPct!=null){
+        const yMe=Y(ov.meNow), xg=W-padR-6, ym=(yMed+yMe)/2;
+        g+=`<line x1="${xg}" y1="${yMed}" x2="${xg}" y2="${yMe}" stroke="#C0392B" stroke-width="1.4"/>`;
+        const sign=ov.gapPct>0?"−":"+";     // 저평가(양수)면 '−N%'(동급보다 싸다)
+        g+=`<text x="${xg-4}" y="${ym+3}" text-anchor="end" font-size="11" fill="#C0392B" font-weight="800">${sign}${Math.abs(ov.gapPct)}%</text>`;
+      }
+    }
+  }
+  for(let v=ymin;v<=ymax;v+=step){
+    g+=`<line x1="${padL}" y1="${Y(v)}" x2="${W-padR}" y2="${Y(v)}" stroke="#EDEFF2"/>`;
+    g+=`<text x="${padL-8}" y="${Y(v)+4}" text-anchor="end" font-size="13" fill="#5A6472" font-weight="600">${fmtEok(v)}</text>`;
+  }
+  /* [가로축 날짜] 양 끝 라벨이 차트 밖으로 삐져나가 잘리지 않게 정렬을 바꿔줌.
+     맨 왼쪽은 start(왼쪽 붙임), 맨 오른쪽은 end(오른쪽 붙임), 중간은 middle.
+     또 마지막 라벨이 직전 라벨과 겹치면 직전 것을 건너뜀.                     */
+  const sx=Math.ceil(months.length/6);
+  const last=months.length-1;
+  const picks=[];
+  for(let i=0;i<months.length;i++) if(i%sx===0) picks.push(i);
+  if(picks[picks.length-1]!==last){
+    if(last-picks[picks.length-1] < sx*0.55) picks.pop();   // 너무 가까우면 직전 것 제거
+    picks.push(last);
+  }
+  picks.forEach(i=>{
+    const anchor = i===0 ? "start" : (i===last ? "end" : "middle");
+    g+=`<text x="${X(i)}" y="${H-12}" text-anchor="${anchor}" font-size="12.5" fill="#5A6472" font-weight="600">${months[i]}</text>`;
+  });
+  function line(pr,color,w,op,label){
+    const pts=[]; pr.forEach((v,i)=>{ if(v!=null) pts.push([X(i),Y(v),i,v]); });
+    if(pts.length<1) return "";
+    const dr = w>=3 ? 3.6 : 2.8;   // [2026-08] 점 확대(클릭 편하게)
+    let out=`<g opacity="${op}">`;
+    if(pts.length>=2) out+=`<polyline points="${pts.map(p=>p[0]+','+p[1]).join(' ')}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"/>`;
+    // [툴팁] 각 점에 "날짜 · 금액 (단지명)". 투명한 큰 원으로 손가락도 잘 잡히게.
+    pts.forEach(([x,y,i,v])=>{
+      out+=`<circle cx="${x}" cy="${y}" r="${dr}" fill="${color}"/>`;
+      out+=`<circle cx="${x}" cy="${y}" r="10" fill="transparent" style="cursor:pointer"
+             onclick="showPtTip(evt,'${months[i]}','${fmtEok(v)}','${(label||"").replace(/'/g,"")}')">`
+         +`<title>${months[i]} · ${fmtEok(v)}${label?" · "+label:""}</title></circle>`;
+    });
+    return out+"</g>";
+  }
+  // 각 선의 이름표(범례와 동일) — 툴팁에 아파트명을 넣기 위함
+  const nmeOf = id => { const u=units[id]||{}; return (u.name||"") + (u.pyeong?` ${u.pyeong}평`:""); };
+  // [2026-08 다중선택] 강조된 선들은 굵고 선명, 나머지는 반투명
+  const hls = highlightIds.filter(h=>ids.includes(h));
+  const isHl = id => hls.includes(id);
+  ids.filter(id=>id!==mainId && !isHl(id)).forEach(id=>g+=line(units[id].prices,colors[id], 1.8, hls.length?0.18:1, nmeOf(id)));
+  if(!isHl(mainId)) g+=line(units[mainId].prices,colors[mainId], hls.length?2.2:3.2, hls.length?0.22:1, nmeOf(mainId));
+  hls.forEach(h=>g+=line(units[h].prices,colors[h], h===mainId?4.2:3.6, 1, nmeOf(h)));
+  const zoomed = (zoomA > 0 || zoomB < 1);
+  const hintInner = zoomed
+    ? `🔍 ${months[0]} ~ ${months[months.length-1]} <button onclick="jumpLatest()">최신으로 ▶</button><button onclick="resetZoom()">전체 보기</button>`
+    : `최근 10년치 실거래 기준 · 두 손가락 벌리면 확대 · 확대 후 좌우로 밀면 기간 이동 (PC는 휠·드래그)`;
+  /* ── [중요] SVG 요소를 '없애고 새로 만들지' 않고, 내용만 갈아끼운다 ──
+     손가락으로 만지는 중에 SVG가 사라지면 휴대폰이 손가락 추적을 멈춰버려서
+     핀치 확대가 첫 움직임에서 끊깁니다. 틀은 유지하고 속만 바꿔야 계속 됩니다. */
+  const host=$("#chart");
+  let svg=host.querySelector("svg");
+  if(!svg){
+    host.innerHTML=`<svg role="img"></svg><div class="zoombar"></div>`;
+    svg=host.querySelector("svg");
+  }
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML=g;
+  const bar=host.querySelector(".zoombar");
+  if(bar){ bar.innerHTML=hintInner; bar.className = zoomed ? "zoombar" : "zoombar zoomhint"; }
+  bindZoom(FULL_N);
+}
+/* ── [차트 확대] 손가락 두 개(핀치)·마우스 휠로 기간을 좁히거나 넓힘 ── */
+function resetZoom(){ zoomA=0; zoomB=1; render(); }
+
+/* ── [동급 중앙값 설명 · 2026-08] 점선 라벨 클릭 시 '이 값이 어떻게 나왔나' ── */
+function showMedianExplain(){
+  const ov=chartOverlay;
+  if(!ov || !ov.peers || !ov.peers.length){ return; }
+  const sorted=[...ov.peers].sort((a,b)=>a.now-b.now);
+  const rows=sorted.map(p=>`<tr><td style="padding:2px 10px 2px 0">${p.name} ${p.py?p.py+"평":""}</td>`
+    +`<td style="text-align:right;font-weight:700">${fmtEok(p.now)}</td></tr>`).join("");
+  const n=sorted.length;
+  const midDesc = n%2 ? `${n}곳 중 가운데(${Math.floor(n/2)+1}번째) 값`
+                      : `${n}곳 중 가운데 두 값(${n/2}·${n/2+1}번째)의 평균`;
+  const gapWord = ov.gapPct>0 ? `${ov.gapPct}% 낮은(저평가)` : ov.gapPct<0 ? `${Math.abs(ov.gapPct)}% 높은` : "비슷한";
+  const html=`
+    <div style="font-size:14px;line-height:1.6">
+      <p style="margin:0 0 10px"><b>동급 중앙값 ${fmtEok(ov.medPeer)}</b> 는 이렇게 나왔어요.</p>
+      <p style="margin:0 0 6px;color:#555">화면에 함께 그린 <b>동급 ${n}곳</b>의 <b>현재가</b>를 작은 값부터 줄 세운 뒤,
+      <b>${midDesc}</b>을 고른 거예요. (평균이 아니라 중앙값이라, 유난히 비싸거나 싼 한두 곳에 휘둘리지 않아요.)</p>
+      <table style="margin:8px 0;border-collapse:collapse;font-size:13px">${rows}</table>
+      <p style="margin:8px 0 0;padding-top:8px;border-top:1px solid #eee">
+        이 단지(${ov.meName||"내 단지"})의 현재가는 <b>${fmtEok(ov.meNow)}</b> 라,
+        동급 중앙값보다 <b style="color:${ov.gapPct>0?'#C0392B':'#333'}">${gapWord}</b> 가격대예요.</p>
+      <p style="margin:8px 0 0;font-size:12px;color:#9AA3AF">
+        ※ 현재가는 증여성 급락 거래를 뺀 최근 실거래 기준이에요.</p>
+    </div>`;
+  showInfoModal("저평가율은 어떻게 나오나요?", html);
+}
+/* 간단 정보 모달 (없으면 만들어 씀)
+   [2026-08 버그수정] 예전엔 id 를 "infoModal" 로 썼는데, 그건 홈의 '동급 아파트란?'
+   설명 모달이 이미 쓰는 id 라서 충돌했습니다. → ⓘ 를 눌러도 아무 반응이 없었어요.
+   이제 전용 id "calcModal" 로 분리합니다. */
+function showInfoModal(title, innerHTML){
+  let m=$("#calcModal");
+  if(!m){
+    m=document.createElement("div"); m.id="calcModal";
+    m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px";
+    m.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:420px;width:100%;max-height:80vh;overflow:auto;padding:20px 22px;box-shadow:0 10px 40px rgba(0,0,0,.2)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 id="calcModalTitle" style="margin:0;font-size:16px"></h3>
+        <button onclick="document.getElementById('calcModal').style.display='none'" style="border:0;background:#F0F1F4;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:16px">×</button>
+      </div>
+      <div id="calcModalBody"></div>
+    </div>`;
+    m.onclick=e=>{ if(e.target===m) m.style.display="none"; };
+    document.body.appendChild(m);
+  }
+  $("#calcModalTitle").textContent=title;
+  $("#calcModalBody").innerHTML=innerHTML;
+  m.style.display="flex";
+}
+/* [최신으로] 확대 폭은 그대로 두고 오른쪽 끝(가장 최근)으로 이동 */
+function jumpLatest(){ const w=zoomB-zoomA; zoomB=1; zoomA=Math.max(0,1-w); render(); }
+function bindZoom(fullN){
+  const el=$("#chart");
+  if(!el || el.dataset.zoomBound) return;   // 한 번만 연결 (중복 방지)
+  el.dataset.zoomBound="1";
+  const clamp=()=>{                          // 범위가 뒤집히거나 넘치지 않게 정리
+    const minW=Math.max(4/Math.max(chartFullN,5), 0.03);   // 최소 폭(너무 확대 방지)
+    if(zoomB-zoomA < minW){ const c=(zoomA+zoomB)/2; zoomA=c-minW/2; zoomB=c+minW/2; }
+    if(zoomA<0){ zoomB-=zoomA; zoomA=0; }
+    if(zoomB>1){ zoomA-=(zoomB-1); zoomB=1; }
+    if(zoomA<0) zoomA=0; if(zoomB>1) zoomB=1;
+  };
+  // 확대/축소 실행: factor<1 이면 확대(폭 좁힘), >1 이면 축소. center=0~1 기준점
+  const applyZoom=(factor, center)=>{
+    const w=(zoomB-zoomA)*factor;
+    const c=zoomA+(zoomB-zoomA)*center;      // 화면상 기준점을 비율로 환산
+    zoomA=c-w*center; zoomB=c+w*(1-center);
+    clamp();
+    if(zoomB-zoomA>=0.999){ zoomA=0; zoomB=1; }   // 거의 전체면 전체로 딱 맞춤
+    render();
+  };
+  let startDist=0, startA=0, startB=0, rafPending=false;
+  const smoothRender=()=>{            // 손가락 움직이는 동안 그리기를 화면 주기에 맞춤
+    if(rafPending) return;            // (매 움직임마다 그리면 휴대폰이 버벅임)
+    rafPending=true;
+    requestAnimationFrame(()=>{ rafPending=false; render(); });
+  };
+  /* [중요] 손가락 '움직임'은 window 에서 받습니다.
+     이유: 차트를 다시 그리면 안의 SVG가 새것으로 교체되는데, 브라우저는
+     '처음 손가락이 닿은 그 요소'에만 움직임을 알려줍니다. 그 요소가 교체돼
+     사라지면 신호를 못 받아 확대가 첫 움직임에서 멈춰버립니다.
+     window 는 사라지지 않으므로 끝까지 추적됩니다.                        */
+  let pinching=false;
+  /* [기간 이동] 확대한 상태에서 한 손가락으로 좌우로 밀면 보는 기간이 이동합니다.
+     (확대만 되고 이동이 안 되면 원하는 시기를 못 보니 꼭 필요한 기능)        */
+  let panning=false, panStartX=0, panStartY=0, panA=0, panB=0, panDecided=false;
+  el.addEventListener("touchstart",e=>{
+    if(e.touches.length===2){
+      e.preventDefault();                  // 브라우저 자체 확대가 끼어드는 것 차단
+      const [t1,t2]=e.touches;
+      startDist=Math.hypot(t2.clientX-t1.clientX, t2.clientY-t1.clientY);
+      startA=zoomA; startB=zoomB; pinching=true; panning=false;
+    } else if(e.touches.length===1 && (zoomB-zoomA) < 0.999){
+      // 확대돼 있을 때만 이동 가능 (전체 보기 상태에선 이동할 곳이 없음)
+      panning=true; panDecided=false;
+      panStartX=e.touches[0].clientX; panStartY=e.touches[0].clientY;
+      panA=zoomA; panB=zoomB;
+    }
+  },{passive:false});
+  window.addEventListener("touchmove",e=>{
+    if(pinching && e.touches.length===2 && startDist>0){
+      e.preventDefault();                  // 페이지 전체가 같이 확대되는 것 방지
+      const [t1,t2]=e.touches;
+      const d=Math.hypot(t2.clientX-t1.clientX, t2.clientY-t1.clientY);
+      const rect=el.getBoundingClientRect();
+      const cx=Math.min(Math.max(((t1.clientX+t2.clientX)/2 - rect.left)/rect.width, 0), 1);
+      const w=(startB-startA)*(startDist/Math.max(d,1));             // 벌리면 폭 축소
+      const c=startA+(startB-startA)*cx;
+      zoomA=c-w*cx; zoomB=c+w*(1-cx);
+      clamp(); smoothRender();
+      return;
+    }
+    if(panning && e.touches.length===1){
+      const dxPx=e.touches[0].clientX-panStartX;
+      const dyPx=e.touches[0].clientY-panStartY;
+      if(!panDecided){
+        // 처음 움직임의 방향을 보고 결정: 가로면 기간 이동, 세로면 페이지 스크롤 양보
+        if(Math.abs(dxPx)<6 && Math.abs(dyPx)<6) return;          // 아직 판단 보류
+        if(Math.abs(dyPx) > Math.abs(dxPx)){ panning=false; return; }  // 세로 → 페이지 스크롤
+        panDecided=true;
+      }
+      e.preventDefault();
+      const rect=el.getBoundingClientRect();
+      const w=panB-panA;
+      let a=panA - (dxPx/rect.width)*w;    // 오른쪽으로 밀면 과거로 이동
+      if(a<0) a=0; if(a+w>1) a=1-w;
+      zoomA=a; zoomB=a+w;
+      smoothRender();
+    }
+  },{passive:false});
+  window.addEventListener("touchend",()=>{ pinching=false; startDist=0; panning=false; },{passive:true});
+  window.addEventListener("touchcancel",()=>{ pinching=false; startDist=0; panning=false; },{passive:true});
+  // PC: 마우스로 끌어서도 기간 이동
+  let mDown=false, mX=0, mA=0, mB=0;
+  el.addEventListener("mousedown",e=>{
+    if((zoomB-zoomA)>=0.999) return;
+    mDown=true; mX=e.clientX; mA=zoomA; mB=zoomB; e.preventDefault();
+  });
+  window.addEventListener("mousemove",e=>{
+    if(!mDown) return;
+    const rect=el.getBoundingClientRect(), w=mB-mA;
+    let a=mA-((e.clientX-mX)/rect.width)*w;
+    if(a<0) a=0; if(a+w>1) a=1-w;
+    zoomA=a; zoomB=a+w; smoothRender();
+  });
+  window.addEventListener("mouseup",()=>{ mDown=false; });
+  // iOS 사파리: touch-action 만으로 페이지 확대가 안 막히므로 별도 차단
+  ["gesturestart","gesturechange","gestureend"].forEach(ev=>
+    el.addEventListener(ev, ev2=>ev2.preventDefault()));
+  // PC: 마우스 휠로도 확대/축소
+  el.addEventListener("wheel",e=>{
+    e.preventDefault();
+    const rect=el.getBoundingClientRect();
+    const cx=Math.min(Math.max((e.clientX-rect.left)/rect.width,0),1);
+    applyZoom(e.deltaY<0 ? 0.8 : 1.25, cx);
+  },{passive:false});
+}
+function drawLegend(units, ids, mainId, colors){
+  legendUnits = units;            // [상세보기용] 지금 범례에 그린 단지들을 기억해 둠
+  const box=$("#legend"); box.innerHTML="";
+  const last=pr=>{for(let i=pr.length-1;i>=0;i--)if(pr[i]!=null)return pr[i];return null;};
+  [mainId,...ids.filter(i=>i!==mainId)].forEach(id=>{
+    const u=units[id],isMain=id===mainId,el=document.createElement("div");el.className="it";
+    el.style.cursor="pointer";
+    el.title="탭: 강조 추가 · 다시 탭: 그 선만 해제 (여러 개 골라 비교 가능)";
+    if(highlightIds.length && !highlightIds.includes(id)) el.style.opacity="0.4";
+    if(highlightIds.includes(id)) el.style.fontWeight="800";
+    el.onclick=()=>{
+      // [다중선택] 이미 선택돼 있으면 그것만 해제, 아니면 추가 (순서 유지)
+      const i = highlightIds.indexOf(id);
+      if(i>=0) highlightIds.splice(i,1); else highlightIds.push(id);
+      render();
+    };
+    const rn = u.rn ? "·"+u.rn.replace(/^(서울|부산|대구|인천|광주|대전|울산|경기|경남|경북|충남|충북|전남|전북|강원|제주)\s*/,"$1 ").split(" ").slice(-1)[0] : "";
+    el.innerHTML=`<span class="swatch" style="background:${colors[id]};height:${isMain?4:3}px"></span>
+      <span class="lgtxt">${u.name}(${u.pyeong}평${scope!=="gu"&&u.rn?"·"+u.rn:""})</span> <span class="val">${fmtEok(last(u.prices))}</span>`;
+    box.appendChild(el);
+  });
+  if(highlightIds.length){
+    const hint=document.createElement("div");
+    hint.style.cssText="font-size:12px;color:#9AA3AF;width:100%";
+    hint.textContent=`${highlightIds.length}개 선택 비교 중 · 다른 것도 탭하면 추가 · 다시 탭하면 그 선만 해제 · 아래 버튼은 마지막 선택 단지`;
+    box.appendChild(hint);
+  }
+}
+const aptOf = id => id.split("|")[0];
+// ── 화면에서 '처음 N년' 기준으로 동급 즉석 계산 ──
+// 시 단위 키: 광역시·특별시·세종은 시도(앞 2자리), 그 외는 시(앞 4자리)
+function siKey(rc){ const M=["11","26","27","28","29","30","31","36"]; return M.includes(rc.slice(0,2))?rc.slice(0,2):rc.slice(0,4); }
+// 숫자 배열의 중앙값 (없으면 null)
+/* ── [현재가 정합 · 2026-08] 화면에서 쓰는 '깨끗한 현재가' ──────────────────
+   pd.series(월별 값)의 마지막 값을 현재가로 쓰면 증여 거래(예: 12억짜리가 6.9억)가
+   그대로 현재가가 됩니다. 그래서 빌더가 미리 걸러 놓은 pd.now 를 우선 씁니다.
+   단위는 series 와 같은 '억×10'. 옛날 data.js(=now 없음)면 예전 방식으로 자동 폴백. */
+function nowOf(key){
+  const pd=DATA.peerdata; if(!pd) return null;
+  if(pd.now && pd.now[key]) return pd.now[key];
+  const sr=(pd.series||{})[key]; if(!sr) return null;
+  for(let i=sr.length-1;i>=0;i--) if(sr[i]!=null) return sr[i];
+  return null;
+}
+function medianOf(a){ if(!a||!a.length) return null; const s=[...a].sort((x,y)=>x-y); const m=s.length>>1; return s.length%2? s[m] : (s[m-1]+s[m])/2; }
+function computePeers(meKey, years, scp, basis, built){
+  const pd=DATA.peerdata; if(!pd||!pd.series[meKey]) return [];
+  const ff=arr=>{let last=null;return arr.map(v=>{if(v!=null)last=v;return last;});};
+  /* ── [판정 정합 · 2026-08] 동급 '판정'에만 쓰는 깨끗한 시세 ────────────
+     그래프용 pd.series 에는 증여 거래(예: 6.9억)가 남아 있습니다(일부러).
+     하지만 그걸로 궤적을 판정하면, 현재 기준(최근 7년)에서 증여값이 궤적을
+     뚝 떨어뜨려 동급이 통째로 사라집니다(실측: 0곳 ↔ 제거 시 14곳).
+     그래서 판정할 때만 pd.giftIdx 에 표시된 '증여 달'을 null(거래 없음)로 바꿉니다.
+     ※ 화면 그래프·현재가는 이 함수를 안 쓰므로 6.9억 점은 그대로 보입니다. */
+  const gift = (pd.giftIdx)||{};
+  const judgeSeries = key => {
+    const raw = pd.series[key]; if(!raw) return raw;
+    const gi = gift[key];
+    if(!gi || !gi.length) return raw;           // 증여 없으면 원본 그대로
+    const copy = raw.slice();
+    for(const idx of gi) if(idx>=0 && idx<copy.length) copy[idx]=null;  // 증여 달 제거
+    return copy;
+  };
+  const n=Math.min(years*12, pd.months.length);   // 월 단위
+  // 판정 구간: 과거 기준이면 그래프 앞부분(처음 N개월), 현재 기준이면 뒷부분(최근 N개월)
+  const win = arr => basis==="recent" ? arr.slice(-n) : arr.slice(0,n);
+  /* ── [D. 동급 정교화 · 2026-08] '진짜 거래'가 충분한지 확인 ────────────
+     pd.series 는 채우기 전 원본이라 값이 없는 달은 null 입니다.
+     빌더와 똑같은 두 가지를 봅니다.
+       ① 판정 기간의 15% 이상 달에 실거래 (최소 4개월)
+       ② 판정 기간의 '앞 1/3'과 '뒤 1/3' 양쪽 모두에 실거래가 있어야 함
+          앞이 비면 신축(구간 시작 때 없던 단지), 뒤가 비면 끊긴 단지 → 둘 다 제외
+     이걸 안 하면 거래가 뜸한 단지는 직전 값이 일직선으로 이어져
+     "완벽하게 같이 움직인다"고 오판돼 엉뚱한 동급이 잡힙니다.          */
+  const minReal = Math.max(4, Math.floor(n*0.15));
+  const realOk = raw => {
+    const w = win(raw); let c=0, head=0, tail=0;
+    const c3=Math.floor(w.length/3), cut=w.length-c3;
+    for(let i=0;i<w.length;i++){ if(w[i]!=null){ c++; if(i<c3) head++; if(i>=cut) tail++; } }
+    return c>=minReal && head>0 && tail>0;         // 앞·뒤 양쪽에 거래가 있어야 함
+  };
+  if(!realOk(judgeSeries(meKey))) return [];      // 내 단지부터 거래가 너무 적으면 판정 불가
+  const me=win(ff(judgeSeries(meKey))), mi=pd.units[meKey], meSi=siKey(mi.rc);
+  const bLo = built ? +built.split("-")[0] : 0;   // 연식 필터 구간
+  const bHi = built ? +built.split("-")[1] : 0;
+  const out=[];
+  for(const k in pd.units){
+    if(k===meKey) continue;
+    const inf=pd.units[k];
+    if(scp==="gu" && inf.rc!==mi.rc) continue;            // 같은 구만 (검색 단지의 구 비교용)
+    if(scp==="si" && siKey(inf.rc)!==meSi) continue;      // 같은 시만
+    // ── [비교 지역 필터] 특정 시·도하고만 비교하고 싶을 때 (예: 대구랑만) ──
+    if(peerSido && !(inf.rn||"").startsWith(peerSido)) continue;
+    // ── [비교 구 필터] 구 단위까지 좁힐 때 (예: '대구 수성구'하고만) ──
+    if(peerGu && (inf.rn||"")!==peerGu) continue;
+    if(built){ const by=inf.by||0; if(!(by>=bLo && by<bHi)) continue; }   // 연식 구간 필터
+    // 세대수 필터 (전체범위 아니면 적용) — 범위를 지정하면 세대수 미상(0)은 제외
+    if(peerHhMin>0 || peerHhMax<10000){
+      const hh=inf.hh||0;
+      const hi = peerHhMax>=10000 ? Infinity : peerHhMax;
+      if(!(hh>=peerHhMin && hh<=hi)) continue;   // 미상(0)은 min>0이면 자동 탈락
+    }
+    // ── [동급 평형대 필터] 기본은 '내 평수 ±18%'(비슷한 평수끼리, 24평↔28평 OK).
+    //    사용자가 평형대를 직접 고르면 그 구간으로 대체 (예: 34평 vs 20평대 비교 가능) ──
+    if(peerPy){
+      const [pa,pb]=peerPy.split("-").map(Number);
+      if(!(inf.pyeong>=pa && inf.pyeong<pb)) continue;
+    } else {
+      if(Math.abs(inf.pyeong-mi.pyeong)/mi.pyeong > pd.py) continue;
+      /* ── [7a · 2026-08] 기본 평형 범위 (23~40평) ────────────────────
+         ±18% 규칙은 그대로 두고, 그 위에 "23~40평만" 조건을 **더** 겁니다.
+         (±18% 를 평형대 필터로 갈아끼우면 총액 비교가 평당가 비교로 바뀌어
+          24평↔39평도 동급이 돼버려서 오히려 느슨해집니다. 그래서 '추가' 방식)
+         단, 내 단지가 23~40평 밖이면(예: 15평·50평) 이 조건을 건너뜁니다.
+         안 그러면 검색으로 들어온 소형·대형 단지는 동급이 0개가 돼버려요.     */
+      const EG=DATA.elig;
+      if(EG && mi.pyeong>=EG.pyMin && mi.pyeong<=EG.pyMax){
+        if(!(inf.pyeong>=EG.pyMin && inf.pyeong<=EG.pyMax)) continue;
+      }
+    }
+    // ── [동급 평당가 필터] 상대의 '현재 평당가'가 고른 구간일 때만 비교 ──
+    if(peerPp){
+      const [qa,qb]=peerPp.split("-").map(Number);
+      const lv = nowOf(k) || 0;     // [정합] 증여 제외 현재가 사용
+      const ppv=(lv*1000)/inf.pyeong;             // 총액(만원)÷평 = 평당가(만원/평)
+      if(!(ppv>=qa && ppv<qb)) continue;
+    }
+    if(inf.name===mi.name && inf.rc===mi.rc) continue;
+    const jsK=judgeSeries(k);                     // [정합] 상대도 증여 제외한 판정용 시세
+    if(!realOk(jsK)) continue;                    // [D] 상대도 진짜 거래가 충분해야 함
+    const vf=ff(jsK), vp=win(vf);
+    // ── [평형대 필터의 핵심] 다른 평형대와 비교할 땐 '평당가'로 급을 잰다 ──
+    //    총액으로 재면 34평(6.6억) vs 20평대(3.7억)는 무조건 탈락해 버려요.
+    //    그래서 평형대 필터를 켰을 땐 평 크기 차이를 보정한 비율(=평당가 비교)을 씁니다.
+    //    (예: 34평 1,760만/평 vs 21평 1,740만/평 → 같은 급으로 인정)
+    //    필터를 안 켰을 땐 예전 그대로 총액 비교 → 기존 결과와 100% 동일합니다.
+    const adj = peerPy ? (inf.pyeong/mi.pyeong) : 1;
+    const rs=[]; for(let i=0;i<n;i++){ if(me[i]!=null && vp[i]!=null && vp[i]>0) rs.push(me[i]/vp[i]*adj); }
+    // [D] 겹침을 '12개월 고정' → '판정 기간의 50% 이상'으로 강화 (빌더와 동일)
+    if(rs.length < Math.max(12, Math.floor(n*0.5))) continue;
+    const mean=rs.reduce((a,b)=>a+b,0)/rs.length;
+    if(mean<1-pd.lvl || mean>1+pd.lvl) continue;
+    const sd=Math.sqrt(rs.reduce((a,b)=>a+(b-mean)**2,0)/rs.length);
+    if(sd/mean > pd.cv) continue;
+    const lastv = nowOf(k) || 0;    // [정합] 증여 제외 현재가 사용 (예전: 월별 마지막 값)
+    out.push({key:k, last:lastv, sim:Math.abs(mean-1)+(sd/mean), sido:siKey(inf.rc)});
+  }
+  /* ── [전국 비교 개선] ──
+     예전: 현재 가격이 '비싼 순'으로 8개 → 전국에서 제일 비싼 서울만 뽑혔음.
+     지금: ① 가장 '닮은 순'(가격수준이 1에 가깝고 흔들림 적은 순)으로 정렬하고
+           ② 한 시·도에서 최대 2곳까지만 뽑아 여러 지역이 골고루 나오게 함.       */
+  out.sort((a,b)=>a.sim-b.sim);
+  peerFound = out.length;              // 실제로 찾은 동급 총 개수 (화면 안내용)
+  if(scp==="nat"){
+    const cnt={}, first=[], rest=[];
+    out.forEach(x=>{
+      cnt[x.sido]=(cnt[x.sido]||0)+1;
+      (cnt[x.sido]<=2 ? first : rest).push(x);   // 시·도당 2곳까지 우선
+    });
+    return first.concat(rest).map(x=>x.key);     // 모자라면 나머지로 채움
+  }
+  return out.map(x=>x.key);
+}
+function peerUnits(keys){
+  const pd=DATA.peerdata, u={};
+  keys.forEach(k=>{const inf=pd.units[k]; u[k]={name:inf.name,pyeong:inf.pyeong,rc:inf.rc,rn:inf.rn,
+    prices:pd.series[k].map(v=>v==null?null:v*1000)};});   // 억×10 → 만원 복원
+  return u;
+}
+// ---- 필터 ----
+const PRICE_OPTS=[["","가격 전체"],["0-50000","5억 이하"],["50000-100000","5~10억"],["100000-150000","10~15억"],["150000-200000","15~20억"],["200000-999999999","20억 이상"]];
+const PP_OPTS=[["","평당가 전체"],["1000-1500","1000~1500"],["1500-2000","1500~2000"],["2000-2500","2000~2500"],["2500-3000","2500~3000"],["3000-3500","3000~3500"],["3500-4000","3500~4000"],["4000-4500","4000~4500"],["4500-5000","4500~5000"],["5000-6000","5000~6000"],["6000-7000","6000~7000"],["7000-8000","7000~8000"],["8000-9000","8000~9000"],["9000-10000","9000~10000"],["10000-11000","10000~11000"],["11000-12000","11000~12000"],["12000-13000","12000~13000"],["13000-14000","13000~14000"],["14000-15000","14000~15000"],["15000-17500","15000~17500"],["17500-20000","17500~20000"],["20000-22500","20000~22500"],["22500-25000","22500~25000"],["25000-27500","25000~27500"],["27500-30001","27500~30000"]];
+function matchFilters(c, regionCode2){
+  const r=regionByCode(regionCode2);
+  if(filters.sido && !r.name.startsWith(filters.sido)) return false;
+  if(filters.region && r.code!==filters.region) return false;
+  if(filters.pyeong){
+    const [a,b]=filters.pyeong.split("-").map(Number);
+    if(!(c.pyeong>=a && c.pyeong<b)) return false;
+  }
+  if(filters.price){
+    const [a,b]=filters.price.split("-").map(Number);
+    if(!(c.now>=a && c.now<b)) return false;
+  }
+  if(filters.pp){
+    const [a,b]=filters.pp.split("-").map(Number);
+    if(!(c.pp>=a && c.pp<b)) return false;
+  }
+  if(filters.built){                                   // 연식(건축년도) 구간
+    const [a,b]=filters.built.split("-").map(Number);
+    const by=c.by||0;
+    if(!by || !(by>=a && by<b)) return false;          // 미상(0)은 구간 지정 시 제외
+  }
+  if(filters.hh){                                      // 세대수 구간
+    const [a,b]=filters.hh.split("-").map(Number);
+    const hh=c.hh||0;
+    if(!(hh>=a && hh<b)) return false;                 // 미상(0)은 구간 지정 시 제외
+  }
+  return true;
+}
+function syncChartToFilter(){
+  /* ── [필터 연동] 필터를 바꿨을 때, 차트에 그려진 아파트가 그 필터에 안 맞으면
+     필터를 통과하는 '첫 번째 후보'로 차트 대상을 자동 전환한다.
+     (예: 필터를 부산으로 바꾸면 차트도 부산 첫 후보로)
+     검색으로 특정 단지를 보고 있을 땐 건드리지 않음(searchKey 우선).       */
+  if(searchKey) return;
+  if(mode==="region"){
+    const r=regionByCode(regionCode);
+    const cur=r.candidates.find(x=>x.id===activeId);
+    if(!cur || !matchFilters(cur, r.code)){
+      const first=r.candidates.find(c=>matchFilters(c, r.code));
+      if(first) activeId=first.id;   // 맞는 게 없으면 그대로 둠(목록이 "없어요" 표시)
+    }
+  } else {
+    const t=tierByCode(tierCode);
+    const ok = it => matchFilters(it, it.regionCode);
+    const cur = activeItem && t.items.find(x=>x.id===activeItem.id && x.regionCode===activeItem.regionCode);
+    if(!cur || !ok(cur)){
+      const first=t.items.find(ok);
+      if(first) activeItem={regionCode:first.regionCode, id:first.id};
+    }
+  }
+}
+/* ── [컴팩트] 지역·필터 접기/펼치기 ── */
+function togglePick(which){
+  const box=$("#"+which);
+  const btn=$(which==="regions" ? "#regionPicker" : "#filterPicker");
+  const open=box.classList.toggle("open");
+  btn.classList.toggle("open", open);
+}
+function closePick(which){
+  const box=$("#"+which); if(!box) return;
+  box.classList.remove("open");
+  const btn=$(which==="regions" ? "#regionPicker" : "#filterPicker");
+  if(btn) btn.classList.remove("open");
+}
+function updatePickLabels(){
+  // 접혀 있어도 '지금 무엇을 보고 있는지' 버튼에 보여줍니다.
+  const rl=$("#regionPickLabel");
+  if(rl){
+    if(mode==="region"){
+      const r=regionByCode(regionCode);
+      rl.innerHTML = r ? `📍 ${r.name}<b>★${r.starCount}</b>` : "📍 지역 선택";
+    } else {
+      const t=tierByCode(tierCode);
+      const _tp = (t && t.code==="ALL") ? "⭐" : "💰";
+      rl.innerHTML = t ? `${_tp} ${t.name}<b>★${t.starCount}</b>` : "💰 구간 선택";
+    }
+  }
+  const fl=$("#filterPickLabel");
+  if(fl){
+    // 검색 필터(목록용)만 셉니다. 차트 필터는 항상 펼쳐져 있어서 따로 안 세요.
+    const on=[filters.sido&&filters.sido, filters.region&&(regionByCode(filters.region)||{}).name,
+              filters.pyeong&&"평형", filters.price&&"가격", filters.pp&&"평당가",
+              filters.built&&"연식", filters.hh&&"세대수"].filter(Boolean);
+    fl.innerHTML = on.length ? `🔍 검색 필터<b>${on.length}개 적용</b>` : "🔍 검색 필터";
+  }
+}
+/* ── [범위 슬라이더용] 실제 데이터의 최소~최대값을 딱 한 번만 계산해 둡니다 ──
+   손잡이를 끝까지 밀면 '전체'가 되도록, 실제로 존재하는 값의 양 끝을 씁니다.
+   (예: 전국에 20평~65평 단지만 있으면 슬라이더도 20~65 로 만들어요)        */
+let _FRANGE=null;
+function filterRanges(){
+  if(_FRANGE) return _FRANGE;
+  let all=[];
+  const t=tierByCode("ALL");
+  if(t && t.items && t.items.length) all=t.items;
+  else (DATA.regions||[]).forEach(r=>{ all=all.concat(r.candidates||[]); });
+  const mm=f=>{ let lo=Infinity, hi=-Infinity;
+    all.forEach(x=>{ const v=+f(x); if(v>0){ if(v<lo)lo=v; if(v>hi)hi=v; } });
+    return (lo===Infinity) ? [0,1] : [lo,hi]; };
+  _FRANGE={ py:mm(x=>x.pyeong), price:mm(x=>x.now), pp:mm(x=>x.pp),
+            by:mm(x=>x.by), hh:mm(x=>x.hh) };
+  return _FRANGE;
+}
+function drawFilters(){
+  /* ── [검색 필터] 아래 '저평가 후보 목록'만 거릅니다. ──
+     차트의 비교 상대를 거르는 건 차트 제목 아래 '차트 필터'가 따로 담당해요.
+     (예전엔 한 곳에 섞여 있어 헷갈렸는데, 역할별로 확실히 분리했습니다)     */
+  const box=$("#filters"); box.innerHTML="";
+  const sidos=[...new Set(DATA.regions.map(r=>r.name.split(" ")[0]))];
+  const mk=(opts,val,onch)=>{const s=document.createElement("select");
+    opts.forEach(([v,l])=>{const o=document.createElement("option");o.value=v;o.textContent=l;if(v===val)o.selected=true;s.appendChild(o);});
+    s.onchange=()=>onch(s.value); return s;};
+  box.appendChild(mk([["","시·도 전체"],...sidos.map(s=>[s,s])], filters.sido, v=>{
+    filters.sido=v; filters.region="";
+    // ── [지역 필터 변경 → 검색 해제] 다른 시·도를 고르면 검색한 단지는 놓아주고
+    //    그 지역의 후보 목록을 보여준다. 검색창 글자도 함께 비운다. ──
+    searchKey=null; { const _si=$("#searchInput"); if(_si) _si.value=""; }
+    // ── [드롭박스↔칩 동기화] 위 칩도 이 시로 맞춤 ──
+    if(v){ sido=v; const first=DATA.regions.find(r=>r.name.startsWith(v)); if(first) regionCode=first.code; }
+    else { sido=null; }
+    pickDefault(); syncChartToFilter(); render();
+  }));
+  const regs=DATA.regions.filter(r=>!filters.sido||r.name.startsWith(filters.sido));
+  box.appendChild(mk([["","구 전체"],...regs.map(r=>[r.code,r.name.split(" ").slice(1).join(" ")||r.name])], filters.region, v=>{
+    filters.region=v;
+    // ── [지역 필터 변경 → 검색 해제] 다른 구를 고르면 검색한 단지는 놓아주고
+    //    그 지역의 후보 목록을 보여준다. 검색창 글자도 함께 비운다. ──
+    searchKey=null; { const _si=$("#searchInput"); if(_si) _si.value=""; }
+    // ── [드롭박스↔칩 동기화] 위 칩도 이 구로 맞춤 ──
+    if(v){ const r=regionByCode(v); if(r){ regionCode=v; sido=r.name.split(" ")[0]; filters.sido=sido; } }
+    pickDefault(); syncChartToFilter(); render();
+  }));
+  /* ── [범위 슬라이더 · 2026-08] ────────────────────────────────────────
+     예전엔 "20평대 / 30평대" 같은 정해진 칸만 고를 수 있었어요.
+     이제 손잡이 두 개를 끌어서 "23평 ~ 40평"처럼 원하는 대로 정합니다.
+
+     ▸ 저장 형식은 예전 그대로 "시작-끝" 문자열이라 목록 거르는 코드는 안 바뀝니다.
+     ▸ 다만 거르는 규칙이 '시작 이상 ~ 끝 미만'이라, 끝값을 +1 해서 저장합니다.
+       (예: 화면 23~40평 → 저장 "23-41" → 40평도 포함됨)
+     ▸ 손잡이를 양 끝까지 벌리면 '전체'가 되어 필터가 꺼집니다.            */
+  const _rngCache = filterRanges();
+  const rangeCtl = (title, key, lo, hi, step, fmt) => {
+    lo=Math.floor(lo); hi=Math.ceil(hi);
+    if(hi<=lo) hi=lo+step;
+    const cur = filters[key] ? filters[key].split("-").map(Number) : null;
+    let a = cur ? Math.max(lo, Math.min(hi, cur[0])) : lo;
+    let b = cur ? Math.max(lo, Math.min(hi, cur[1]-1)) : hi;   // 저장은 +1 되어 있으므로 되돌림
+    if(a>b) a=b;
+    const wrap=document.createElement("div");
+    wrap.className="frng"+((a>lo||b<hi)?" on":"");
+    const isAll = (a<=lo && b>=hi);
+    wrap.innerHTML=`<div class="frl"><span>${title}</span>`
+      + `<span><b class="frv">${isAll?"전체":fmt(a)+" ~ "+fmt(b)}</b>`
+      + `${isAll?"":' <i title="전체로">✕</i>'}</span></div>`
+      + `<div class="frs"><div class="trk"></div><div class="trkOn"></div>`
+      + `<input type="range" class="r1" min="${lo}" max="${hi}" step="${step}" value="${a}">`
+      + `<input type="range" class="r2" min="${lo}" max="${hi}" step="${step}" value="${b}"></div>`;
+    const r1=wrap.querySelector(".r1"), r2=wrap.querySelector(".r2");
+    const on=wrap.querySelector(".trkOn"), lab=wrap.querySelector(".frv");
+    const paint=()=>{                       // 노란 막대와 글자만 갱신 (끌 때마다 화면 전체를 다시 그리면 버벅여요)
+      const A=+r1.value, B=+r2.value, W=hi-lo;
+      on.style.left=((A-lo)/W*100)+"%"; on.style.width=((B-A)/W*100)+"%";
+      const all=(A<=lo && B>=hi);
+      lab.textContent = all ? "전체" : fmt(A)+" ~ "+fmt(B);
+      wrap.classList.toggle("on", !all);
+    };
+    const commit=()=>{                      // 손을 뗐을 때만 목록을 다시 계산
+      const A=+r1.value, B=+r2.value;
+      filters[key] = (A<=lo && B>=hi) ? "" : `${A}-${B+1}`;
+      syncChartToFilter(); render();
+    };
+    // 두 손잡이가 서로를 지나치지 않게 막기
+    r1.oninput=()=>{ if(+r1.value > +r2.value) r1.value=r2.value; paint(); };
+    r2.oninput=()=>{ if(+r2.value < +r1.value) r2.value=r1.value; paint(); };
+    r1.onchange=commit; r2.onchange=commit;
+    const x=wrap.querySelector(".frl i");
+    if(x) x.onclick=()=>{ filters[key]=""; syncChartToFilter(); render(); };
+    paint();
+    box.appendChild(wrap);
+  };
+  const _eok = v => v>=10000 ? (v/10000).toFixed(1).replace(/\.0$/,"")+"억" : v+"만";
+  rangeCtl("평형",  "pyeong", _rngCache.py[0],    _rngCache.py[1],    1,    v=>v+"평");
+  rangeCtl("가격",  "price",  _rngCache.price[0], _rngCache.price[1], 500,  _eok);
+  rangeCtl("평당가","pp",     _rngCache.pp[0],    _rngCache.pp[1],    50,   v=>v+"만");
+  rangeCtl("연식",  "built",  _rngCache.by[0],    _rngCache.by[1],    1,    v=>v+"년");
+  rangeCtl("세대수","hh",     _rngCache.hh[0],    _rngCache.hh[1],    10,   v=>v.toLocaleString()+"세대");
+}
+function drawPeerFilters(){
+  /* ── [차트 필터] 지금 보는 단지의 '비교 상대(동급)'를 거릅니다. ──
+     예: "동래래미안 34평 vs 대구 수성구 · 20평대 · 200세대 이상 · 2016년 이후"
+     각 조건을 고르면 차트의 비교 선들이 그 조건에 맞는 동급으로만 바뀝니다.  */
+  const box=$("#peerFilters"); if(!box) return; box.innerHTML="";
+  const mk=(opts,val,onch)=>{const s=document.createElement("select");
+    opts.forEach(([v,l])=>{const o=document.createElement("option");o.value=v;o.textContent=l;if(v===val)o.selected=true;s.appendChild(o);});
+    if(val) s.classList.add("on");            // 켜진 필터는 금색 테두리로 표시
+    s.onchange=()=>onch(s.value); return s;};
+  const lab=document.createElement("span"); lab.className="pf-label"; lab.textContent="🎯 비교 상대:";
+  box.appendChild(lab);
+  // ① 비교 시·도 — 고르면 '전국' 범위로 자동 전환 (다른 지역과 비교하려면 전국이어야 하니까)
+  const sidos=[...new Set(DATA.regions.map(r=>r.name.split(" ")[0]))];
+  box.appendChild(mk([["","지역 전체"],...sidos.map(s=>[s,s])], peerSido, v=>{
+    peerSido=v; peerGu="";                    // 시·도를 바꾸면 구 선택은 초기화
+    if(v) scope="nat";                        // 특정 지역과 비교 = 전국 모드로
+    highlightIds=[]; render();
+  }));
+  // ② 비교 구 — 시·도를 골랐을 때 그 안의 구까지 좁히기 (예: 대구 → 수성구)
+  const gus=DATA.regions.filter(r=>!peerSido||r.name.startsWith(peerSido));
+  box.appendChild(mk([["","구 전체"],...gus.map(r=>[r.name, r.name.split(" ").slice(1).join(" ")||r.name])], peerGu, v=>{
+    peerGu=v;
+    if(v){ scope="nat"; const sd=v.split(" ")[0]; if(!peerSido) peerSido=sd; }
+    highlightIds=[]; render();
+  }));
+  // ③ 동급 평형대 — 기본은 '내 평수 ±18%'. 고르면 그 평형대와 비교 (예: 34평 vs 20평대)
+  box.appendChild(mk([["","평형: 내 평수±"],["0-20","20평 미만"],["20-30","20평대"],["30-40","30평대"],["40-999","40평 이상"]], peerPy, v=>{
+    peerPy=v; if(scope==="gu" && !searchKey) scope="si"; highlightIds=[]; render();
+  }));
+  // ④ 동급 평당가
+  box.appendChild(mk(PP_OPTS.map((o,i)=>i===0?["","평당가 전체"]:o), peerPp, v=>{
+    peerPp=v; if(scope==="gu" && !searchKey) scope="si"; highlightIds=[]; render();
+  }));
+  // ⑤ 연식 — 준공 시기 구간 + '몇 년 이내' (오늘 날짜 기준으로 자동 계산)
+  const nowY=new Date().getFullYear();
+  box.appendChild(mk([["","연식 전체"],
+                      [`${nowY-5}-9999`,"5년 이내"],[`${nowY-10}-9999`,"10년 이내"],[`${nowY-20}-9999`,"20년 이내"],
+                      ["0-2000","~1999년"],["2000-2010","2000~2009년"],
+                      ["2010-2020","2010~2019년"],["2020-9999","2020년~"]], peerBuilt, v=>{
+    peerBuilt=v; if(scope==="gu" && !searchKey) scope="si"; highlightIds=[]; render();
+  }));
+  // ⑥ 세대수: 최소~최대 (100세대 단위). 미상(0)은 최소가 0일 때만 통과
+  const mkHh = (isMax) => {
+    const opts=[];
+    if(isMax){
+      for(let v=100; v<=9900; v+=100) opts.push([String(v), v.toLocaleString()+"세대"]);
+      opts.push(["10000","제한없음"]);
+    } else {
+      opts.push(["0","세대수 전체"]);
+      for(let v=100; v<=9900; v+=100) opts.push([String(v), v.toLocaleString()+"세대~"]);
+    }
+    return opts;
+  };
+  const selMin=mk(mkHh(false), String(peerHhMin), v=>{
+    let a=+v, b=peerHhMax; if(a>b){const t=a;a=b;b=t;}
+    peerHhMin=a; peerHhMax=b; if(scope==="gu" && !searchKey) scope="si"; highlightIds=[]; render();
+  });
+  if(peerHhMin>0) selMin.classList.add("on"); else selMin.classList.remove("on");
+  box.appendChild(selMin);
+  const selMax=mk(mkHh(true), String(peerHhMax), v=>{
+    let a=peerHhMin, b=+v; if(a>b){const t=a;a=b;b=t;}
+    peerHhMin=a; peerHhMax=b; if(scope==="gu" && !searchKey) scope="si"; highlightIds=[]; render();
+  });
+  if(peerHhMax<10000) selMax.classList.add("on"); else selMax.classList.remove("on");
+  box.appendChild(selMax);
+  // ⑦ 초기화 — 차트 필터만 한 번에 되돌리기 (검색 필터는 안 건드림)
+  const anyOn = peerSido||peerGu||peerPy||peerPp||peerBuilt||peerHhMin>0||peerHhMax<10000;
+  if(anyOn){
+    const rb=document.createElement("button"); rb.className="pf-reset"; rb.textContent="↺ 초기화";
+    rb.onclick=()=>{ peerSido="";peerGu="";peerPy="";peerPp="";peerBuilt="";peerHhMin=0;peerHhMax=10000; highlightIds=[]; render(); };
+    box.appendChild(rb);
+  }
+}
+function svgChart(months, series){
+  const W=700,H=340,padL=58,padR=30,padT=12,padB=32;  // [2026-08] 300→340
+  let vals=[]; series.forEach(s=>s.prices.forEach(v=>{if(v!=null)vals.push(v);}));
+  if(!vals.length) return "<p style='color:#9AA3AF'>거래 시세가 없어요.</p>";
+  let ymin=Math.min(...vals),ymax=Math.max(...vals);
+  const ns=x=>{const raw=x/5,p=Math.pow(10,Math.floor(Math.log10(raw))),n=raw/p;return (n<1.5?1:n<3?2:n<7?5:10)*p;};
+  const step=ns((ymax-ymin)||1); ymin=Math.floor(ymin/step)*step; ymax=Math.ceil(ymax/step)*step; if(ymax===ymin)ymax+=step;
+  const X=i=>padL+(W-padL-padR)*(i/Math.max(months.length-1,1));
+  const Y=v=>padT+(H-padT-padB)*(1-(v-ymin)/(ymax-ymin));
+  let g="";
+  for(let v=ymin;v<=ymax;v+=step){g+=`<line x1="${padL}" y1="${Y(v)}" x2="${W-padR}" y2="${Y(v)}" stroke="#EDEFF2"/><text x="${padL-8}" y="${Y(v)+4}" text-anchor="end" font-size="13" fill="#5A6472" font-weight="600">${fmtEok(v)}</text>`;}
+  const sx=Math.ceil(months.length/6);
+  /* [가로축 날짜] 양 끝 라벨 잘림 방지 (위 메인 차트와 동일 처리) */
+  {
+    const last2=months.length-1, picks2=[];
+    for(let i=0;i<months.length;i++) if(i%sx===0) picks2.push(i);
+    if(picks2[picks2.length-1]!==last2){
+      if(last2-picks2[picks2.length-1] < sx*0.55) picks2.pop();
+      picks2.push(last2);
+    }
+    picks2.forEach(i=>{
+      const a2 = i===0 ? "start" : (i===last2 ? "end" : "middle");
+      g+=`<text x="${X(i)}" y="${H-10}" text-anchor="${a2}" font-size="12.5" fill="#5A6472" font-weight="600">${months[i]}</text>`;
+    });
+  }
+  series.forEach(s=>{const pts=[];s.prices.forEach((v,i)=>{if(v!=null)pts.push([X(i),Y(v),i,v]);});
+    if(pts.length>=2)g+=`<polyline points="${pts.map(p=>p[0]+','+p[1]).join(' ')}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round"/>`;
+    // [툴팁 v2 · 2026-08] 마우스 hover(<title>)만으론 모바일에서 안 떠서,
+    //   점을 '클릭/터치'하면 말풍선(showPtTip)이 뜨게 바꿨습니다.
+    pts.forEach(([x,y,i,v])=>{
+      g+=`<circle cx="${x}" cy="${y}" r="3" fill="${s.color}"/>`;
+      // 손이 굵어도 잘 잡히게 투명한 큰 원. 클릭하면 말풍선.
+      g+=`<circle cx="${x}" cy="${y}" r="11" fill="transparent" style="cursor:pointer"
+            onclick="showPtTip(evt,'${months[i]}','${fmtEok(v)}','${(s.label||"").replace(/'/g,"")}')">`
+        +`<title>${months[i]} · ${fmtEok(v)}${s.label?" ("+s.label+")":""}</title></circle>`;
+    });});
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" style="width:100%;height:auto">${g}</svg>`;
+}
+let detailState=null;
+/* ── [대체 상세] details 가 없는 단지를 위한 백업 ──
+   details(전체 평형 + 거래이력)는 용량 때문에 '후보와 그 동급'만 만들어 둡니다.
+   그래서 검색으로 찾은 단지나, 다른 구의 동급을 강조했을 때는 상세가 없었습니다.
+   다행히 peerdata 에 전국 모든 단지의 평형별 월별 시세가 들어 있으므로,
+   그걸로 '전체 평형 시세'는 그대로 보여줄 수 있습니다. (거래이력만 생략)   */
+function detailFromPeers(apt, rc){
+  const pd = DATA.peerdata;
+  if(!pd || !pd.units || !pd.series) return null;
+  const keys = Object.keys(pd.units).filter(k => pd.units[k].name===apt && pd.units[k].rc===rc);
+  if(!keys.length) return null;
+  const types = keys.map(k => ({
+      pyeong: pd.units[k].pyeong,
+      prices: (pd.series[k]||[]).map(v => v==null ? null : v*1000)   // 억×10 → 만원
+    })).sort((a,b) => a.pyeong - b.pyeong);
+  const inf = pd.units[keys[0]];
+  return { name: apt, buildYear: inf.by ? String(inf.by) : "",
+           hh: inf.hh || 0,                       // [2026-08] 세대수 (peerdata 에도 들어있음)
+           types, deals: [],
+           _rn: inf.rn || "", _fromPeers: true };
+}
+function openDetail(apt, rc){
+  let r = rc ? regionByCode(rc) : current().r;
+  // 숨은 지역(지역칩엔 없지만 검색·그래프엔 나오는 지역)은 별도 상세 창고에서 찾기
+  if(!r && rc && DATA.hiddenDetails && DATA.hiddenDetails[rc]) r = DATA.hiddenDetails[rc];
+  let d = r && r.details && r.details[apt];
+  if(!d){
+    d = detailFromPeers(apt, rc);                       // 없으면 peerdata 로 대체
+    if(d && !r) r = { name: d._rn, months: (DATA.peerdata||{}).months || [] };
+    if(d && (!r.months || !r.months.length)) r = Object.assign({}, r, {months:(DATA.peerdata||{}).months||[]});
+  }
+  if(!d){ alert("이 단지의 시세 데이터를 찾지 못했어요."); return; }
+  const series=d.types.map((t,i)=>({pyeong:t.pyeong, prices:t.prices, color:PALETTE[i%PALETTE.length]}));
+  detailState={r,d,series,selected:new Set(series.map(s=>s.pyeong))};  // 처음엔 전체 평형 켜짐
+  $("#dTitle").textContent=d.name;
+  /* [2026-08] 머리말에 세대수 추가 → "부산 해운대구 · 2005년 준공 · 1,200세대"
+     세대수를 모르는 단지(0)는 예전처럼 그 칸만 빼고 표시합니다.               */
+  $("#dMeta").textContent=(r.name||"")
+    +(d.buildYear?" · "+d.buildYear+"년 준공":"")
+    +(d.hh?" · "+Number(d.hh).toLocaleString()+"세대":"");
+  redrawDetail();
+  $("#modal").style.display="flex";
+  pushHist("detail");
+}
+function redrawDetail(){
+  const {r,d,series,selected}=detailState;
+  const fb=$("#dFilter"); fb.innerHTML="";
+  series.forEach(s=>{
+    const on=selected.has(s.pyeong), b=document.createElement("button");
+    b.className=on?"on":""; b.textContent=s.pyeong+"평";
+    if(on) b.style.background=s.color;
+    b.onclick=()=>{ if(selected.has(s.pyeong)){ if(selected.size>1) selected.delete(s.pyeong); } else selected.add(s.pyeong); redrawDetail(); };
+    fb.appendChild(b);
+  });
+  const shown=series.filter(s=>selected.has(s.pyeong));
+  $("#dChart").innerHTML=svgChart(r.months, shown.map(s=>({label:s.pyeong+"평",prices:s.prices,color:s.color})));
+  $("#dLegend").innerHTML=shown.map(s=>`<div class="it"><span class="swatch" style="background:${s.color}"></span>${s.pyeong}평</div>`).join("");
+  const deals=d.deals.filter(x=>selected.has(x.p));
+  $("#dDeals").innerHTML = deals.length
+    ? deals.map(x=>`<tr><td>${x.d}</td><td>${x.p}평</td><td>${x.f}층</td><td class="price">${fmtEok(x.a)}</td></tr>`).join("")
+    : `<tr><td colspan="4" style="padding:14px;color:#9AA3AF;font-size:13px;text-align:center">`
+      + (d._fromPeers ? "이 단지는 거래이력 목록을 준비하지 않았어요. 위 차트로 평형별 시세 흐름을 확인하세요."
+                      : "선택한 평형의 거래이력이 없어요.") + `</td></tr>`;
+}
+function closeDetail(){ $("#modal").style.display="none"; }
+function openInfo(){ $("#infoModal").style.display="flex"; pushHist("info"); }
+function closeInfo(){ $("#infoModal").style.display="none"; }
+function render(){
+  drawModes(); drawPills(); drawStats(); drawFilters(); drawPeerFilters(); drawList(); updatePickLabels();
+  const pd=DATA.peerdata;
+  const lastP=pr=>{for(let i=pr.length-1;i>=0;i--)if(pr[i]!=null)return pr[i];return 0;};
+
+  // 그래프에 그릴 대상 결정: 검색된 단지(후보 아니어도) 우선
+  let meKey, mName, mPy, ctx=null;   // ctx = {r,c} (후보일 때만)
+  if(searchKey && pd && pd.series[searchKey]){
+    meKey=searchKey; const u=pd.units[searchKey]; mName=u.name; mPy=u.pyeong;
+  } else {
+    const cur=current();
+    if(!cur.c){ $("#chart").innerHTML=""; $("#legend").innerHTML=""; $("#ctitle").textContent=""; $("#chartCtrl").innerHTML=""; $("#cnote").textContent=""; return; }
+    ctx=cur; meKey=cur.r.code+"|"+cur.c.id; mName=cur.c.name; mPy=cur.c.pyeong;
+  }
+  const hasPeer = pd && pd.series && pd.series[meKey];
+  // ── [구 비교 개선] 검색으로 들어온 단지도 '구'를 볼 수 있게 됐어요. ──
+  //    후보(목록 클릭)는 서버가 미리 계산한 구-동급을 쓰고,
+  //    검색 단지는 같은 구 안에서 즉석 계산합니다 (시·전국과 같은 방식).
+  let eff = scope;
+  // [2026-08 · 재수정2] 부산 전체(시) 랭킹에서는 기본을 '시 동급'으로 엽니다.
+  //   문제였던 점: 탭을 눌러 자동 선택된 첫 카드는 scope가 직전값(구)이라 구로 열렸어요.
+  //   구분 열쇠: scopeUserSet — 사용자가 카드 옆 구/시/전국 버튼을 '직접' 누르면 true.
+  //     · 직접 안 눌렀는데(=자동) 시 랭킹이면 → 시로 엽니다.
+  //     · 직접 눌렀으면 그 선택(구/시/전국)을 그대로 존중합니다.
+  if(useSiRank() && !scopeUserSet) eff = "si";
+
+  /* ── 공통 컨트롤: 평형 선택 + 과거/현재 기준 토글 ──────────────────
+     [2026-08 정정] 토글은 **복구**했습니다. 이 토글이 바꾸는 건
+       → 이 단지의 '동급 아파트를 무엇으로 볼지'(그래프에 같이 그릴 단지들)
+     이고, **목록 순위(오늘의 매치 랭킹)에는 영향을 주지 않습니다.**
+     순위는 항상 '과거 N년 기준'으로만 매깁니다 (itemRate 참고).            */
+  const bBtn=(b,label)=>`<button class="basisBtn" data-b="${b}" style="border:1px solid var(--line);padding:2px 8px;font:inherit;cursor:pointer;border-radius:6px;`
+    +`${peerBasis===b?"background:var(--gold);color:#fff;border-color:var(--gold);font-weight:700":"background:#fff;color:var(--ink)"}">${label}</button>`;
+  const basisToggle=`<span style="display:inline-flex;gap:4px;vertical-align:middle;margin-right:6px">${bBtn("past","과거 기준")}${bBtn("recent","현재 기준")}</span>`;
+  const meRc = (pd && pd.units[meKey]) ? pd.units[meKey].rc : "";
+  const sameApt = ((pd && pd.units[meKey]) ? Object.keys(pd.units).filter(k => pd.units[k].name===mName && pd.units[k].rc===meRc) : [])
+    .map(k => ({key:k, py:pd.units[k].pyeong})).sort((a,b)=>a.py-b.py);
+  let pySelHtml = "";
+  if(sameApt.length > 1){   // 같은 단지 평형이 2개 이상일 때만 평형 선택기 표시
+    pySelHtml = `평형 <select id="mePySel" style="font:inherit;font-weight:700;border:1px solid var(--line);border-radius:6px;padding:2px 5px;color:var(--gold)">`
+      + sameApt.map(o=>`<option value="${o.key}"${o.key===meKey?" selected":""}>${o.py}평</option>`).join("")
+      + `</select>&nbsp;&nbsp;`;
+  }
+  const ctrlBar = `${pySelHtml}${basisToggle}`;
+  // 기준 연수 드롭다운 (구/시/전국 어느 경로에서도 항상 보이게 — 공통 정의)
+  const _yopts=[...new Set([3,5,7,10,(DATA.defaultYears||5)])].sort((a,b)=>a-b);
+  const yearSel=`<select id="peerYearSel" style="font:inherit;font-weight:700;border:1px solid var(--line);border-radius:6px;padding:2px 5px;color:var(--gold)">`
+    +_yopts.map(y=>`<option value="${y}"${y===peerYears?" selected":""}>${y}년</option>`).join("")
+    +`</select>`;
+
+  if((eff!=="gu" || !ctx) && hasPeer){
+    // ── 같은 구(검색 단지) / 같은 시 / 전국 동급 — 즉석 계산 ──
+    // 과거 기준이면 그래프 앞부분(처음 N개월), 현재 기준이면 뒷부분(최근 N개월) 기준.
+    // 과거 기준일 때만 서버가 미리 계산한 '구 동급(sibs)'을 앞에 붙임 (그건 과거 기준 산출물이라서)
+    // 연식·세대수 필터가 켜져 있으면 서버 구-동급도 같은 조건만 남김
+    const builtOk = k => { if(!peerBuilt) return true; const by=(pd.units[k]&&pd.units[k].by)||0; const [lo,hi]=peerBuilt.split("-").map(Number); return by>=lo && by<hi; };
+    const hhOk = k => { if(peerHhMin<=0 && peerHhMax>=10000) return true; const hh=(pd.units[k]&&pd.units[k].hh)||0; const hi=peerHhMax>=10000?Infinity:peerHhMax; return hh>=peerHhMin && hh<=hi; };
+    // ── 새 차트 필터들도 서버 미리계산 동급(sibs)에 똑같이 적용 ──
+    const regOk = k => { const rn=(pd.units[k]&&pd.units[k].rn)||""; if(peerGu) return rn===peerGu; if(peerSido) return rn.startsWith(peerSido); return true; };
+    const pyOk  = k => { if(!peerPy) return true; const py=(pd.units[k]&&pd.units[k].pyeong)||0; const [pa,pb]=peerPy.split("-").map(Number); return py>=pa && py<pb; };
+    const ppOk  = k => { if(!peerPp) return true; const u=pd.units[k]; if(!u) return false; const lv=nowOf(k)||0; const ppv=(lv*1000)/u.pyeong; const [qa,qb]=peerPp.split("-").map(Number); return ppv>=qa && ppv<qb; };
+    const localKeys = (ctx && peerBasis==="past") ? ctx.c.sibs.map(s=>ctx.r.code+"|"+s).filter(k=>pd.series[k] && builtOk(k) && hhOk(k) && regOk(k) && pyOk(k) && ppOk(k)) : [];
+    const far=computePeers(meKey, peerYears, eff, peerBasis, peerBuilt).filter(k=>!localKeys.includes(k));
+    let list=[meKey, ...localKeys.slice(0,4), ...far];
+    const seen=new Set(); let ids=list.filter(k=>{ if(seen.has(k)) return false; seen.add(k); return true; }).slice(0,8);
+    const units=peerUnits(ids);
+    const colors={}; colors[meKey]="#C8901E";
+    ids.filter(k=>k!==meKey).forEach((k,i)=>colors[k]=PALETTE[i%PALETTE.length]);
+    /* [차트 오버레이] 판정 구간 + 동급 현재가 중앙값 + 갭 계산.
+       중앙값·현재가는 화면에 그려진 값(units[].prices)의 마지막 실측치로.
+       갭% = (동급 중앙값 − 내 현재가) ÷ 중앙값 × 100 → 양수면 '동급보다 쌈(저평가)'. */
+    (function(){
+      /* [정합 · 2026-08] 갭(%)은 '증여 제외 현재가'(nowOf)로 계산합니다.
+         그래프에 그려진 선·점은 예전 그대로라, 급락 점이 보여도 숫자는 안 흔들립니다.
+         nowOf 는 억×10 단위라 ×1000 해서 만원으로 맞춥니다. 없으면 예전 방식으로 폴백. */
+      const lastOf=id=>{ const nv=nowOf(id); if(nv) return nv*1000;
+                         const p=(units[id]||{}).prices||[]; for(let i=p.length-1;i>=0;i--) if(p[i]!=null) return p[i]; return null; };
+      const meNow=lastOf(meKey);
+      const peers=ids.filter(k=>k!==meKey).map(k=>({name:(units[k]||{}).name||"", py:(units[k]||{}).pyeong||0, now:lastOf(k)})).filter(x=>x.now!=null);
+      const peerNows=peers.map(x=>x.now);
+      if(ids.length>=2 && meNow!=null && peerNows.length){
+        const medPeer=medianOf(peerNows);
+        chartOverlay={ basis:peerBasis, years:peerYears, medPeer, meNow,
+                       gapPct: medPeer>0 ? Math.round((medPeer-meNow)/medPeer*100) : null,
+                       peers, meName:mName };   // [설명용] 동급 목록·내 이름
+      } else {
+        chartOverlay=null;   // 동급 없으면 오버레이 안 그림
+      }
+    })();
+    drawChart(pd.months, units, ids, meKey, colors);
+    drawLegend(units, ids, meKey, colors);
+    const scWord = eff==="gu" ? "같은 구" : eff==="si" ? "같은 시" : "전국";
+    $("#ctitle").innerHTML=`<span class="ct-text">${mName} (${mPy}평) · ${eff==="gu"?"🏘️ 같은 구 동급":eff==="si"?"🏙️ 같은 시 동급":"🌏 전국 동급"}</span>`;
+
+    // 기준 연수 안내용 단어
+    const whenWord = peerBasis==="recent" ? "최근" : "처음";
+    // ── [이동] 평형·과거/현재·연수 컨트롤은 제목 바로 아래 줄로 (아래 설명글에서 분리) ──
+    $("#chartCtrl").innerHTML = `${ctrlBar}${yearSel}`;
+
+    // 현재 기준일 때 '과거 격차'(처음엔 동급보다 얼마나 높았/낮았나) 계산
+    let gapText="";
+    if(peerBasis==="recent" && ids.length>=2){
+      const nPast=Math.min(peerYears*12, pd.months.length);
+      const ff2=arr=>{let last=null;return arr.map(v=>{if(v!=null)last=v;return last;});};
+      const firstMed=key=>medianOf(ff2(pd.series[key]).slice(0,nPast).filter(v=>v!=null));
+      const meP=firstMed(meKey);
+      const peerP=medianOf(ids.filter(k=>k!==meKey).map(firstMed).filter(v=>v!=null));
+      if(meP!=null && peerP!=null && peerP>0){
+        const g=Math.round((meP-peerP)/peerP*100);
+        gapText = g<0 ? ` 이 단지는 초기엔 동급보다 <b>${Math.abs(g)}% 낮았어요</b>.`
+                : g>0 ? ` 이 단지는 초기엔 동급보다 <b>${g}% 높았어요</b>.`
+                      : ` 이 단지는 초기에도 동급과 비슷했어요.`;
+      }
+    }
+
+    // ── [안내] 동급을 실제로 몇 곳 찾았는지 알려줌 ──
+    //    차트에는 알아보기 쉽게 최대 8곳만 그리지만, 실제로는 더 많을 수 있습니다.
+    const shown = ids.length - 1;                       // 나 자신 제외
+    const foundTxt = peerFound > shown
+      ? ` <span style="color:#9AA3AF;font-size:12px">(닮은 곳 ${peerFound.toLocaleString()}곳 중 가장 닮은 ${shown}곳 표시${(peerGu||peerSido)?" · "+(peerGu||peerSido)+"만":""})</span>`
+      : (shown>0 ? ` <span style="color:#9AA3AF;font-size:12px">(${shown}곳${(peerGu||peerSido)?" · "+(peerGu||peerSido)+"만":""})</span>` : "");
+
+    if(ids.length<2){
+      // 동급 0개일 때도 토글·드롭다운을 함께 보여줘서 되돌리거나 기준을 바꿀 수 있게 함
+      $("#cnote").innerHTML=`${scWord}${(peerGu||peerSido)?"("+(peerGu||peerSido)+")":""}에서 <b>${whenWord} ${peerYears}년</b> 기준으로는 아직 동급을 못 찾았어요. 위 연수·기준을 바꾸거나 🎯차트 필터에서 조건을 넓혀보세요.`;
+    } else if(peerBasis==="recent"){
+      $("#cnote").innerHTML=`현재부터 <b>최근 ${peerYears}년</b> 값이 닮은 ${scWord} 동급이에요.${gapText}${foundTxt}`;
+    } else {
+      $("#cnote").innerHTML=`수집 시작부터 <b>처음 ${peerYears}년</b> 값이 닮았던 ${scWord} 동급 아파트예요.${foundTxt}`;
+    }
+  } else {
+    // ── 같은 구 (후보의 미리 계산된 동급) ──
+    const {r,c}=ctx;
+    const sibs=c.sibs.filter(s=>r.units[s]).sort((a,b)=>lastP(r.units[b].prices)-lastP(r.units[a].prices)).slice(0,6);
+    const ids=[c.id,...sibs];
+    const colors={}; colors[c.id]="#C8901E";
+    sibs.forEach((id,i)=>colors[id]=PALETTE[i%PALETTE.length]);
+    /* [차트 오버레이] 구 동급(미리 계산된 sibs)도 동일하게 표시.
+       여기서 판정 기준은 이 후보를 만든 기본값(과거 7년)이므로 그대로 사용. */
+    (function(){
+      /* [정합 · 2026-08] 여기도 갭(%)은 '증여 제외 현재가' 기준.
+         r.units 의 열쇠(id)에는 지역코드가 없어서 "지역코드|id" 로 만들어 찾습니다. */
+      const lastOf=id=>{ const nv=nowOf(r.code+"|"+id); if(nv) return nv*1000;
+                         const p=(r.units[id]||{}).prices||[]; for(let i=p.length-1;i>=0;i--) if(p[i]!=null) return p[i]; return null; };
+      const meNow=lastOf(c.id);
+      const peers=sibs.map(id=>({name:(r.units[id]||{}).name||"", py:(r.units[id]||{}).pyeong||0, now:lastOf(id)})).filter(x=>x.now!=null);
+      const peerNows=peers.map(x=>x.now);
+      if(ids.length>=2 && meNow!=null && peerNows.length){
+        const medPeer=medianOf(peerNows);
+        chartOverlay={ basis:"past", years:Math.round((DATA.defaultYears||7)), medPeer, meNow,
+                       gapPct: medPeer>0 ? Math.round((medPeer-meNow)/medPeer*100) : null,
+                       peers, meName:c.name };
+      } else { chartOverlay=null; }
+    })();
+    drawChart(r.months, r.units, ids, c.id, colors);
+    drawLegend(r.units, ids, c.id, colors);
+    $("#ctitle").innerHTML=`<span class="ct-text">${c.name} (${c.pyeong}평) · ${r.name}</span>`;
+    $("#chartCtrl").innerHTML = `${ctrlBar}${yearSel}`;   // 평형·기준·연수 컨트롤
+    // [2026-08] 문구를 '지금 보고 있는 비교 범위(eff)'에 맞춰 바꿉니다.
+    //   예전엔 무조건 "같은 구 동급 + c.rate(구 기준 갭)"로 고정돼 있어서,
+    //   부산 전체(시) 랭킹에서 눌러도 "같은 구 동급보다 39%"처럼 잘못 떴어요.
+    //   시 범위면 siRate(시 기준 갭), 전국이면 그대로, 구면 c.rate 를 씁니다.
+    const _scopeWord = eff==="si" ? "같은 시 동급" : eff==="nat" ? "전국 동급" : "같은 구 동급";
+    const _gapNum = (eff==="si" && c.siRate!=null) ? c.siRate : c.rate;
+    $("#cnote").innerHTML = (_gapNum>=0
+      ? `과거엔 동급이었지만, 지금은 <b>${_scopeWord}</b>보다 <b>${_gapNum}% 낮은 가격대</b>예요. (신뢰도 ${c.conf})`
+      : `이 단지는 <b>${_scopeWord}</b>들보다 <b>${Math.abs(_gapNum)}% 앞서</b> 있어요. (신뢰도 ${c.conf})`);
+  }
+  // 비교 범위 토글 (구 / 시 / 전국) — 검색 단지는 구 비활성
+  const oldT=$("#scopeToggle"); if(oldT) oldT.remove();
+  const wrap=document.createElement("span"); wrap.id="scopeToggle";
+  wrap.style.cssText="display:inline-flex;gap:4px;margin-left:8px;vertical-align:middle";
+  [["gu","구"],["si","시"],["nat","전국"]].forEach(([s,label])=>{
+    const disabled = (s==="gu" && !ctx && !hasPeer);   // 검색 단지도 peerdata 있으면 구 사용 가능
+    const on=(eff===s), b=document.createElement("button");
+    b.style.cssText="border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:700;cursor:"+(disabled?"not-allowed":"pointer")+";opacity:"+(disabled?"0.4":"1")+";background:"+(on?"var(--ink)":"#fff")+";color:"+(on?"#fff":"var(--soft)");
+    b.textContent=label;
+    if(!disabled) b.onclick=()=>{
+      scope=s; scopeUserSet=true;      // [2026-08] 사용자가 직접 범위를 골랐음
+      highlightIds=[];
+      // ── [변경] 예전엔 '전국'을 누르면 비교지역을 지웠지만, 이제는 유지합니다.
+      //    "전국에서 대구 수성구하고만 비교"가 차트 필터의 핵심 기능이 됐기 때문이에요.
+      //    대신 '구'나 '시'로 돌아가면 비교지역을 지웁니다 (내 지역 비교로 복귀). ──
+      if(s==="gu" || s==="si"){ peerSido=""; peerGu=""; }
+      render();
+    };
+    wrap.appendChild(b);
+  });
+  $("#ctitle").appendChild(wrap);
+  /* [정리됨] 비교지역·연식·세대수 드롭다운은 위쪽 '⚙️ 필터' 패널로 옮겼습니다.
+     한 화면에 같은 기능이 두 번 나와 헷갈렸기 때문입니다.
+     여기(차트 옆)에는 '어떻게 비교할지'만 남깁니다: 구/시/전국 · 과거/현재 · N년 · 평형 */
+  // 공통 컨트롤 동작 연결 (구·시·전국 공통, 한 번만) — 구에서 '동급 옵션'을 건드리면 시로 전환
+  document.querySelectorAll(".basisBtn").forEach(b=>{ b.onclick=()=>{ peerBasis=b.dataset.b; if(scope==="gu" && !searchKey) scope="si"; highlightIds=[]; render(); }; });
+  const _ys=document.getElementById("peerYearSel");
+  if(_ys) _ys.onchange=e=>{ peerYears=+e.target.value; if(scope==="gu" && !searchKey) scope="si"; highlightIds=[]; render(); };
+  const _ps=document.getElementById("mePySel");
+  if(_ps) _ps.onchange=e=>{ searchKey=e.target.value; highlightIds=[]; render(); };   // 다른 평형 선택 시 그 평형 보기로
+  /* ── [상세보기] 강조된 단지가 있으면 '그 단지'의 전체 평형·거래이력을 엽니다. ──
+     (강조 안 했으면 기존처럼 지금 보고 있는 내 단지)                         */
+  {
+    const btn=$("#detailBtn");
+    const _lastHl = highlightIds.length ? highlightIds[highlightIds.length-1] : null;  // 마지막 선택
+    const hu = _lastHl ? legendUnits[_lastHl] : null;
+    const tName = hu ? hu.name : mName;
+    const tRc   = hu ? (hu.rc || meKey.split("|")[0]) : meKey.split("|")[0];
+    btn.textContent = hu ? `📋 ${tName} 전체 평형·거래이력 보기`
+                         : "📋 이 단지 전체 평형·거래이력 보기";
+    btn.onclick=()=>openDetail(tName, tRc);
+  }
+}
+// 검색: 질의어 포함 → 관련도 순 정렬(이름이 질의어로 '시작'하면 우선, 짧은 이름 우선) → 상위 60개
+function searchHits(idx, rawInput){
+  const q=rawInput.trim().replace(/\s/g,"").toLowerCase();
+  if(!q) return [];
+  const norm=s=>s.replace(/\s/g,"").toLowerCase();
+  const matched=idx.filter(x=>norm(x.name).includes(q));
+  // 같은 아파트(이름+지역)로 묶어 한 줄만. 대표 평형 = 33평(30평대)에 가장 가까운 것
+  const groups={};
+  matched.forEach(x=>{ const gk=x.name+"|"+(x.regionName||""); (groups[gk]=groups[gk]||[]).push(x); });
+  const reps=Object.values(groups).map(arr=>{
+    const rep=arr.slice().sort((a,b)=>Math.abs(a.pyeong-33)-Math.abs(b.pyeong-33))[0]; // 30평대에 가장 가까운 평형
+    return Object.assign({}, rep, { isCand: arr.some(x=>x.isCand), nPy: arr.length }); // 하나라도 후보면 ⭐, 평형 개수
+  });
+  reps.sort((a,b)=>{
+    const an=norm(a.name), bn=norm(b.name);
+    const as=an.startsWith(q)?0:1, bs=bn.startsWith(q)?0:1;   // 이름이 질의어로 시작하면 맨 위
+    if(as!==bs) return as-bs;
+    if(an.length!==bn.length) return an.length-bn.length;      // 짧은 이름 우선(더 정확한 일치)
+    if(an!==bn) return an<bn?-1:1;                             // 이름 가나다 순
+    return a.pyeong-b.pyeong;
+  });
+  return reps.slice(0,60);
+}
+function setupSearch(){
+  const inp=$("#searchInput"), box=$("#searchResults"), idx=DATA.search||[];
+  const hide=()=>box.style.display="none";
+  inp.addEventListener("input",()=>{
+    const q=inp.value.trim().replace(/\s/g,"").toLowerCase();
+    if(!q){ hide(); return; }
+    const hits=searchHits(idx, inp.value);
+    if(!hits.length){
+      box.innerHTML='<div class="empty">검색 결과 없음. (밴드 안 단지만 검색돼요)</div>';
+      box.style.display="block"; return;
+    }
+    box.innerHTML=hits.map(x=>`<div class="sr"><b>${x.name}</b> <span>${x.regionName}${x.nPy>1?" · 평형 "+x.nPy+"개":" · "+x.pyeong+"평"}${x.isCand?" · ⭐매치":""}</span></div>`).join("");
+    box.querySelectorAll(".sr").forEach((el,i)=>{ el.onclick=()=>{
+      const x=hits[i]; searchKey=x.key; mode="region"; scope="si"; highlightIds=[];
+      const _u=DATA.peerdata&&DATA.peerdata.units[x.key]; if(_u&&_u.rc&&regionByCode(_u.rc)){regionCode=_u.rc;} syncSido();
+      inp.value=x.name; hide(); render(); scrollToChart();
+    };});
+    box.style.display="block";
+  });
+  document.addEventListener("click",e=>{ if(!e.target.closest(".search")) hide(); });
+}
+// ── 홈 ↔ 스캐너 화면 전환 ──
+function goHome(){ $("#home").classList.add("on"); $("#scanner").classList.remove("on"); window.scrollTo(0,0); }
+// ── [뒤로가기 지원] 브라우저·모바일 뒤로가기로 상세 → ⓘ모달 → 스캐너 → 홈 순으로 닫기 ──
+//    (예전엔 스캐너에서 뒤로가기 누르면 사이트가 통째로 나가버렸음)
+function pushHist(v){ try{ history.pushState({v:v}, ""); }catch(e){} }
+function _isOpen(el){ return el && el.style.display && el.style.display!=="none"; }
+window.addEventListener("popstate", function(){
+  const detail=$("#modal"), info=$("#infoModal");
+  if(_isOpen(detail)){ closeDetail(); return; }                       // 상세부터
+  if(_isOpen(info)){ closeInfo(); return; }                           // 그다음 ⓘ 모달
+  if($("#scanner").classList.contains("on")){ goHome(); return; }     // 스캐너면 홈으로
+});
+/* [검색 개선] 검색으로 아파트를 고르면 차트가 바로 보이게 스크롤.
+   - 모바일(좁은 화면): 지역칩·통계를 건너뛰고 차트 카드로 이동
+   - PC(넓은 화면): 차트가 오른쪽에 이미 보이므로 그냥 맨 위로       */
+function scrollToChart(){
+  if(window.innerWidth<=820){
+    setTimeout(()=>{                     // render()가 화면을 다 그린 다음에
+      const c=$("#chart");
+      if(c) c.closest(".card").scrollIntoView({behavior:"smooth",block:"start"});
+      else window.scrollTo(0,0);
+    },80);
+  } else {
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+}
+function syncSido(){
+  /* 현재 선택된 지역(regionCode)에 맞춰 시·도 선택을 따라 맞춤.
+     (검색·바로가기 등으로 특정 구에 바로 들어올 때 2단계 화면이 자연스럽게)
+     ── [검색↔필터 동기화] 검색으로 특정 단지를 고르면, 상단 '검색 필터'의
+        시·도·구도 그 단지 지역으로 맞춰 준다 (지역칩 클릭 때와 동일한 동작). ── */
+  const r=regionByCode(regionCode);
+  sido = r ? r.name.split(" ")[0] : null;
+  if(r){ filters.sido = sido; filters.region = regionCode; }
+}
+function goScanner(kind){
+  $("#home").classList.remove("on"); $("#scanner").classList.add("on");
+  if(kind==="star"){
+    // 전국 매치 랭킹: 전국 매치(★)를 매력도 순으로 한 목록에 (상위권부터 스크롤)
+    mode="tier"; tierCode="ALL";
+    if(!tierByCode("ALL")){ const t0=DATA.tiers[0]; if(t0) tierCode=t0.code; }  // ALL 없으면 폴백
+    // 깨끗한 전국 시작: 목록 필터 초기화 (이후 사용자가 원하는 대로 좁힘)
+    filters.sido=""; filters.region=""; filters.pyeong=""; filters.price=""; filters.pp=""; filters.built=""; filters.hh="";
+  } else if(kind==="tier"){
+    // 평당가별 보기: 첫 가격 구간(전국 랭킹 제외)
+    mode="tier";
+    const pt=DATA.tiers.find(t=>t.code!=="ALL"); if(pt) tierCode=pt.code;
+  } else {
+    mode="region";
+    sido=null;                          // "구별 보기"는 1단계(시 목록)부터
+  }
+  scope="gu"; highlightIds=[]; searchKey=null; pickDefault(); render(); window.scrollTo(0,0);
+  pushHist("scanner");                 // 뒤로가기로 홈 복귀 가능하게
+}
+function setupHome(){
+  const total=DATA.regions.reduce((s,r)=>s+r.starCount,0);
+  $("#homeStarCount").textContent=total;
+  // 바로가기: 시·도 전체 + 평당가 구간 (많아도 한 화면에 들어가도록 촘촘히 배치)
+  const grid=$("#homeGrid"); grid.innerHTML="";
+  // ── [지역별 아이콘] 시·도 이름에 맞는 이모지 (특색 반영, 1개씩). ──
+  //    매핑에 없는 키는 아래 기본 아이콘으로 자동 폴백 → 새 지역이 생겨도 안 깨짐.
+  const SIDO_ICON={
+    "서울":"🏙️","경기":"🏰","인천":"✈️","부산":"🌉","대구":"🍗","울산":"🐋",
+    "경남":"⛴️","경북":"🏯","광주":"🎨","전남광주":"🎨","전북":"🛖","전남":"🌾",
+    "대전":"🚀","세종":"🏛️","충남":"👑","충북":"🏞️","강원":"🥔","제주":"🍊"
+  };
+  const fallbackIcons=["🏙️","🌊","🏔️","🌉","🏗️","🚉","🌳","🏟️","🛤️","⛰️","🌾","🏖️","🌅","🏞️","🧭","🌇","🛳️"];
+  const iconFor=(s,i)=> SIDO_ICON[s] || fallbackIcons[i%fallbackIcons.length];
+  // ── [시·도별 묶기] "서울 종로구"의 첫 단어("서울")로 그룹핑, 별 개수 합산 ──
+  const sidoMap={};   // { "서울": {star:합계, code:그 시의 첫 지역코드} }
+  DATA.regions.forEach(r=>{
+    const s=r.name.split(" ")[0];
+    if(!sidoMap[s]) sidoMap[s]={star:0, code:r.code};
+    sidoMap[s].star += r.starCount;
+  });
+  // 이름이 긴 시·도는 짧게 (화면이 좁아도 한 줄에 들어가게)
+  const shortName = s => s.replace("특별자치시","").replace("특별자치도","")
+                          .replace("광역시","").replace("통합특별시","") || s;
+  Object.keys(sidoMap)
+    .sort((a,b)=>sidoMap[b].star-sidoMap[a].star)   // 별 많은 시·도 순
+    .forEach((s,i)=>{
+      const b=document.createElement("button"); b.className="ibtn";
+      b.innerHTML=`<div class="ic">${iconFor(s,i)}</div><span>${shortName(s)}<b>${sidoMap[s].star}</b></span>`;
+      b.onclick=()=>{
+        goScanner("region");
+        regionCode=sidoMap[s].code;   // 그 시의 첫 지역으로
+        syncSido();                    // → 그 시의 2단계(구 목록) 화면
+        searchKey=null; pickDefault(); render();
+      };
+      grid.appendChild(b);
+    });
+  /* [2026-08 변경] 바로가기에서 '평당가 구간 버튼(1,000~1,500 등)'과
+     '전국 매치 랭킹 버튼'을 삭제했습니다.
+       · 평당가 구간 → 위쪽 빠른카드 '💰 평당가별 보기'로 들어가면 되므로 중복
+       · 전국 매치 랭킹 → 빠른카드 '⭐ 오늘의 매치'가 바로 그 화면이라 중복
+     결과: 바로가기는 '시·도 버튼'만 남아 화면이 훨씬 깔끔해집니다.        */
+  // 홈 검색 (선택 시 같은 시 동급 보기로 스캐너 진입)
+  const inp=$("#homeSearch"), box=$("#homeResults"), idx=DATA.search||[];
+  const hide=()=>box.style.display="none";
+  inp.addEventListener("input",()=>{
+    const q=inp.value.trim().replace(/\s/g,"").toLowerCase();
+    if(!q){ hide(); return; }
+    const hits=searchHits(idx, inp.value);
+    box.innerHTML=hits.length?hits.map(x=>`<div class="sr"><b>${x.name}</b> <span>${x.regionName}${x.nPy>1?" · 평형 "+x.nPy+"개":" · "+x.pyeong+"평"}${x.isCand?" · ⭐매치":""}</span></div>`).join("")
+      :'<div class="empty">검색 결과 없음. (밴드 안 단지만 검색돼요)</div>';
+    box.querySelectorAll(".sr").forEach((el,i)=>{ el.onclick=()=>{
+      const x=hits[i];
+      $("#home").classList.remove("on"); $("#scanner").classList.add("on");
+      searchKey=x.key; mode="region"; scope="si"; highlightIds=[]; const _u=DATA.peerdata&&DATA.peerdata.units[x.key]; if(_u&&_u.rc&&regionByCode(_u.rc)){regionCode=_u.rc;} syncSido(); hide(); inp.value=x.name; render(); scrollToChart();
+    };});
+    box.style.display="block";
+  });
+  document.addEventListener("click",e=>{ if(!e.target.closest(".home-search")) hide(); });
+}
+/* [지도 연동 · 2026-08] URL 해시로 특정 단지 바로 열기.
+   지도(map.html)에서 "상세 보기"를 누르면 index.html#u=지역코드|단지명 으로 옵니다.
+   그 단지의 밴드 키를 찾아 검색으로 연 것과 똑같이 보여줍니다(시 동급 기준).
+   예: index.html#u=26350|센텀롯데캐슬아파트                                  */
+function openFromHash(){
+  const h = decodeURIComponent(location.hash||"");
+  const m = h.match(/^#u=([^|]+)\|(.+)$/);
+  if(!m) return false;
+  const rc = m[1], nm = m[2];
+  const pd = DATA.peerdata; if(!pd) return false;
+  /* [2026-08 수정] 평형 선택 우선순위:
+     ① 그 지역의 '매치 후보' 평형 (index 검색과 동일하게 대표 평형이 열리도록)
+     ② 없으면 그 지역·이름의 첫 유닛
+     ③ 그래도 없으면 이름만으로
+     (예전엔 ②만 있어서 42평 같은 비주류 평형이 먼저 열렸음) */
+  let found = null;
+  const reg = (DATA.regions||[]).find(r=>r.code===rc);
+  if(reg){
+    const cand = (reg.candidates||[]).find(c=>c.name===nm);
+    if(cand && cand.id){
+      const tryKey = rc + "|" + cand.id;       // id = "이름|면적"
+      if(pd.units[tryKey]) found = tryKey;
+    }
+  }
+  if(!found){
+    for(const k in pd.units){
+      const u = pd.units[k];
+      if(u.rc===rc && u.name===nm){ found=k; break; }
+    }
+  }
+  if(!found){                         // 지역 안 맞으면 이름만으로
+    for(const k in pd.units){ if(pd.units[k].name===nm){ found=k; break; } }
+  }
+  if(!found) return false;
+  searchKey = found; mode="region"; scope="si"; highlightIds=[];
+  const _u = pd.units[found];
+  if(_u && _u.rc && regionByCode(_u.rc)) regionCode = _u.rc;
+  syncSido();
+  const scanner=$("#scanner"), home=$("#home");
+  if(scanner && home){ home.classList.remove("on"); scanner.classList.add("on"); }
+  render(); scrollToChart();
+  return true;
+}
+if(DATA.regions && DATA.regions.length){ pickDefault(); render(); setupSearch(); setupHome(); openFromHash(); }
+else { $("#list").innerHTML="<p>표시할 데이터가 없어요. collect_all.py 로 먼저 모으세요.</p>"; }
+window.addEventListener("hashchange", openFromHash);
+</script></body></html>
