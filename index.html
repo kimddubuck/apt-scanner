@@ -24,10 +24,14 @@
   .filterbar{position:absolute;top:52px;left:0;right:0;height:42px;z-index:999;
     background:rgba(255,255,255,.92);backdrop-filter:blur(8px);
     border-bottom:1px solid rgba(0,0,0,.06);
-    display:flex;align-items:center;gap:8px;padding:0 12px;overflow-x:auto}
+    display:flex;align-items:center;gap:8px;padding:0 12px;
+    flex-wrap:nowrap;white-space:nowrap;
+    overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;-ms-overflow-style:none}
+  .filterbar::-webkit-scrollbar{display:none}
   .filterbar select{border:1.5px solid var(--line);border-radius:999px;
     padding:5px 10px;font-size:12.5px;font-family:inherit;background:#fff;
-    color:var(--ink);font-weight:600;outline:none;flex:none}
+    color:var(--ink);font-weight:600;outline:none;flex:0 0 auto}
   .filterbar select:focus{border-color:var(--accent)}
   /* ── [B안 · 아실식 사이드 패널] ─────────────────
      핀 클릭 → 왼쪽에서 패널이 열리고 지도가 오른쪽으로 밀림.
@@ -111,6 +115,19 @@
   .tag.sib-hl .nm{background:var(--sib);color:#fff;border-color:var(--sib)}
   .tag.sib-hl::after{border-top-color:var(--sib)}
   .tag:hover{filter:drop-shadow(0 4px 10px rgba(0,0,0,.45))}
+  /* [대장 아파트 · 2026-08] 왕관 2종 —
+     king-gu(동네 대장)=금색 / king-nat(전국구 대장)=보라색 */
+  .tag.king-gu .nm{border-color:#E0A400;color:#8A5A00;
+    background:linear-gradient(#FFF9E8,#FFF)}
+  .tag.king-gu::after{border-top-color:#E0A400}
+  .tag.king-gu{filter:drop-shadow(0 2px 6px rgba(224,164,0,.55))}
+  .tag.king-nat .nm{border-color:#7048E8;color:#4326A8;
+    background:linear-gradient(#F3EEFF,#FFF)}
+  .tag.king-nat::after{border-top-color:#7048E8}
+  .tag.king-nat{filter:drop-shadow(0 2px 7px rgba(112,72,232,.6))}
+  .tag .crown{margin-right:3px;font-size:12px;
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+  .tag .crown.nat{filter:drop-shadow(0 0 3px rgba(112,72,232,.9))}
   /* [전체표시] 저평가 아닌 단지 = 회색 톤, 살짝 작게 (후보가 눈에 띄게) */
   .tag.plain .nm{color:#64748B;border-color:#94A3B8;font-size:12px}
   .tag.plain::after{border-top-color:#94A3B8}
@@ -159,9 +176,10 @@
 <!-- [필터 · 2026-08] 아실처럼 지도 위 필터 — 골라 켜면 핀이 걸러짐 -->
 <div class="filterbar">
   <select id="fRate">
-    <option value="0">저평가 전체</option>
-    <option value="10">10% 이상</option>
-    <option value="20">20% 이상</option>
+    <option value="">저평가 전체</option>
+    <option value="0-10">10% 미만</option>
+    <option value="10-20">10~20%</option>
+    <option value="20-999">20% 이상</option>
   </select>
   <select id="fPy">
     <option value="">평형 전체</option>
@@ -237,11 +255,15 @@ function fmtEok(man){ if(!man)return'-'; return (man/10000).toFixed(1)+'억'; }
 let map, layerTags, layerDots, selCircle=null, selKey=null;
 /* [필터 · 2026-08] 저평가율·평형·세대수 조건. 바꾸면 핀이 즉시 걸러짐 */
 const NOW_YEAR = new Date().getFullYear();
-const FILTER = { rate:0, py:null, hh:0, by:null, now:null, pp:null };
+const FILTER = { rate:null, py:null, hh:0, by:null, now:null, pp:null };
 function passFilter(b){
   if(!b) return false;
-  // 저평가율 필터가 켜져 있으면, 저평가 아닌 단지(plain)는 제외
-  if(FILTER.rate>0 && (b.plain || (b.rate||0) < FILTER.rate)) return false;
+  // 저평가율 구간 필터가 켜져 있으면, 저평가 아닌 단지(plain)는 제외 + 구간 밖도 제외
+  if(FILTER.rate){
+    if(b.plain) return false;
+    const r = b.rate||0;
+    if(r<FILTER.rate[0] || r>=FILTER.rate[1]) return false;
+  }
   if(FILTER.hh && (b.hh||0) < FILTER.hh) return false;
   if(FILTER.py && !(b.pyeong>=FILTER.py[0] && b.pyeong<=FILTER.py[1])) return false;
   // 입주년차 = 올해 - 건축년도 (by 0이면 미상 → 필터 켜면 제외)
@@ -290,10 +312,34 @@ async function boot(){
       if(!prev || (c.rate||0) > prev.rate){
         BEST[key] = { key, name:c.name, rname:reg.name, rate:c.rate||0,
                       pyeong:c.pyeong, now:c.now||0, sibMed:c.sibMed||0,
+                      sibMax:c.sibMax||0,
                       sibs:c.sibs||[], regionCode:reg.code, hh:c.hh||0,
                       pp:c.pp||0, by:c.by||0 };   // [필터용] 평당가·건축년도 추가
       }
     }
+  }
+
+  /* [대장 아파트 · 2026-08] 왕관 2종.
+     · king='nat' (전국구 대장, 보라 왕관): 내 현재가 ≥ 전국 동급 최고가(sibMax)
+     · king='gu'  (동네 대장, 금 왕관): 같은 시(지역) 동급 중 최고 (전국구는 아님)
+     동점은 실거래상 미세차이라 >= 로 둘 다 인정. 동급 없으면 대장 아님. */
+  for(const key in BEST){
+    const b=BEST[key];
+    b.king=null;
+    if(b.plain) continue;
+    const sibNames=(b.sibs||[]).map(s=>String(s).split('|')[0]).filter(Boolean);
+    if(!sibNames.length) continue;              // 동급 없으면 판정 안 함
+    const myNow=b.now||0;
+    if(myNow<=0) continue;
+    // (1) 전국구: sibMax(전국 동급 최고 현재가)와 비교
+    if(b.sibMax && myNow>=b.sibMax){ b.king='nat'; continue; }
+    // (2) 동네: 같은 지역코드 안 동급 중 최고인가
+    let localMax=myNow;
+    for(const nm of sibNames){
+      const o=BEST[b.regionCode+'|'+nm];
+      if(o && (o.now||0)>localMax) localMax=o.now;
+    }
+    if(myNow>=localMax) b.king='gu';
   }
 
   map = L.map('map',{zoomControl:true}).setView([35.18,129.08],12);  // 부산 시작
@@ -346,10 +392,14 @@ async function boot(){
     const label = b.plain ? fmtEok(b.now)
                           : (b.rate>=0?'+':'')+b.rate.toFixed(0)+'%';
 
-    // (A) 아실식 말풍선: 이름 + 현재가·저평가율
+    // (A) 아실식 말풍선: 이름 + 현재가·저평가율 (대장이면 👑)
+    const crown = b.king==='nat' ? `<span class="crown nat" title="전국 동급 중 시세 최고 (전국구 대장)">👑</span>`
+                : b.king==='gu'  ? `<span class="crown gu" title="이 지역 동급 중 시세 최고 (동네 대장)">👑</span>`
+                : '';
+    const kingCls = b.king ? ` king-${b.king}` : '';
     const tagIcon=L.divIcon({className:'',iconSize:[1,1],
-      html:`<div class="tag${b.plain?' plain':''}" id="tag-${cssId(key)}">
-              <div class="nm">${b.name}</div>
+      html:`<div class="tag${b.plain?' plain':''}${kingCls}" id="tag-${cssId(key)}">
+              <div class="nm">${crown}${b.name}</div>
               <div class="pr" style="background:${color}">${b.plain?label:fmtEok(b.now)+' · '+label}</div>
             </div>`});
     const tag=L.marker([co.lat,co.lon],{icon:tagIcon});
@@ -384,7 +434,7 @@ function setupFilters(){
   if(!fr) return;
   // 범위 문자열("10-20")을 [10,20] 배열로. 빈 값이면 null.
   const range=v=> v ? v.split('-').map(Number) : null;
-  fr.onchange =()=>{ FILTER.rate=parseFloat(fr.value)||0; applyFilter(); };
+  fr.onchange =()=>{ FILTER.rate=range(fr.value); applyFilter(); };
   fh.onchange =()=>{ FILTER.hh=parseInt(fh.value)||0; applyFilter(); };
   fp.onchange =()=>{ FILTER.py=range(fp.value); applyFilter(); };
   fb.onchange =()=>{ FILTER.by=range(fb.value); applyFilter(); };
