@@ -100,7 +100,7 @@
      · 이름: 13px 흰 배경 + 진한 남색 글씨 (아실의 흰바탕 파란글씨처럼 대비↑)
      · 가격: 12px, 색 배지는 유지하되 더 크게
      · 흰 테두리 + 진한 그림자로 지도 위에서 또렷하게 */
-  .tag{transform:translate(-50%,-100%);cursor:pointer;
+  .tag{position:relative;transform:translate(-50%,-100%);cursor:pointer;
     filter:drop-shadow(0 2px 5px rgba(0,0,0,.35))}
   .tag .nm{background:#fff;color:#1B3A6B;font-size:13px;font-weight:800;
     padding:3.5px 10px;border-radius:8px 8px 0 0;white-space:nowrap;text-align:center;
@@ -125,9 +125,11 @@
     background:linear-gradient(#F3EEFF,#FFF)}
   .tag.king-nat::after{border-top-color:#7048E8}
   .tag.king-nat{filter:drop-shadow(0 2px 7px rgba(112,72,232,.6))}
-  .tag .crown{margin-right:3px;font-size:12px;
-    filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
-  .tag .crown.nat{filter:drop-shadow(0 0 3px rgba(112,72,232,.9))}
+  .tag .crown{position:absolute;left:50%;top:-20px;transform:translateX(-50%);
+    font-size:22px;line-height:1;pointer-events:none;
+    filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
+  .tag .crown.nat{font-size:24px;filter:drop-shadow(0 0 4px rgba(112,72,232,.95))}
+  .tag.king-gu, .tag.king-nat{margin-top:20px}
   /* [전체표시] 저평가 아닌 단지 = 회색 톤, 살짝 작게 (후보가 눈에 띄게) */
   .tag.plain .nm{color:#64748B;border-color:#94A3B8;font-size:12px}
   .tag.plain::after{border-top-color:#94A3B8}
@@ -175,6 +177,12 @@
 
 <!-- [필터 · 2026-08] 아실처럼 지도 위 필터 — 골라 켜면 핀이 걸러짐 -->
 <div class="filterbar">
+  <select id="fKing">
+    <option value="">👑 대장 전체</option>
+    <option value="any">👑 대장만</option>
+    <option value="nat">👑 전국구 대장</option>
+    <option value="gu">👑 동네 대장</option>
+  </select>
   <select id="fRate">
     <option value="">저평가 전체</option>
     <option value="0-10">10% 미만</option>
@@ -255,9 +263,15 @@ function fmtEok(man){ if(!man)return'-'; return (man/10000).toFixed(1)+'억'; }
 let map, layerTags, layerDots, selCircle=null, selKey=null;
 /* [필터 · 2026-08] 저평가율·평형·세대수 조건. 바꾸면 핀이 즉시 걸러짐 */
 const NOW_YEAR = new Date().getFullYear();
-const FILTER = { rate:null, py:null, hh:0, by:null, now:null, pp:null };
+const FILTER = { rate:null, py:null, hh:0, by:null, now:null, pp:null, king:'' };
 function passFilter(b){
   if(!b) return false;
+  // [대장 필터] any=대장 아무거나 · nat=전국구만 · gu=동네만
+  if(FILTER.king){
+    if(FILTER.king==='any' && !b.king) return false;
+    if(FILTER.king==='nat' && b.king!=='nat') return false;
+    if(FILTER.king==='gu'  && b.king!=='gu')  return false;
+  }
   // 저평가율 구간 필터가 켜져 있으면, 저평가 아닌 단지(plain)는 제외 + 구간 밖도 제외
   if(FILTER.rate){
     if(b.plain) return false;
@@ -322,13 +336,16 @@ async function boot(){
   /* [대장 아파트 · 2026-08] 왕관 2종.
      · king='nat' (전국구 대장, 보라 왕관): 내 현재가 ≥ 전국 동급 최고가(sibMax)
      · king='gu'  (동네 대장, 금 왕관): 같은 시(지역) 동급 중 최고 (전국구는 아님)
-     동점은 실거래상 미세차이라 >= 로 둘 다 인정. 동급 없으면 대장 아님. */
+     동점은 실거래상 미세차이라 >= 로 둘 다 인정.
+     [버그수정 2026-08] 동급이 1곳뿐이면 '혼자라서 대장'이 되므로,
+     동급 2곳 이상(MIN_SIBS)일 때만 왕관을 준다. */
+  const MIN_SIBS = 2;   // 대장으로 인정할 최소 동급 수
   for(const key in BEST){
     const b=BEST[key];
     b.king=null;
     if(b.plain) continue;
     const sibNames=(b.sibs||[]).map(s=>String(s).split('|')[0]).filter(Boolean);
-    if(!sibNames.length) continue;              // 동급 없으면 판정 안 함
+    if(sibNames.length < MIN_SIBS) continue;    // 동급 부족하면 대장 아님
     const myNow=b.now||0;
     if(myNow<=0) continue;
     // (1) 전국구: sibMax(전국 동급 최고 현재가)와 비교
@@ -399,7 +416,8 @@ async function boot(){
     const kingCls = b.king ? ` king-${b.king}` : '';
     const tagIcon=L.divIcon({className:'',iconSize:[1,1],
       html:`<div class="tag${b.plain?' plain':''}${kingCls}" id="tag-${cssId(key)}">
-              <div class="nm">${crown}${b.name}</div>
+              ${crown}
+              <div class="nm">${b.name}</div>
               <div class="pr" style="background:${color}">${b.plain?label:fmtEok(b.now)+' · '+label}</div>
             </div>`});
     const tag=L.marker([co.lat,co.lon],{icon:tagIcon});
@@ -430,7 +448,7 @@ async function boot(){
 
 function setupFilters(){
   const g=id=>document.getElementById(id);
-  const fr=g('fRate'), fp=g('fPy'), fh=g('fHh'), fb=g('fBy'), fn=g('fNow'), fpp=g('fPp');
+  const fr=g('fRate'), fp=g('fPy'), fh=g('fHh'), fb=g('fBy'), fn=g('fNow'), fpp=g('fPp'), fk=g('fKing');
   if(!fr) return;
   // 범위 문자열("10-20")을 [10,20] 배열로. 빈 값이면 null.
   const range=v=> v ? v.split('-').map(Number) : null;
@@ -440,6 +458,7 @@ function setupFilters(){
   fb.onchange =()=>{ FILTER.by=range(fb.value); applyFilter(); };
   fn.onchange =()=>{ FILTER.now=range(fn.value); applyFilter(); };
   fpp.onchange=()=>{ FILTER.pp=range(fpp.value); applyFilter(); };
+  if(fk) fk.onchange=()=>{ FILTER.king=fk.value; applyFilter(); };
 }
 
 /* ── [검색 · 2026-08] 아파트 이름 검색 → 그 위치로 지도 이동 ──

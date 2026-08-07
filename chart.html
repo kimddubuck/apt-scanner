@@ -306,9 +306,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.07 22:57 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.07 23:32 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.07 22:57</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.07 23:32</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -951,7 +951,7 @@ function drawChart(months, units, ids, mainId, colors){
   }
   for(let v=ymin;v<=ymax;v+=step){
     g+=`<line x1="${padL}" y1="${Y(v)}" x2="${W-padR}" y2="${Y(v)}" stroke="#EDEFF2"/>`;
-    g+=`<text x="${padL-8}" y="${Y(v)+4}" text-anchor="end" font-size="15" fill="#5A6472" font-weight="700">${fmtEok(v)}</text>`;
+    g+=`<text x="${padL-8}" y="${Y(v)+4}" text-anchor="end" font-size="17" fill="#5A6472" font-weight="800">${fmtEok(v)}</text>`;
   }
   /* [가로축 날짜] 양 끝 라벨이 차트 밖으로 삐져나가 잘리지 않게 정렬을 바꿔줌.
      맨 왼쪽은 start(왼쪽 붙임), 맨 오른쪽은 end(오른쪽 붙임), 중간은 middle.
@@ -966,7 +966,7 @@ function drawChart(months, units, ids, mainId, colors){
   }
   picks.forEach(i=>{
     const anchor = i===0 ? "start" : (i===last ? "end" : "middle");
-    g+=`<text x="${X(i)}" y="${H-12}" text-anchor="${anchor}" font-size="15" fill="#5A6472" font-weight="700">${months[i]}</text>`;
+    g+=`<text x="${X(i)}" y="${H-12}" text-anchor="${anchor}" font-size="17" fill="#5A6472" font-weight="800">${months[i]}</text>`;
   });
   function line(pr,color,w,op,label){
     const pts=[]; pr.forEach((v,i)=>{ if(v!=null) pts.push([X(i),Y(v),i,v]); });
@@ -1611,7 +1611,7 @@ function svgChart(months, series){
   const X=i=>padL+(W-padL-padR)*(i/Math.max(months.length-1,1));
   const Y=v=>padT+(H-padT-padB)*(1-(v-ymin)/(ymax-ymin));
   let g="";
-  for(let v=ymin;v<=ymax;v+=step){g+=`<line x1="${padL}" y1="${Y(v)}" x2="${W-padR}" y2="${Y(v)}" stroke="#EDEFF2"/><text x="${padL-8}" y="${Y(v)+4}" text-anchor="end" font-size="13" fill="#5A6472" font-weight="600">${fmtEok(v)}</text>`;}
+  for(let v=ymin;v<=ymax;v+=step){g+=`<line x1="${padL}" y1="${Y(v)}" x2="${W-padR}" y2="${Y(v)}" stroke="#EDEFF2"/><text x="${padL-8}" y="${Y(v)+4}" text-anchor="end" font-size="17" fill="#5A6472" font-weight="800">${fmtEok(v)}</text>`;}
   const sx=Math.ceil(months.length/6);
   /* [가로축 날짜] 양 끝 라벨 잘림 방지 (위 메인 차트와 동일 처리) */
   {
@@ -1623,7 +1623,7 @@ function svgChart(months, series){
     }
     picks2.forEach(i=>{
       const a2 = i===0 ? "start" : (i===last2 ? "end" : "middle");
-      g+=`<text x="${X(i)}" y="${H-10}" text-anchor="${a2}" font-size="12.5" fill="#5A6472" font-weight="600">${months[i]}</text>`;
+      g+=`<text x="${X(i)}" y="${H-10}" text-anchor="${a2}" font-size="17" fill="#5A6472" font-weight="800">${months[i]}</text>`;
     });
   }
   series.forEach(s=>{const pts=[];s.prices.forEach((v,i)=>{if(v!=null)pts.push([X(i),Y(v),i,v]);});
