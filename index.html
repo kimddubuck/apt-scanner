@@ -19,13 +19,22 @@
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:var(--ink)}
-  #map{position:absolute;inset:0;top:52px;transition:left .25s ease}
+  #map{position:absolute;inset:0;top:94px;transition:left .25s ease}
+  /* [필터바] 상단바 바로 아래, 아실식 칩 느낌 */
+  .filterbar{position:absolute;top:52px;left:0;right:0;height:42px;z-index:999;
+    background:rgba(255,255,255,.92);backdrop-filter:blur(8px);
+    border-bottom:1px solid rgba(0,0,0,.06);
+    display:flex;align-items:center;gap:8px;padding:0 12px;overflow-x:auto}
+  .filterbar select{border:1.5px solid var(--line);border-radius:999px;
+    padding:5px 10px;font-size:12.5px;font-family:inherit;background:#fff;
+    color:var(--ink);font-weight:600;outline:none;flex:none}
+  .filterbar select:focus{border-color:var(--accent)}
   /* ── [B안 · 아실식 사이드 패널] ─────────────────
      핀 클릭 → 왼쪽에서 패널이 열리고 지도가 오른쪽으로 밀림.
      패널 안에는 기존 index.html 을 iframe(창문)으로 끼움 →
      차트·구시전국·거래이력 등 기존 기능이 100% 그대로 작동. */
   body.panel-open #map{left:var(--panelW,420px)}
-  #panel{position:absolute;top:52px;bottom:0;left:calc(-1*var(--panelW,420px) - 10px);width:var(--panelW,420px);z-index:900;
+  #panel{position:absolute;top:94px;bottom:0;left:calc(-1*var(--panelW,420px) - 10px);width:var(--panelW,420px);z-index:900;
     background:#fff;border-right:1px solid rgba(0,0,0,.08);
     box-shadow:4px 0 20px rgba(0,0,0,.08);transition:left .25s ease;
     display:flex;flex-direction:column}
@@ -144,6 +153,27 @@
   <a href="./chart.html">📋 차트 목록</a>
 </div>
 
+<!-- [필터 · 2026-08] 아실처럼 지도 위 필터 — 골라 켜면 핀이 걸러짐 -->
+<div class="filterbar">
+  <select id="fRate">
+    <option value="0">저평가 전체</option>
+    <option value="10">10% 이상</option>
+    <option value="20">20% 이상</option>
+  </select>
+  <select id="fPy">
+    <option value="">평형 전체</option>
+    <option value="23-27">23~27평</option>
+    <option value="28-32">28~32평</option>
+    <option value="33-40">33~40평</option>
+  </select>
+  <select id="fHh">
+    <option value="0">세대수 전체</option>
+    <option value="300">300세대~</option>
+    <option value="500">500세대~</option>
+    <option value="1000">1000세대~</option>
+  </select>
+</div>
+
 <div id="map"></div>
 
 <!-- [B안] 아실식 사이드 패널: 기존 index.html 을 창문(iframe)으로 -->
@@ -171,10 +201,34 @@
 </div>
 
 <script>
+/* [모바일 첫화면 · 2026-08] 폰(<760px)으로 그냥 접속하면 차트 홈이 먼저 뜨게.
+   지도는 차트 홈의 "지도로 보기" 버튼(?m=1)으로 들어옵니다.
+   PC 는 지도가 그대로 첫 화면. */
+if(window.innerWidth<760 && location.search.indexOf('m=1')<0){
+  location.replace('./chart.html');
+}
 function rateColor(r){ if(r>=20)return'#E5484D'; if(r>=10)return'#F5A524'; return'#3E9B4F'; }
 function fmtEok(man){ if(!man)return'-'; return (man/10000).toFixed(1)+'억'; }
 
 let map, layerTags, layerDots, selCircle=null, selKey=null;
+/* [필터 · 2026-08] 저평가율·평형·세대수 조건. 바꾸면 핀이 즉시 걸러짐 */
+const FILTER = { rate:0, py:null, hh:0 };
+function passFilter(b){
+  if(!b) return false;
+  if((b.rate||0) < FILTER.rate) return false;
+  if(FILTER.hh && (b.hh||0) < FILTER.hh) return false;
+  if(FILTER.py && !(b.pyeong>=FILTER.py[0] && b.pyeong<=FILTER.py[1])) return false;
+  return true;
+}
+function applyFilter(){
+  layerDots.clearLayers();
+  let n=0;
+  for(const key in MARKERS){
+    if(passFilter(BEST[key])){ layerDots.addLayer(MARKERS[key].dot); n++; }
+  }
+  refreshTags(); syncLayers();
+  document.getElementById('count').textContent = `표시 ${n}곳`;
+}
 let BEST={}, MARKERS={}, COORDS_G={};          // key → 후보정보 / key → {tag, dot}
 const ZOOM_TAG = 14;              // 이 배율 이상이면 이름 말풍선, 미만이면 점
 
@@ -255,6 +309,21 @@ async function boot(){
   document.getElementById('count').textContent=`저평가 후보 ${placed}곳`;
   document.getElementById('loading').style.display='none';
   setupMapSearch();       // [검색] 데이터 로딩 후 검색창 활성화
+  setupFilters();         // [필터] 저평가율·평형·세대수
+}
+
+function setupFilters(){
+  const fr=document.getElementById('fRate'),
+        fp=document.getElementById('fPy'),
+        fh=document.getElementById('fHh');
+  if(!fr) return;
+  fr.onchange=()=>{ FILTER.rate=parseFloat(fr.value)||0; applyFilter(); };
+  fh.onchange=()=>{ FILTER.hh=parseInt(fh.value)||0; applyFilter(); };
+  fp.onchange=()=>{
+    if(!fp.value){ FILTER.py=null; }
+    else{ const [lo,hi]=fp.value.split('-').map(Number); FILTER.py=[lo,hi]; }
+    applyFilter();
+  };
 }
 
 /* ── [검색 · 2026-08] 아파트 이름 검색 → 그 위치로 지도 이동 ──
@@ -344,7 +413,7 @@ function syncLayers(){
       const bd=map.getBounds();
       for(const key in MARKERS){
         const b=BEST[key];
-        if(b.lat && bd.contains([b.lat,b.lon])) layerTags.addLayer(MARKERS[key].tag);
+        if(b.lat && passFilter(b) && bd.contains([b.lat,b.lon])) layerTags.addLayer(MARKERS[key].tag);
       }
       map.addLayer(layerTags);
     }
@@ -360,7 +429,7 @@ function refreshTags(){
   const bd=map.getBounds();
   for(const key in MARKERS){
     const b=BEST[key];
-    if(b.lat && bd.contains([b.lat,b.lon])) layerTags.addLayer(MARKERS[key].tag);
+    if(b.lat && passFilter(b) && bd.contains([b.lat,b.lon])) layerTags.addLayer(MARKERS[key].tag);
   }
 }
 

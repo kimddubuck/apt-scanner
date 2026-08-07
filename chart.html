@@ -214,6 +214,11 @@
   .home-search{position:relative;margin-bottom:10px}
   .home-search input{width:100%;box-sizing:border-box;border:1.5px solid var(--line);border-radius:14px;padding:12px 16px;font-size:15px;font-family:inherit;background:#fff}
   .home-search input:focus{outline:2px solid #EAD9A8}
+  /* [지도 버튼] 검색창 아래 가로 배너형 — 모바일에서 특히 눈에 띄게 */
+  .map-go{display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#1B3A6B,#2B5288);
+    color:#fff;text-decoration:none;border-radius:14px;padding:13px 16px;
+    font-size:15px;font-weight:800;margin-bottom:10px}
+  .map-go span{font-size:12px;font-weight:500;opacity:.85}
   .qcards{display:grid;grid-template-columns:1.1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;margin-bottom:12px}
   .qcard{background:#F0F1F4;border:0;border-radius:14px;padding:13px 14px;text-align:left;cursor:pointer;font-family:inherit}
   .qcard:active{background:#E8EAEE}
@@ -301,13 +306,15 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.07 08:47 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.07 10:34 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.07 08:47</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.07 10:34</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
   </div>
+  <!-- [지도 · 2026-08] 지도 화면으로 가는 버튼. ?m=1 은 "모바일이어도 지도 보여줘" 표시 -->
+  <a class="map-go" href="./index.html?m=1">🗺️ 지도로 보기 <span>전국 저평가 단지를 지도에서 한눈에</span></a>
   <div class="qcards">
     <button class="qcard big" onclick="goScanner('star')">
       <span class="qi">⭐</span>
