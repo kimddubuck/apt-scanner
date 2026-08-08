@@ -118,7 +118,7 @@
   .tag.sib-hl::after{border-top-color:var(--sib)}
   .tag:hover{filter:drop-shadow(0 4px 10px rgba(0,0,0,.45))}
   /* [대장 아파트 · 2026-08] 왕관 2종 —
-     king-gu(동네 대장)=금색 / king-nat(전국구 대장)=보라색 */
+     king-gu(우리 시 대장)=금색 / king-nat(전국 대장)=보라색. 기준은 평당가 */
   .tag.king-gu .nm{border-color:#E0A400;color:#8A5A00;
     background:linear-gradient(#FFF9E8,#FFF)}
   .tag.king-gu::after{border-top-color:#E0A400}
@@ -181,8 +181,8 @@
   <select id="fKing">
     <option value="">👑 대장 전체</option>
     <option value="any">👑 대장만</option>
-    <option value="nat">👑 전국구 대장</option>
-    <option value="gu">👑 동네 대장</option>
+    <option value="nat">👑 전국 대장 (평당가)</option>
+    <option value="gu">👑 우리 시 대장 (평당가)</option>
   </select>
   <select id="fRate">
     <option value="">저평가 전체</option>
@@ -267,7 +267,7 @@ const NOW_YEAR = new Date().getFullYear();
 const FILTER = { rate:null, py:null, hh:0, by:null, now:null, pp:null, king:'' };
 function passFilter(b){
   if(!b) return false;
-  // [대장 필터] any=대장 아무거나 · nat=전국구만 · gu=동네만
+  // [대장 필터] any=대장 아무거나 · nat=전국 대장만 · gu=우리 시 대장만
   if(FILTER.king){
     if(FILTER.king==='any' && !b.king) return false;
     if(FILTER.king==='nat' && b.king!=='nat') return false;
@@ -328,36 +328,30 @@ async function boot(){
         BEST[key] = { key, name:c.name, rname:reg.name, rate:c.rate||0,
                       pyeong:c.pyeong, now:c.now||0, sibMed:c.sibMed||0,
                       sibMax:c.sibMax||0,
+                      king:null, kingN:0,
                       sibs:c.sibs||[], regionCode:reg.code, hh:c.hh||0,
                       pp:c.pp||0, by:c.by||0 };   // [필터용] 평당가·건축년도 추가
       }
     }
   }
 
-  /* [대장 아파트 · 2026-08] 왕관 2종.
-     · king='nat' (전국구 대장, 보라 왕관): 내 현재가 ≥ 전국 동급 최고가(sibMax)
-     · king='gu'  (동네 대장, 금 왕관): 같은 시(지역) 동급 중 최고 (전국구는 아님)
-     동점은 실거래상 미세차이라 >= 로 둘 다 인정.
-     [버그수정 2026-08] 동급이 1곳뿐이면 '혼자라서 대장'이 되므로,
-     동급 2곳 이상(MIN_SIBS)일 때만 왕관을 준다. */
-  const MIN_SIBS = 2;   // 대장으로 인정할 최소 동급 수
-  for(const key in BEST){
-    const b=BEST[key];
-    b.king=null;
-    if(b.plain) continue;
-    const sibNames=(b.sibs||[]).map(s=>String(s).split('|')[0]).filter(Boolean);
-    if(sibNames.length < MIN_SIBS) continue;    // 동급 부족하면 대장 아님
-    const myNow=b.now||0;
-    if(myNow<=0) continue;
-    // (1) 전국구: sibMax(전국 동급 최고 현재가)와 비교
-    if(b.sibMax && myNow>=b.sibMax){ b.king='nat'; continue; }
-    // (2) 동네: 같은 지역코드 안 동급 중 최고인가
-    let localMax=myNow;
-    for(const nm of sibNames){
-      const o=BEST[b.regionCode+'|'+nm];
-      if(o && (o.now||0)>localMax) localMax=o.now;
+  /* [대장 아파트 · 2026-08 개편] 왕관 2종 — 판정은 build_all.py 가 미리 계산.
+     · 기준값: 평당가 중앙값(증여 걸러낸 값). 총액이 아니라 평당가입니다.
+       (총액으로 하면 동급 중 평형만 큰 단지가 대장을 차지했습니다)
+     · king='nat' (보라) : 전국 동급 중 평당가 1위
+     · king='si'  (금)   : 같은 시(광역시는 시 전체) 동급 중 1위, 전국 1위는 아님
+     · 동급 아파트 2곳 이상일 때만 왕관 (같은 아파트 다른 평형은 1곳으로 셈)
+     여기서는 '같은 아파트의 여러 평형 중 가장 센 왕관'을 대표로 올려줍니다.
+     (BEST 는 저평가율이 큰 평형 하나만 남기므로, 대장인 평형이 다를 수 있습니다) */
+  for(const reg of DATA.regions||[]){
+    for(const c of reg.candidates||[]){
+      if(!c.king) continue;
+      const b = BEST[reg.code + '|' + c.name];
+      if(!b || b.plain) continue;
+      // 내부 표기는 기존 그대로 씁니다(CSS·필터 호환): nat=보라 · gu=금(시 대장)
+      if(c.king==='nat'){ b.king='nat'; b.kingN=c.kingN||0; }
+      else if(b.king!=='nat'){ b.king='gu'; b.kingN=c.kingN||0; }
     }
-    if(myNow>=localMax) b.king='gu';
   }
 
   map = L.map('map',{zoomControl:true}).setView([35.18,129.08],12);  // 부산 시작
@@ -411,8 +405,8 @@ async function boot(){
                           : (b.rate>=0?'+':'')+b.rate.toFixed(0)+'%';
 
     // (A) 아실식 말풍선: 이름 + 현재가·저평가율 (대장이면 👑)
-    const crown = b.king==='nat' ? `<span class="crown nat" title="전국 동급 중 시세 최고 (전국구 대장)">👑</span>`
-                : b.king==='gu'  ? `<span class="crown gu" title="이 지역 동급 중 시세 최고 (동네 대장)">👑</span>`
+    const crown = b.king==='nat' ? `<span class="crown nat" title="전국 동급 중 평당가 1위 (전국 대장)">👑</span>`
+                : b.king==='gu'  ? `<span class="crown gu" title="같은 시 동급 중 평당가 1위 (우리 시 대장)">👑</span>`
                 : '';
     const kingCls = b.king ? ` king-${b.king}` : '';
     const tagIcon=L.divIcon({className:'',iconSize:[1,1],
