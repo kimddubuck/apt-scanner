@@ -66,7 +66,7 @@
     background:rgba(255,255,255,.88);backdrop-filter:blur(10px);
     border-bottom:1px solid rgba(0,0,0,.06);
     display:flex;align-items:center;gap:12px;padding:0 14px}
-  .topbar .logo{font-weight:800;font-size:16px}
+  .topbar .logo{font-weight:900;font-size:20px;letter-spacing:-0.5px;white-space:nowrap;color:var(--ink)}
   .topbar .logo em{color:var(--accent);font-style:normal}
   .topbar .count{font-size:12px;color:var(--soft);margin-left:auto}
   .topbar a{font-size:12px;color:var(--soft);text-decoration:none;
@@ -94,6 +94,8 @@
   .legend .row{display:flex;align-items:center;gap:6px;margin:3px 0;color:var(--soft)}
   .legend .dot{width:12px;height:12px;border-radius:50%;flex:none}
   .legend .dot.sq{border-radius:3px;background:var(--sib)}
+  /* [2026-08] 차트 패널이 열리면 지도 범례를 숨김 (차트 위에 겹치지 않게) */
+  body.panel-open .legend{display:none}
 
   /* ── 말풍선 핀 v3 · 아실식 시인성 ─────────────
      [2026-08] 글자가 작고 어둡다는 피드백 반영:
@@ -166,13 +168,12 @@
 <body>
 
 <div class="topbar">
-  <div class="logo">아파트 <em>매치</em> 지도</div>
+  <div class="logo">아파트 <em>매치</em></div>
   <div class="search">
     <input id="mapSearch" type="text" placeholder="아파트 검색 🔍" autocomplete="off">
     <div class="sr-box" id="mapSearchResults"></div>
   </div>
-  <span class="count" id="count">불러오는 중…</span>
-  <a href="./chart.html">📋 차트 목록</a>
+  <span class="count" id="count" style="display:none"></span>
 </div>
 
 <!-- [필터 · 2026-08] 아실처럼 지도 위 필터 — 골라 켜면 핀이 걸러짐 -->
@@ -629,13 +630,30 @@ function openPanel(rcode, name){
     panelKey = key;
   }
   document.getElementById('panelTitle').textContent = name;
+  const wasOpen = document.body.classList.contains('panel-open');
   document.body.classList.add('panel-open');
+  // [뒤로가기 · 2026-08] 패널 열 때 히스토리 항목 추가 →
+  // 폰 뒤로가기를 누르면 사이트를 나가는 대신 패널만 닫힘
+  if(!wasOpen){
+    try{ history.pushState({panel:true}, ''); }catch(e){}
+  }
   setTimeout(()=>map.invalidateSize(), 280);   // 지도 크기 재계산 (패널로 밀린 뒤)
 }
-function closePanel(){
+function closePanel(fromPop){
+  const wasOpen = document.body.classList.contains('panel-open');
   document.body.classList.remove('panel-open');
+  // ×버튼 등으로 직접 닫을 땐, 우리가 넣어둔 히스토리 항목도 하나 되돌림
+  if(wasOpen && !fromPop){
+    try{ history.back(); }catch(e){}
+  }
   setTimeout(()=>map.invalidateSize(), 280);
 }
+// [뒤로가기] 폰/브라우저 뒤로가기 → 패널이 열려 있으면 패널만 닫고 지도 유지
+window.addEventListener('popstate', ()=>{
+  if(document.body.classList.contains('panel-open')){
+    closePanel(true);   // fromPop=true: 이미 뒤로가기가 일어났으니 history.back 재호출 안 함
+  }
+});
 function openPanelTab(){             // 새 탭에서 크게 보기
   if(panelKey) window.open('./chart.html#u=' + encodeURIComponent(panelKey), '_blank');
 }
