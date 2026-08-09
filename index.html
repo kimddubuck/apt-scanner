@@ -458,11 +458,45 @@ async function boot(){
     }
   }
 
+  /* ══ [마커 겹침 풀기 · 2026-08] ═══════════════════════════════════════════
+     한 아파트의 여러 단지가 '대표지번' 하나를 공유해서 좌표가 완전히 같습니다.
+     (엘지메트로시티1·3·4·5 / DMC파크뷰자이1~4 / 레이카운티1~4 … 전국 34곳)
+     그대로 두면 마커가 하나만 보이고 나머지는 그 아래 완전히 가려집니다.
+     좌표를 고치는 건 불가능합니다 — 국토부 지번이 실제로 같으니까요.
+     그래서 같은 자리에 여럿이면 아주 작은 원(약 13m)으로 흩뿌립니다.
+     · 13m 는 아파트 한 동 폭보다 작아서 '위치가 틀렸다'고 느껴지지 않습니다
+     · 경도는 위도에 따라 실제 거리가 달라지므로 cos(위도)로 보정합니다
+     · 원본 좌표는 COORDS 에 그대로 두고, 화면 표시용으로만 옮깁니다        */
+  const _samePos = {};
+  for(const key in BEST){
+    const c = COORDS[key];
+    if(!c || !c.lat) continue;
+    const p = c.lat.toFixed(5) + ',' + c.lon.toFixed(5);
+    (_samePos[p] = _samePos[p] || []).push(key);
+  }
+  const JIT = {};
+  let _jitGroups = 0;
+  for(const p in _samePos){
+    const ks = _samePos[p];
+    if(ks.length < 2) continue;
+    _jitGroups++;
+    const R = 0.00012;                       // 위도 0.00012° ≒ 13m
+    const latRad = parseFloat(p.split(',')[0]) * Math.PI / 180;
+    const cosLat = Math.max(0.3, Math.cos(latRad));
+    ks.forEach((k, i) => {
+      const a = 2 * Math.PI * i / ks.length;
+      JIT[k] = [R * Math.cos(a), R * Math.sin(a) / cosLat];
+    });
+  }
+  if(_jitGroups) console.log('[마커겹침] 같은 좌표 지점', _jitGroups, '곳 흩뿌림');
+
   let placed=0;
   for(const key in BEST){
     const b=BEST[key], co=COORDS[key];
     if(!co) continue;
-    b.lat=co.lat; b.lon=co.lon;
+    const _j = JIT[key];
+    b.lat = co.lat + (_j ? _j[0] : 0);
+    b.lon = co.lon + (_j ? _j[1] : 0);
     // [색] 저평가 후보=율에 따른 색 / 비후보(plain)=회색
     const color = b.plain ? '#94A3B8' : rateColor(b.rate);
     const label = b.plain ? fmtEok(b.now)
@@ -483,14 +517,14 @@ async function boot(){
               <div class="nm">${b.name}</div>
               <div class="pr" style="background:${color}">${b.plain?label:fmtEok(b.now)+' · '+label}</div>
             </div>`});
-    const tag=L.marker([co.lat,co.lon],{icon:tagIcon});
+    const tag=L.marker([b.lat,b.lon],{icon:tagIcon});   // 흩뿌린 좌표 사용
     tag.on('click',()=>select(key));
     tag.bindPopup(()=>popupHtml(b),{maxWidth:280});
 
     // (B) 축소용 점
     const dotIcon=L.divIcon({className:'',iconSize:[1,1],
       html:`<div class="pin" style="background:${color}">${label}</div>`});
-    const dot=L.marker([co.lat,co.lon],{icon:dotIcon});
+    const dot=L.marker([b.lat,b.lon],{icon:dotIcon});   // 흩뿌린 좌표 사용
     dot.on('click',()=>select(key));
     dot.bindPopup(()=>popupHtml(b),{maxWidth:280});
 
