@@ -256,7 +256,8 @@
   <div class="row"><span class="dot" style="background:#E5484D"></span> 20% 이상</div>
   <div class="row"><span class="dot" style="background:#F5A524"></span> 10~20%</div>
   <div class="row"><span class="dot" style="background:#3E9B4F"></span> 10% 미만</div>
-  <div class="row"><span class="dot" style="background:#64748B"></span> 고평가 (동급보다 비쌈)</div>
+  <div class="row"><span class="dot" style="background:#2B6CB0"></span> 고평가 (동급보다 비쌈)</div>
+  <div class="row"><span class="dot" style="background:#94A3B8"></span> 동급 없음 (비교 대상 없음)</div>
   <div class="row"><span class="dot sq"></span> 선택한 단지의 동급</div>
 </div>
 
@@ -274,7 +275,10 @@ if(window.innerWidth<760 && location.search.indexOf('m=1')<0){
 }
 /* [2026-08] rate 음수 = 동급보다 비싸다(고평가). 예전엔 음수도 초록으로 나와서
    '10% 미만 저평가'와 구별이 안 됐습니다. 고평가는 회색빛 파랑으로 분리합니다. */
-function rateColor(r){ if(r<0)return'#64748B'; if(r>=20)return'#E5484D'; if(r>=10)return'#F5A524'; return'#3E9B4F'; }
+/* [색 구분 · 2026-08] 고평가를 회색(#64748B)으로 뒀더니
+   '동급 없는 단지'의 연회색(#94A3B8)과 거의 같아 보여 구별이 안 됐습니다.
+   고평가는 파랑으로 바꿉니다 — 빨강(저평가 큼)의 반대편 느낌이라 뜻도 맞습니다. */
+function rateColor(r){ if(r<0)return'#2B6CB0'; if(r>=20)return'#E5484D'; if(r>=10)return'#F5A524'; return'#3E9B4F'; }
 function fmtEok(man){ if(!man)return'-'; return (man/10000).toFixed(1)+'억'; }
 
 let map, layerTags, layerDots, selCircle=null, selKey=null;
@@ -884,9 +888,9 @@ function refreshTags(){
 function kingGrade(b){
   const n=b.kingLen||0, w=b.kingMo||0, run=b.kingRun||0;
   if(!n) return null;
-  if(w >= n*0.8) return {name:'부동의 대장', desc:`${n}개월 중 ${w}개월 1위`};
-  if(w < n*0.5 && run>0 && run<=6) return {name:'신흥 대장', desc:`최근 ${run}개월 연속 1위 · ${n}개월 중 ${w}개월`};
-  return {name:'대장', desc:`${n}개월 중 ${w}개월 1위`};
+  if(w >= n*0.8) return {name:'부동의 대장', desc:`지난 ${n}개월 중 ${w}개월 1위`};
+  if(w < n*0.5 && run>0 && run<=6) return {name:'신흥 대장', desc:`최근 ${run}개월 연속 1위 · 지난 ${n}개월 중 ${w}개월`};
+  return {name:'대장', desc:`지난 ${n}개월 중 ${w}개월 1위`};
 }
 
 /* 팝업 내용: 현재가·동급중앙값·저평가율·동급 목록 */
@@ -1051,10 +1055,44 @@ window.addEventListener("message", (ev)=>{
   const d = ev.data;
   if(!d || d.type !== "aptmatch:goto") return;
   const nm = String(d.name||"").trim();
-  if(!nm) return;
-  jumpToName(String(d.rc||""), nm);
-  // 지도를 보여주려면 패널을 접어야 합니다(모바일에선 패널이 화면을 덮습니다)
-  try{ if(typeof closePanel === "function") closePanel(); }catch(e){}
+  console.log("[지도이동] 받음", d);
+  if(!nm){ console.warn("[지도이동] 아파트 이름이 비어 있어요"); return; }
+  const rc = String(d.rc||"");
+  // 그 아파트가 지도 목록(BEST)에 있는지 먼저 확인 — 없으면 왜 안 움직이는지 알려줍니다
+  let hit = BEST[rc+"|"+nm];
+  if(!hit) for(const k in BEST){ if(BEST[k].name===nm){ hit=BEST[k]; break; } }
+  if(!hit){ console.warn("[지도이동] 지도에 없는 아파트예요:", rc, nm); return; }
+  if(!hit.lat){ console.warn("[지도이동] 좌표가 없어요:", nm); return; }
+  /* [2026-08 수정] 예전엔 jumpToName 을 썼는데, 그 함수는 지도를 옮긴 뒤
+     select() 까지 불러서 **차트 패널이 그 아파트로 바뀌어** 버렸습니다.
+     📍는 "지도에서 어디인지 보여 달라"는 뜻이므로, 보고 있던 차트는 그대로 두고
+     지도만 옮기고 말풍선만 띄웁니다. */
+  /* [순서 수정 · 2026-08] 예전엔 지도를 먼저 옮기고 패널을 닫았습니다.
+     그런데 패널이 닫히면 지도 크기가 바뀌고, 그때 지도가 보기를 다시 맞추면서
+     방금 옮긴 위치가 되돌아갔습니다(그래서 아예 안 움직이는 것처럼 보였습니다).
+     그래서 ① 패널을 먼저 닫고 ② 지도 크기를 다시 잡은 뒤 ③ 옮깁니다. */
+  /* [원인 · 2026-08] closePanel() 안에 history.back() 이 있습니다.
+     뒤로가기가 일어나면서 지도 보기가 되돌아가, 옮겼다가 제자리로 왔습니다.
+     또 closePanel 이 280ms 뒤 invalidateSize() 를 한 번 더 불러 흔들립니다.
+     그래서 ① 히스토리를 건드리지 않고 패널만 접고(클래스만 제거)
+            ② closePanel 의 뒷정리가 끝난 뒤(320ms) 옮깁니다. */
+  /* [2026-08 최종] 패널(차트)을 닫지 않습니다.
+     닫으면 보고 있던 차트가 사라져 버립니다 — 📍는 "이 동급 아파트가 어디 있나"만
+     확인하는 것이므로, 차트는 그대로 두고 그 옆 지도만 옮깁니다. */
+  setTimeout(()=>{
+    map.setView([hit.lat, hit.lon], 16, {animate:false});
+    console.log("[지도이동] 옮김", nm, hit.lat, hit.lon);
+    /* [2026-08] 말풍선은 띄우지 않습니다. 📍는 "이 동급 아파트가 어디에 있나"만
+       확인하는 용도이므로, 말풍선까지 열면 보던 흐름을 끊습니다.
+       대신 그 마커 자리에 잠깐 원을 그려 눈에 띄게만 합니다(1.6초 뒤 사라짐). */
+    try{
+      const ring = L.circleMarker([hit.lat, hit.lon], {
+        radius: 26, color: "#7A6DB0", weight: 3, opacity: .95,
+        fillColor: "#7A6DB0", fillOpacity: .12
+      }).addTo(map);
+      setTimeout(()=>{ try{ map.removeLayer(ring); }catch(e){} }, 1600);
+    }catch(e){}
+  }, 60);
 });
 
 function jumpToName(rcode,name){

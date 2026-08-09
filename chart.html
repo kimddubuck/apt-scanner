@@ -148,8 +148,8 @@
   .legend .it .lg-nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .legend .it .val{white-space:nowrap;flex:none}
   /* [지도 이동 · 2026-08] 동급 이름 옆 📍 */
-  .legend .it .lg-go{font-style:normal;cursor:pointer;flex:none;font-size:12px;
-    opacity:.55;padding:0 2px}
+  .legend .it .lg-go{font-style:normal;cursor:pointer;flex:none;font-size:13px;
+    opacity:.75;padding:0 3px}
   .legend .it .lg-go:hover{opacity:1}
   .swatch{width:16px;height:3px;border-radius:2px;display:inline-block}
   .legend .val{color:var(--soft);font-variant-numeric:tabular-nums}
@@ -346,9 +346,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.09 21:44 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.09 22:57 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.09 21:44</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.09 22:57</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -541,7 +541,9 @@
   <h3 style="color:#16202E;font-size:15px;font-weight:800;margin:20px 0 8px">대장에도 등급이 있습니다</h3>
   <p>“지금 1위”라는 사실만으로는 부족합니다. <strong>5년째 부동의 1위</strong>와
   <strong>지난달에 막 역전한 1위</strong>는 전혀 다른 이야기이기 때문입니다.
-  그래서 최근 24개월을 한 달씩 되감아, 그 동급 무리 안에서 몇 달 동안 1위였는지 셉니다.
+  그래서 <strong>오늘 1위(왕관)</strong>인 단지를 대상으로, <strong>그 이전 5년(59개월)</strong>을
+  한 달씩 되감아 그 동급 무리 안에서 몇 달 동안 1위였는지 셉니다.
+  오늘의 1위는 이미 왕관으로 확정된 사실이므로 다시 계산하지 않습니다.
   동급 무리는 과거 궤적으로 정해지므로 시간이 지나도 바뀌지 않아, 같은 무리를 두고 시점만 옮겨
   비교할 수 있습니다.</p>
   <ul>
@@ -550,7 +552,7 @@
     <strong>최근에 순위가 뒤집혔다는 뜻</strong>이고, 그 자체로 눈여겨볼 신호입니다.</li>
     <li><strong>대장</strong> — 그 사이. 1·2위를 주고받으며 엎치락뒤치락하는 관계입니다.</li>
   </ul>
-  <p>등급은 지도에서 단지를 눌렀을 때 왕관 설명과 함께 표시됩니다.</p>
+  <p>등급은 지도 마커의 왕관 옆에 표시됩니다(★ 부동의 대장 · NEW 신흥 대장).</p>
 
   <p>같은 아파트라도 <strong>대장인 평형과 저평가인 평형이 동시에 있을 수 있습니다</strong>.
   34평은 동급 중 1위인데 24평은 동급 중앙값보다 낮은 경우가 실제로 흔합니다. 모순이 아니라,
@@ -683,7 +685,7 @@
         · <span style="color:#7A6DB0">보라</span> = 전국 동급 중 1위 · <span style="color:#C8901E">금</span> = 우리 시 동급 중 1위<br>
         · 동급이 <b>2곳 이상</b>이어야 주고, <b>0.1억 단위로 반올림해</b> 눈에 보이게 더 비쌀 때만 줘요<br>
         · <b>최근 6개월 거래 3건 이상</b>이어야 참여해요 (한 건으로 정하면 저층·고층에 순위가 뒤집혀요)<br>
-        · <b>등급</b>도 있어요 — 최근 24개월을 되감아 몇 달 1위였나 세요.
+        · <b>등급</b>도 있어요 — 오늘 1위인 단지의 <b>지난 5년</b>을 되감아 몇 달 1위였나 세요.
           <b>부동의 대장</b>(80%+ 1위) · <b>신흥 대장</b>(최근 역전!) · <b>대장</b>(엎치락뒤치락)<br>
         · <b>같은 아파트라도 34평은 대장인데 24평은 저평가</b>일 수 있어요 — 평형마다 평가가 달라요.
           그래서 <b>몇 평 기준인지</b>를 항상 함께 적어드려요.</div>
@@ -699,7 +701,9 @@
     <div class="modal-box">
       <button class="modal-close" onclick="history.back()">×</button>
       <h3 id="dTitle"></h3><div class="meta" id="dMeta"></div>
-      <div class="sec-row"><div class="sec-title">전체 평형 실거래가</div><div class="pyfilter" id="dFilter"></div></div>
+      <div class="sec-row"><div class="sec-title">전체 평형 실거래가
+        <span style="font-weight:600;font-size:11px;color:#9AA3AF">· 거래 하나하나를 이은 선 (층에 따라 오르내려요)</span>
+        </div><div class="pyfilter" id="dFilter"></div></div>
       <div id="dChart"></div><div class="legend" id="dLegend"></div>
       <div class="sec-title">거래 이력 (최근순)</div>
       <table class="dtable"><thead><tr><th>계약일</th><th>평형</th><th>층</th><th>거래가</th></tr></thead>
@@ -774,15 +778,26 @@ let rawMode = false;
    그래서 거래를 읽는 코드까지 가지 못하고 점이 하나도 안 찍혔습니다.
    개별 거래는 이렇게 따로, 자기만의 기록표로 받아옵니다. */
 window.__TXRC__ = window.__TXRC__ || {};
+window.__TXP__  = window.__TXP__  || {};     // 받는 중인 작업(약속)을 담아둡니다
 async function ensureTx(rc){
   if(!rc) return;
-  if(window.__TXRC__[rc]) return;              // 이 지역은 이미 시도했음
+  /* [수정 · 2026-08] 예전엔 "loading" 이어도 곧바로 반환했습니다.
+     거래이력을 열면 뒤에서 몰래 받기 시작하는데, 그 사이에 버튼을 누르면
+     "이미 시도했음"으로 판단해 기다리지 않고 넘어가 빈 화면이 됐습니다.
+     (그래서 거래이력을 보고 온 뒤엔 정상으로 보였습니다)
+     이제 받는 중이면 그 작업이 끝날 때까지 함께 기다립니다. */
+  if(window.__TXP__[rc]) { try{ await window.__TXP__[rc]; }catch(e){} return; }
+  if(window.__TXRC__[rc]) return;              // 이미 끝났거나 자료가 없는 지역
+  let _done;
+  window.__TXP__[rc] = new Promise(res=>{ _done=res; });
   window.__TXRC__[rc] = "loading";
   const pd = DATA.peerdata;
   let js=null;
   try{ const res = await fetch("./sise/"+rc+".json"); if(res.ok) js = await res.json(); }
   catch(e){}
-  if(!js || !js.t || !js.m || !pd || !pd.months){ window.__TXRC__[rc]="none"; return; }
+  if(!js || !js.t || !js.m || !pd || !pd.months){
+    window.__TXRC__[rc]="none"; delete window.__TXP__[rc]; _done(); return;
+  }
   const gi={}; pd.months.forEach((mo,i)=>{ gi[mo]=i; });
   const pos = js.m.map(mo=> gi[mo]===undefined ? -1 : gi[mo]);
   window.__TX__ = window.__TX__ || {};
@@ -792,6 +807,8 @@ async function ensureTx(rc){
     if(arr.length) window.__TX__[rc + "|" + uid] = arr;
   }
   window.__TXRC__[rc] = "ok";
+  delete window.__TXP__[rc];
+  _done();
 }
 
 async function ensureTxFor(keys){
@@ -1190,13 +1207,36 @@ function drawChart(months, units, ids, mainId, colors){
     const _i0 = (zoomA!=null && chartFullN) ? Math.round(zoomA*(chartFullN-1)) : 0;
     RAW = ids.map(id=>{
       const arr=(window.__TX__||{})[id]||[];
-      return { color: colors[id]||"#888",
+      return { id: id, color: colors[id]||"#888",
                label: ((units[id]||{}).name||"")+" "+((units[id]||{}).pyeong||"")+"평",
                pts: arr.map(r=>[r[0]-_i0, r[1]*100, r[2], r[3]||0])
                        .filter(r=>r[0]>=0 && r[0]<months.length) };
-    }).filter(r=>r.pts.length);
+    });      // [수정] 점이 없는 단지도 목록에 남깁니다(그리는 쪽에서 알아서 건너뜁니다)
     RAW.forEach(r=>r.pts.forEach(p=>vals.push(p[1])));
-    if(!RAW.length){
+    /* [자동 복구 · 2026-08] 버튼이 자료를 받아오는 데 의존하면 불안정했습니다.
+       (거래이력을 먼저 보고 오면 되고, 바로 누르면 빈 화면)
+       그래서 차트가 스스로 확인합니다: 실거래 모드인데 점이 없으면
+       그 자리에서 받아온 뒤 다시 그립니다. 한 번만 시도합니다(무한 반복 방지). */
+    /* [원인 수정 · 2026-08] 예전 조건은 "점이 하나도 없으면 받아온다" 였습니다.
+       그런데 거래이력을 먼저 본 단지 하나만 자료가 있으면 조건이 거짓이 되어
+       **나머지 동급 지역은 영원히 받아오지 않았습니다.**
+       (그래서 내 단지만 점이 찍히고, 동급은 거래이력을 왔다갔다 해야 나왔습니다)
+       이제 '아직 안 받아온 지역이 하나라도 있으면' 받아옵니다. */
+    const _needRc = [];
+    ids.forEach(id=>{
+      const rc = String(id).split("|")[0];
+      if(rc && !window.__TXRC__[rc] && _needRc.indexOf(rc)<0) _needRc.push(rc);
+    });
+    if(_needRc.length && !window.__RAWTRY__){
+      window.__RAWTRY__ = true;
+      $("#chart").innerHTML = "<p style='padding:18px;color:#9AA3AF;font-size:13px'>"
+                            + "실거래 자료를 불러오는 중이에요… ("+_needRc.length+"개 지역)</p>";
+      Promise.all(_needRc.map(rc=>ensureTx(rc).catch(()=>{})))
+             .then(()=>{ window.__RAWTRY__=false; render(); })
+             .catch(()=>{ window.__RAWTRY__=false; });
+      return;
+    }
+    if(!RAW.some(r=>r.pts.length)){
       RAW=null;
       const _yn=$(".yaxis-note");
       if(_yn) _yn.setAttribute("data-warn",
@@ -1267,31 +1307,66 @@ function drawChart(months, units, ids, mainId, colors){
      그런데 라벨은 "2026-08" 처럼 7글자이고 글꼴이 17px 이라 실제 폭이 약 62px 입니다.
      간격이 좁으면 마지막 라벨이 직전 라벨과 겹쳐 "2025-2026-08" 처럼 뭉쳤습니다.
      이제 '글자 실제 폭'을 기준으로 겹칠 만하면 직전 라벨을 지웁니다. */
-  const LW = 62;                    // 라벨 한 개의 대략적인 폭(px)
+  /* [X축 겹침 · 2026-08 재수정] 폭을 다시 재봤습니다.
+     "2026-08" 은 7글자이고 글꼴이 17이라 실제 폭은 약 68(뷰박스 단위)입니다.
+     그런데 라벨은 붙는 방식(anchor)이 달라서 필요한 간격이 다릅니다.
+       · 중간(middle) ↔ 중간(middle) : 각자 절반씩 → 68 만 있으면 됨
+       · 중간(middle) ↔ 맨끝(end)   : 끝 라벨은 왼쪽으로 68 전체가 뻗음
+                                      → 34 + 68 = 102 가 필요
+     예전에 62 로 잡아서 마지막 라벨이 계속 겹쳤습니다("2025-2026-08"). */
+  const LW = 68, LW_END = 102;
   if(picks[picks.length-1]!==last){
-    while(picks.length && (X(last) - X(picks[picks.length-1])) < LW) picks.pop();
+    while(picks.length && (X(last) - X(picks[picks.length-1])) < LW_END) picks.pop();
     picks.push(last);
   }
-  // 중간 라벨끼리도 겹치면 솎아냅니다(끝 라벨은 남김)
   for(let k=picks.length-2; k>0; k--){
-    if(X(picks[k+1]) - X(picks[k]) < LW) picks.splice(k,1);
+    const need = (k+1 === picks.length-1 && picks[k+1] === last) ? LW_END : LW;
+    if(X(picks[k+1]) - X(picks[k]) < need) picks.splice(k,1);
   }
+  // 첫 라벨(start·오른쪽으로 뻗음)과 그다음이 겹치면 그다음을 지웁니다
+  if(picks.length>=2 && (X(picks[1]) - X(picks[0])) < LW_END && picks[1]!==last)
+    picks.splice(1,1);
   picks.forEach(i=>{
     const anchor = i===0 ? "start" : (i===last ? "end" : "middle");
     g+=`<text x="${X(i)}" y="${H-12}" text-anchor="${anchor}" font-size="17" fill="#5A6472" font-weight="800">${months[i]}</text>`;
   });
   if(RAW){
-    RAW.forEach(r=>{
-      r.pts.forEach(([i,v,fl,dy])=>{
+    /* [요약선과 통일 · 2026-08] 산점도도 요약선과 똑같이 동작하게 맞춥니다.
+         · 거래를 시간순으로 이어 꺾은선으로 그림 (점만 흩뿌리지 않음)
+         · 아무것도 선택 안 하면 전부 진하게, 선택하면 나머지는 흐리게(0.18)
+         · 그리는 순서도 같음: 선택 안 된 것 → 내 단지 → 선택된 것(맨 위)
+       범례 클릭(여러 개 선택)·마지막 선택 단지의 거래이력 탭·📍 지도 이동은
+       요약선과 같은 코드를 그대로 쓰므로 이 모드에서도 그대로 작동합니다.     */
+    const _hl = highlightIds || [];
+    const _isHl = id => _hl.includes(id);
+    // 이 함수에서 내 단지는 mainId 입니다 (meKey 는 이 스코프에 없습니다)
+    const _meId = mainId;
+    const rawOf = id => RAW.find(r=>r.id===id);
+    const drawRaw = (r, w, op) => {
+      if(!r) return "";
+      let out="";
+      const pts=r.pts.slice().sort((a,b)=> (a[0]-b[0]) || ((a[3]||0)-(b[3]||0)));
+      if(pts.length>=2){
+        out+=`<polyline points="${pts.map(p=>X(p[0])+','+Y(p[1])).join(' ')}"`
+           + ` fill="none" stroke="${r.color}" stroke-width="${w}" opacity="${op}"`
+           + ` stroke-linejoin="round"/>`;
+      }
+      pts.forEach(([i,v,fl,dy])=>{
         const x=X(i), y=Y(v);
-        g+=`<circle cx="${x}" cy="${y}" r="3.6" fill="${r.color}" opacity="0.72"/>`;
+        out+=`<circle cx="${x}" cy="${y}" r="${Math.max(2.2,w*1.1)}" fill="${r.color}" opacity="${op}"/>`;
+        if(op < 0.5) return;                    // 흐린 선은 클릭 영역을 만들지 않음
         const _fl = fl ? fl+"층" : "층 모름";
         const _dt = dy ? months[i]+"-"+String(dy).padStart(2,"0") : months[i];
-        g+=`<circle cx="${x}" cy="${y}" r="11" fill="transparent" style="cursor:pointer"
+        out+=`<circle cx="${x}" cy="${y}" r="10" fill="transparent" style="cursor:pointer"
               onclick="showPtTip(evt,'${_dt}','${fmtEok(v)}','${_fl} · ${(r.label||"").replace(/'/g,"")}')">`
           +`<title>${_dt} · ${fmtEok(v)} · ${_fl}${r.label?" ("+r.label+")":""}</title></circle>`;
       });
-    });
+      return out;
+    };
+    ids.filter(id=>id!==_meId && !_isHl(id))
+       .forEach(id=>{ g+=drawRaw(rawOf(id), 1.6, _hl.length?0.18:0.8); });
+    if(!_isHl(_meId)) g+=drawRaw(rawOf(_meId), _hl.length?2.0:2.6, _hl.length?0.22:1);
+    _hl.forEach(h=>{ g+=drawRaw(rawOf(h), h===_meId?3.4:3.0, 1); });
     $("#chart").innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" style="width:100%;height:auto">${g}</svg>`;
     return;      // 범례는 호출한 쪽(render)이 이어서 그립니다
   }
@@ -1515,20 +1590,7 @@ function drawLegend(units, ids, mainId, colors){
     if(highlightIds.length && !highlightIds.includes(id)) el.style.opacity="0.4";
     if(highlightIds.includes(id)) el.style.fontWeight="800";
     el.onclick=(ev)=>{
-      const go = ev.target && ev.target.classList && ev.target.classList.contains("lg-go");
-      if(go){
-        ev.stopPropagation();
-        const rc = ev.target.getAttribute("data-rc") || "";
-        const nm = ev.target.getAttribute("data-nm") || "";
-        try{
-          // 지도(부모 창)에 "이 아파트로 가 달라"고 알립니다.
-          if(window.parent && window.parent !== window)
-            window.parent.postMessage({type:"aptmatch:goto", rc:rc, name:nm}, "*");
-          else if(window.opener)
-            window.opener.postMessage({type:"aptmatch:goto", rc:rc, name:nm}, "*");
-        }catch(e){}
-        return;
-      }
+      if(ev.target && ev.target.classList && ev.target.classList.contains("lg-go")) return;
       // [다중선택] 이미 선택돼 있으면 그것만 해제, 아니면 추가 (순서 유지)
       const i = highlightIds.indexOf(id);
       if(i>=0) highlightIds.splice(i,1); else highlightIds.push(id);
@@ -1540,8 +1602,24 @@ function drawLegend(units, ids, mainId, colors){
       /* [지도 이동 · 2026-08] 동급 이름 옆 📍를 누르면 지도가 그 아파트로 갑니다.
          차트는 지도(index.html) 안의 iframe 이라, 부모 창에 알려주는 방식으로 합니다.
          stopPropagation 이 없으면 범례 클릭(선 강조)까지 같이 일어납니다. */
-      + `<i class="lg-go" title="지도에서 이 아파트로 이동"
-             data-rc="${(u.rc||"").replace(/"/g,"")}" data-nm="${(u.name||"").replace(/"/g,"")}">📍</i>`;
+      + `<i class="lg-go" title="지도에서 이 아파트로 이동">📍</i>`;
+    /* [지도 이동 · 2026-08 위치 수정] 📍 핸들러는 **innerHTML 을 넣은 뒤**에 붙여야 합니다.
+       예전엔 el.innerHTML 보다 앞에서 querySelector 를 해서 null 이 나왔고,
+       그래서 핸들러가 아예 붙지 않았습니다(눌러도 아무 일도 없었던 이유). */
+    {
+      const goEl = el.querySelector(".lg-go");
+      if(goEl){
+        goEl.addEventListener("click", (ev)=>{
+          ev.stopPropagation(); ev.preventDefault();
+          const msg = {type:"aptmatch:goto", rc:(u.rc||""), name:(u.name||"")};
+          try{
+            if(window.parent && window.parent !== window) window.parent.postMessage(msg,"*");
+            else if(window.opener) window.opener.postMessage(msg,"*");
+            else console.warn("[지도이동] 부모 창을 찾지 못했어요", msg);
+          }catch(e){ console.warn("[지도이동] 전달 실패", e); }
+        });
+      }
+    }
     box.appendChild(el);
   });
   if(highlightIds.length){
@@ -2017,14 +2095,18 @@ function svgChart(months, series, rawSets){
     const last2=months.length-1, picks2=[];
     for(let i=0;i<months.length;i++) if(i%sx===0) picks2.push(i);
     // [X축 겹침 · 2026-08] 위 차트와 같은 방식 — 글자 실제 폭으로 판단
-    const LW2 = 62;
+    // [X축 겹침 · 2026-08 재수정] 위 차트와 같은 계산
+    const LW2 = 68, LW2_END = 102;
     if(picks2[picks2.length-1]!==last2){
-      while(picks2.length && (X(last2) - X(picks2[picks2.length-1])) < LW2) picks2.pop();
+      while(picks2.length && (X(last2) - X(picks2[picks2.length-1])) < LW2_END) picks2.pop();
       picks2.push(last2);
     }
     for(let k=picks2.length-2; k>0; k--){
-      if(X(picks2[k+1]) - X(picks2[k]) < LW2) picks2.splice(k,1);
+      const need2 = (k+1 === picks2.length-1 && picks2[k+1] === last2) ? LW2_END : LW2;
+      if(X(picks2[k+1]) - X(picks2[k]) < need2) picks2.splice(k,1);
     }
+    if(picks2.length>=2 && (X(picks2[1]) - X(picks2[0])) < LW2_END && picks2[1]!==last2)
+      picks2.splice(1,1);
     picks2.forEach(i=>{
       const a2 = i===0 ? "start" : (i===last2 ? "end" : "middle");
       g+=`<text x="${X(i)}" y="${H-10}" text-anchor="${a2}" font-size="17" fill="#5A6472" font-weight="800">${months[i]}</text>`;
@@ -2033,6 +2115,12 @@ function svgChart(months, series, rawSets){
   if(rawSets){
     /* [진짜 실거래 모드] 요약하지 않은 거래를 그대로 점으로. 층까지 보여줍니다. */
     rawSets.forEach(r=>{
+      // 거래를 시간순으로 이어 꺾은선으로 (메인 차트와 같은 모양)
+      const _sorted = r.pts.slice().sort((a,b)=> (a[0]-b[0]) || ((a[3]||0)-(b[3]||0)));
+      if(_sorted.length>=2)
+        g+=`<polyline points="${_sorted.map(p=>X(p[0])+','+Y(p[1])).join(' ')}"`
+         + ` fill="none" stroke="${r.color}" stroke-width="1.8" opacity="0.85"`
+         + ` stroke-linejoin="round"/>`;
       r.pts.forEach(([i,v,fl,dy])=>{
         const x=X(i), y=Y(v);
         g+=`<circle cx="${x}" cy="${y}" r="3.4" fill="${r.color}" opacity="0.75"/>`;
@@ -2125,7 +2213,30 @@ function redrawDetail(){
     fb.appendChild(b);
   });
   const shown=series.filter(s=>selected.has(s.pyeong));
-  $("#dChart").innerHTML=svgChart(r.months, shown.map(s=>({label:s.pyeong+"평",prices:s.prices,color:s.color})));
+  /* [진짜 실거래가로 · 2026-08] 이 모달의 제목은 "전체 평형 실거래가"인데
+     그래프는 월별 요약선이었습니다. 바로 아래에 거래이력이 있는데 위 그래프가
+     요약선이면 앞뒤가 맞지 않습니다. 이제 거래 하나하나를 그립니다.
+     개별 거래가 없으면(옛 자료 등) 예전처럼 요약선으로 대체합니다. */
+  const _dSeries = shown.map(s=>({label:s.pyeong+"평",prices:s.prices,color:s.color}));
+  let _dRaw = null;
+  try{
+    const pd = DATA.peerdata, _rc = d.rc || detailState.rcode || "";
+    const _nm = d.name || detailState.apt || "";
+    if(pd && pd.units && window.__TX__ && _rc && _nm){
+      const byPy = {};
+      for(const k in pd.units){
+        const u = pd.units[k];
+        if(u.rc!==_rc || u.name!==_nm) continue;
+        (byPy[u.pyeong] = byPy[u.pyeong] || []).push(...(window.__TX__[k]||[]));
+      }
+      const sets = shown.map(s=>({
+        color: s.color, label: s.pyeong+"평",
+        pts: (byPy[s.pyeong]||[]).map(t=>[t[0], t[1]*100, t[2], t[3]||0])
+      })).filter(x=>x.pts.length);
+      if(sets.length) _dRaw = sets;
+    }
+  }catch(e){}
+  $("#dChart").innerHTML=svgChart(r.months, _dSeries, _dRaw);
   $("#dLegend").innerHTML=shown.map(s=>`<div class="it"><span class="swatch" style="background:${s.color}"></span>${s.pyeong}평</div>`).join("");
   /* [거래이력 보완 · 2026-08] details(거래이력)는 용량 때문에 '후보와 그 동급'만
      미리 만들어 둡니다. 그래서 그 밖의 단지는 목록이 늘 비어 있었습니다.
@@ -2387,12 +2498,12 @@ function render(){
     if(rb){
       rb.classList.toggle("on", rawMode);
       rb.textContent = rawMode ? "📈 요약선으로 돌아가기" : "🔍 진짜 실거래가로 비교하기";
-      rb.onclick=async ()=>{
+      rb.onclick=()=>{
+        /* 모드만 바꿉니다. 자료 받아오기는 차트가 스스로 처리합니다(자동 복구).
+           예전엔 여기서 받아오게 했더니, 다른 곳에서 이미 받는 중이면
+           기다리지 않고 넘어가 첫 클릭이 빈 화면이 됐습니다. */
         rawMode = !rawMode;
-        if(rawMode){
-          rb.textContent = "⏳ 실거래 불러오는 중…";
-          try{ await ensureTxFor(ids); }catch(e){}
-        }
+        window.__RAWTRY__ = false;      // 모드를 바꿀 때마다 다시 시도할 수 있게
         render();
       };
     }
