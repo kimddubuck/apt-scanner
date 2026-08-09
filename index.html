@@ -243,6 +243,7 @@
   <div class="row"><span class="dot" style="background:#E5484D"></span> 20% 이상</div>
   <div class="row"><span class="dot" style="background:#F5A524"></span> 10~20%</div>
   <div class="row"><span class="dot" style="background:#3E9B4F"></span> 10% 미만</div>
+  <div class="row"><span class="dot" style="background:#64748B"></span> 고평가 (동급보다 비쌈)</div>
   <div class="row"><span class="dot sq"></span> 선택한 단지의 동급</div>
 </div>
 
@@ -258,7 +259,9 @@
 if(window.innerWidth<760 && location.search.indexOf('m=1')<0){
   location.replace('./chart.html');
 }
-function rateColor(r){ if(r>=20)return'#E5484D'; if(r>=10)return'#F5A524'; return'#3E9B4F'; }
+/* [2026-08] rate 음수 = 동급보다 비싸다(고평가). 예전엔 음수도 초록으로 나와서
+   '10% 미만 저평가'와 구별이 안 됐습니다. 고평가는 회색빛 파랑으로 분리합니다. */
+function rateColor(r){ if(r<0)return'#64748B'; if(r>=20)return'#E5484D'; if(r>=10)return'#F5A524'; return'#3E9B4F'; }
 function fmtEok(man){ if(!man)return'-'; return (man/10000).toFixed(1)+'억'; }
 
 let map, layerTags, layerDots, selCircle=null, selKey=null;
@@ -499,8 +502,9 @@ async function boot(){
     b.lon = co.lon + (_j ? _j[1] : 0);
     // [색] 저평가 후보=율에 따른 색 / 비후보(plain)=회색
     const color = b.plain ? '#94A3B8' : rateColor(b.rate);
+    // 음수는 '동급보다 비쌈'. 부호만으론 헷갈리므로 색(회색빛)과 함께 읽힙니다.
     const label = b.plain ? fmtEok(b.now)
-                          : (b.rate>=0?'+':'')+b.rate.toFixed(0)+'%';
+                          : (b.rate>=0?'+':'\u2212')+Math.abs(b.rate).toFixed(0)+'%';
 
     // (A) 아실식 말풍선: 이름 + 현재가·저평가율 (대장이면 👑)
     /* [2026-08] 왕관은 '평형별'로 붙는데 마커는 아파트 하나입니다.
@@ -752,9 +756,17 @@ function popupHtml(b){
      예전엔 rate.toFixed(1) 을 그냥 불러서
      "Cannot read properties of null (reading 'toFixed')" 로 말풍선이 안 떴습니다.
      저평가율이 없으면 그 줄은 아예 안 보여주고, 평형 목록·마지막 거래를 대신 씁니다. */
+  /* [2026-08] rate = (동급중앙값 - 내현재가) / 동급중앙값 × 100
+       양수 = 동급보다 싸다(저평가) · 음수 = 동급보다 비싸다(고평가)
+     예전엔 음수를 그대로 붙이고 뒤에 '저평가'를 달아서
+     "-16.0% 저평가"(=16% 비싼데) 라고 나왔습니다. 대장인데 저평가라는 모순의 정체입니다.
+     이제 부호에 따라 말을 바꿉니다. */
   const hasRate = (typeof b.rate === 'number');
   const color = hasRate ? rateColor(b.rate) : '#94A3B8';
-  const label = hasRate ? ((b.rate>=0?'+':'')+b.rate.toFixed(1)+'%') : '';
+  const rateTxt = hasRate
+      ? (b.rate >= 0 ? `+${b.rate.toFixed(1)}% 저평가`
+                     : `${Math.abs(b.rate).toFixed(1)}% 고평가`)
+      : '';
   const sibItems=(b.sibs||[]).slice(0,6).map(s=>{
     const nm=String(s).split('|')[0];
     return `<div class="p" onclick="jumpToName('${b.regionCode}','${nm.replace(/'/g,"\\'")}')">· ${nm}</div>`;
@@ -769,9 +781,9 @@ function popupHtml(b){
         : `<div class="n"><div class="t">평형</div><div class="v">${(b.pys&&b.pys.length)?b.pys.join('·')+'평':(b.pyeong+'평')}</div></div>`}
     </div>
     ${hasRate
-      ? `<div class="rate" style="color:${color}">${label} 저평가</div>`
+      ? `<div class="rate" style="color:${color}">${rateTxt}</div>`
       : `<div class="rate" style="color:${color}">저평가 후보 아님${b.noRecent&&b.lastM?` · 마지막 거래 ${String(b.lastM).replace('-','.')}`:''}</div>`}
-    ${sibItems?`<div class="peers"><div class="pt">동급 아파트 (누르면 이동)</div>${sibItems}</div>`:''}
+    ${sibItems?`<div class="peers"><div class="pt">동급 아파트 · 같은 구 기준 (누르면 이동)</div>${sibItems}</div>`:''}
     <a class="go" href="javascript:void(0)" onclick="openPanel('${b.regionCode}','${b.name.replace(/'/g,"\\'")}')">📊 차트·거래이력 보기 (구/시/전국)</a>
     <div class="hint">새 탭에서 열려요 · 지도는 그대로</div>
   </div>`;
