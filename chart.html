@@ -346,9 +346,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.09 21:27 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.09 21:44 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.09 21:27</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.09 21:44</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -769,14 +769,38 @@ async function loadAllListOnce(){
    요약값을 신뢰할지 판단할 수 있기 때문입니다.                              */
 let rawMode = false;
 
+/* [수정 · 2026-08] 예전엔 ensureRegionSise 를 불러 개별 거래를 얹으려 했는데,
+   그 함수는 '이미 받은 지역'이면 맨 앞에서 곧바로 반환합니다.
+   그래서 거래를 읽는 코드까지 가지 못하고 점이 하나도 안 찍혔습니다.
+   개별 거래는 이렇게 따로, 자기만의 기록표로 받아옵니다. */
+window.__TXRC__ = window.__TXRC__ || {};
+async function ensureTx(rc){
+  if(!rc) return;
+  if(window.__TXRC__[rc]) return;              // 이 지역은 이미 시도했음
+  window.__TXRC__[rc] = "loading";
+  const pd = DATA.peerdata;
+  let js=null;
+  try{ const res = await fetch("./sise/"+rc+".json"); if(res.ok) js = await res.json(); }
+  catch(e){}
+  if(!js || !js.t || !js.m || !pd || !pd.months){ window.__TXRC__[rc]="none"; return; }
+  const gi={}; pd.months.forEach((mo,i)=>{ gi[mo]=i; });
+  const pos = js.m.map(mo=> gi[mo]===undefined ? -1 : gi[mo]);
+  window.__TX__ = window.__TX__ || {};
+  for(const uid in js.t){
+    // r[3] = 계약일의 '일'. 없으면(옛 파일) 0 으로 둡니다.
+    const arr = js.t[uid].map(r=>[pos[r[0]], r[1], r[2], r[3]||0]).filter(r=>r[0]>=0);
+    if(arr.length) window.__TX__[rc + "|" + uid] = arr;
+  }
+  window.__TXRC__[rc] = "ok";
+}
+
 async function ensureTxFor(keys){
   const need = new Set();
   for(const k of keys){
-    if((window.__TX__||{})[k]) continue;
     const rc = String(k).split("|")[0];
     if(rc) need.add(rc);
   }
-  for(const rc of need){ try{ await ensureRegionSise(rc); }catch(e){} }
+  for(const rc of need){ try{ await ensureTx(rc); }catch(e){} }
 }
 
 async function ensureRegionSise(rc){
@@ -803,7 +827,7 @@ async function ensureRegionSise(rc){
   if(js.t){
     window.__TX__ = window.__TX__ || {};
     for(const uid in js.t){
-      const arr = js.t[uid].map(r=>[pos[r[0]], r[1], r[2]]).filter(r=>r[0]>=0);
+      const arr = js.t[uid].map(r=>[pos[r[0]], r[1], r[2], r[3]||0]).filter(r=>r[0]>=0);
       if(arr.length) window.__TX__[rc + "|" + uid] = arr;
     }
   }
@@ -1161,15 +1185,23 @@ function drawChart(months, units, ids, mainId, colors){
      __TX__ 한 건 = [전국 월 번호, 금액(백만원), 층] → 만원으로 바꿔 씁니다. */
   let RAW=null;
   if(rawMode){
+    /* [빈 화면 방지] 점이 하나도 없으면 빈 그래프가 떠서 고장처럼 보였습니다.
+       그럴 땐 요약선을 그대로 두고 아래에 안내만 남깁니다. */
     const _i0 = (zoomA!=null && chartFullN) ? Math.round(zoomA*(chartFullN-1)) : 0;
     RAW = ids.map(id=>{
       const arr=(window.__TX__||{})[id]||[];
       return { color: colors[id]||"#888",
                label: ((units[id]||{}).name||"")+" "+((units[id]||{}).pyeong||"")+"평",
-               pts: arr.map(r=>[r[0]-_i0, r[1]*100, r[2]])
+               pts: arr.map(r=>[r[0]-_i0, r[1]*100, r[2], r[3]||0])
                        .filter(r=>r[0]>=0 && r[0]<months.length) };
     }).filter(r=>r.pts.length);
     RAW.forEach(r=>r.pts.forEach(p=>vals.push(p[1])));
+    if(!RAW.length){
+      RAW=null;
+      const _yn=$(".yaxis-note");
+      if(_yn) _yn.setAttribute("data-warn",
+        "이 단지·동급의 개별 실거래 자료가 아직 없어요(다시 빌드하면 채워져요).");
+    }
   }
   if(!vals.length){$("#chart").innerHTML=rawMode
       ? "<p style='color:#9AA3AF'>이 단지·동급의 개별 실거래 자료가 아직 없어요. (밴드 밖 단지는 최근 3년만 저장해요)</p>"
@@ -1250,13 +1282,14 @@ function drawChart(months, units, ids, mainId, colors){
   });
   if(RAW){
     RAW.forEach(r=>{
-      r.pts.forEach(([i,v,fl])=>{
+      r.pts.forEach(([i,v,fl,dy])=>{
         const x=X(i), y=Y(v);
         g+=`<circle cx="${x}" cy="${y}" r="3.6" fill="${r.color}" opacity="0.72"/>`;
         const _fl = fl ? fl+"층" : "층 모름";
+        const _dt = dy ? months[i]+"-"+String(dy).padStart(2,"0") : months[i];
         g+=`<circle cx="${x}" cy="${y}" r="11" fill="transparent" style="cursor:pointer"
-              onclick="showPtTip(evt,'${months[i]}','${fmtEok(v)}','${_fl} · ${(r.label||"").replace(/'/g,"")}')">`
-          +`<title>${months[i]} · ${fmtEok(v)} · ${_fl}${r.label?" ("+r.label+")":""}</title></circle>`;
+              onclick="showPtTip(evt,'${_dt}','${fmtEok(v)}','${_fl} · ${(r.label||"").replace(/'/g,"")}')">`
+          +`<title>${_dt} · ${fmtEok(v)} · ${_fl}${r.label?" ("+r.label+")":""}</title></circle>`;
       });
     });
     $("#chart").innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" style="width:100%;height:auto">${g}</svg>`;
@@ -2000,13 +2033,14 @@ function svgChart(months, series, rawSets){
   if(rawSets){
     /* [진짜 실거래 모드] 요약하지 않은 거래를 그대로 점으로. 층까지 보여줍니다. */
     rawSets.forEach(r=>{
-      r.pts.forEach(([i,v,fl])=>{
+      r.pts.forEach(([i,v,fl,dy])=>{
         const x=X(i), y=Y(v);
         g+=`<circle cx="${x}" cy="${y}" r="3.4" fill="${r.color}" opacity="0.75"/>`;
         const _fl = fl ? fl+"층" : "층 모름";
+        const _dt = dy ? months[i]+"-"+String(dy).padStart(2,"0") : months[i];
         g+=`<circle cx="${x}" cy="${y}" r="10" fill="transparent" style="cursor:pointer"
-              onclick="showPtTip(evt,'${months[i]}','${fmtEok(v)}','${_fl} · ${(r.label||"").replace(/'/g,"")}')">`
-          +`<title>${months[i]} · ${fmtEok(v)} · ${_fl}${r.label?" ("+r.label+")":""}</title></circle>`;
+              onclick="showPtTip(evt,'${_dt}','${fmtEok(v)}','${_fl} · ${(r.label||"").replace(/'/g,"")}')">`
+          +`<title>${_dt} · ${fmtEok(v)} · ${_fl}${r.label?" ("+r.label+")":""}</title></circle>`;
       });
     });
     return `<svg viewBox="0 0 ${W} ${H}" role="img" style="width:100%;height:auto">${g}</svg>`;
@@ -2046,6 +2080,14 @@ function detailFromPeers(apt, rc){
            _rn: inf.rn || "", _fromPeers: true };
 }
 function openDetail(apt, rc){
+  /* [거래이력 보완 · 2026-08] 이 함수는 async 가 아니라 await 를 쓸 수 없습니다.
+     그래서 개별 거래를 '백그라운드로' 받아오고, 도착하면 표만 다시 그립니다.
+     (창은 곧바로 열려서 기다리는 느낌이 없습니다) */
+  if(rc){
+    try{
+      ensureTx(rc).then(()=>{ if(detailState) redrawDetail(); }).catch(()=>{});
+    }catch(e){}
+  }
   let r = rc ? regionByCode(rc) : current().r;
   // 숨은 지역(지역칩엔 없지만 검색·그래프엔 나오는 지역)은 별도 상세 창고에서 찾기
   if(!r && rc && DATA.hiddenDetails && DATA.hiddenDetails[rc]) r = DATA.hiddenDetails[rc];
@@ -2057,7 +2099,8 @@ function openDetail(apt, rc){
   }
   if(!d){ alert("이 단지의 시세 데이터를 찾지 못했어요."); return; }
   const series=d.types.map((t,i)=>({pyeong:t.pyeong, prices:t.prices, color:PALETTE[i%PALETTE.length]}));
-  detailState={r,d,series,selected:new Set(series.map(s=>s.pyeong))};  // 처음엔 전체 평형 켜짐
+  // [거래이력 보완] apt·rcode 를 함께 담아둡니다(개별 거래로 표를 채울 때 필요)
+  detailState={r,d,series,apt,rcode:rc||"",selected:new Set(series.map(s=>s.pyeong))};
   $("#dTitle").textContent=d.name;
   /* [2026-08] 머리말에 세대수 추가 → "부산 해운대구 · 2005년 준공 · 1,200세대"
      세대수를 모르는 단지(0)는 예전처럼 그 칸만 빼고 표시합니다.               */
@@ -2070,6 +2113,9 @@ function openDetail(apt, rc){
 }
 function redrawDetail(){
   const {r,d,series,selected}=detailState;
+  // 거래이력을 개별 거래로 채울 때 아파트 이름·지역코드가 필요합니다.
+  if(d && !d.name) d.name = detailState.apt || "";
+  if(d && !d.rc)   d.rc   = detailState.rcode || "";
   const fb=$("#dFilter"); fb.innerHTML="";
   series.forEach(s=>{
     const on=selected.has(s.pyeong), b=document.createElement("button");
@@ -2081,11 +2127,36 @@ function redrawDetail(){
   const shown=series.filter(s=>selected.has(s.pyeong));
   $("#dChart").innerHTML=svgChart(r.months, shown.map(s=>({label:s.pyeong+"평",prices:s.prices,color:s.color})));
   $("#dLegend").innerHTML=shown.map(s=>`<div class="it"><span class="swatch" style="background:${s.color}"></span>${s.pyeong}평</div>`).join("");
-  const deals=d.deals.filter(x=>selected.has(x.p));
+  /* [거래이력 보완 · 2026-08] details(거래이력)는 용량 때문에 '후보와 그 동급'만
+     미리 만들어 둡니다. 그래서 그 밖의 단지는 목록이 늘 비어 있었습니다.
+     이제 지역 시세 파일에 개별 거래가 함께 들어 있으므로 그것으로 채웁니다.
+       · 밴드 안 10년 · 밴드 밖 최근 3년
+       · 날짜는 '월'까지만 저장하므로 "2026-07" 형태로 보여줍니다(일자는 없음) */
+  let deals=d.deals.filter(x=>selected.has(x.p));
+  if(!deals.length && d._fromPeers){
+    const rc = d.rc || (detailState.rcode || "");
+    const pd = DATA.peerdata;
+    const rows=[];
+    if(rc && pd && pd.units && pd.months && window.__TX__){
+      for(const k in pd.units){
+        const u=pd.units[k];
+        if(u.rc!==rc || u.name!==d.name) continue;
+        if(!selected.has(u.pyeong)) continue;
+        for(const t of (window.__TX__[k]||[])){
+          const mo = pd.months[t[0]] || "";
+          // 일(日)이 있으면 "2026-07-25", 없으면 "2026-07"
+          const dd = t[3] ? (mo + "-" + String(t[3]).padStart(2,"0")) : mo;
+          rows.push({d:dd, p:u.pyeong, f:t[2], a:t[1]*100});
+        }
+      }
+    }
+    rows.sort((a,b)=> a.d<b.d?1:a.d>b.d?-1:0);      // 최근순
+    deals=rows.slice(0,80);
+  }
   $("#dDeals").innerHTML = deals.length
     ? deals.map(x=>`<tr><td>${x.d}</td><td>${x.p}평</td><td>${x.f}층</td><td class="price">${fmtEok(x.a)}</td></tr>`).join("")
     : `<tr><td colspan="4" style="padding:14px;color:#9AA3AF;font-size:13px;text-align:center">`
-      + (d._fromPeers ? "이 단지는 거래이력 목록을 준비하지 않았어요. 위 차트로 평형별 시세 흐름을 확인하세요."
+      + (d._fromPeers ? "거래이력을 불러오는 중이거나, 이 평형은 최근 거래가 없어요. 위 차트로 시세 흐름을 확인하세요."
                       : "선택한 평형의 거래이력이 없어요.") + `</td></tr>`;
 }
 function closeDetail(){ $("#modal").style.display="none"; }
