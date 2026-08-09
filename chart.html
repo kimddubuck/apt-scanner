@@ -75,6 +75,15 @@
   .chart-title .ct-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .chart-title #scopeToggle{flex:none}
   @media(max-width:820px){.chart-title{font-size:14.5px}}
+  /* [Y축 안내 · 2026-08] 차트 아래 한 줄 설명 + '진짜 실거래가' 전환 버튼 */
+  .yaxis-note{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;
+    margin:8px 0 2px;padding:8px 10px;border-radius:9px;background:#FBF7EF;
+    font-size:12px;color:#5B6675;line-height:1.55}
+  .yaxis-note b{color:var(--ink)}
+  .yaxis-note button{border:1.5px solid var(--gold);background:#fff;color:var(--gold);
+    border-radius:999px;padding:6px 11px;font-size:12px;font-weight:800;
+    font-family:inherit;cursor:pointer;white-space:nowrap}
+  .yaxis-note button.on{background:var(--gold);color:#fff}
   .chart-note{font-size:13px;color:var(--soft);margin-bottom:12px}
   .chart-note b{color:var(--gold)}
   svg{width:100%;height:auto;display:block}
@@ -323,9 +332,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.09 20:49 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.09 21:01 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.09 20:49</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.09 21:01</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -405,6 +414,13 @@
       </div>
       <div class="chart-note" id="cnote"></div>
       <div id="chart"></div><div class="legend" id="legend"></div>
+      <!-- [Y축 안내 · 2026-08] 세로축이 무슨 값인지 모르면 그래프를 오해합니다.
+           현재가·저평가율·대장과 같은 잣대(그 달 상위 25%)라는 것을 밝혀 둡니다. -->
+      <div class="yaxis-note">
+        <span>📏 <b>세로축</b>은 <b>월마다 그 달 실거래가의 상위 25%</b>를 이은 값이에요.
+          저층·급매에 덜 흔들리고, 지도에 표시되는 현재가와 <b>같은 잣대</b>예요.</span>
+        <button id="rawBtn" type="button">🔍 진짜 실거래가로 비교하기</button>
+      </div>
       <div class="detail-link"><button id="detailBtn">📋 이 단지 전체 평형·거래이력 보기</button></div></div>
   </div>
   <footer>데이터: 국토교통부 실거래가 · 세로축=실거래가(매매), 비슷한 평수끼리 비교</footer>
@@ -1154,9 +1170,18 @@ function drawChart(months, units, ids, mainId, colors){
   const last=months.length-1;
   const picks=[];
   for(let i=0;i<months.length;i++) if(i%sx===0) picks.push(i);
+  /* [X축 겹침 · 2026-08] 예전엔 '눈금 간격의 55%'만 확보했습니다.
+     그런데 라벨은 "2026-08" 처럼 7글자이고 글꼴이 17px 이라 실제 폭이 약 62px 입니다.
+     간격이 좁으면 마지막 라벨이 직전 라벨과 겹쳐 "2025-2026-08" 처럼 뭉쳤습니다.
+     이제 '글자 실제 폭'을 기준으로 겹칠 만하면 직전 라벨을 지웁니다. */
+  const LW = 62;                    // 라벨 한 개의 대략적인 폭(px)
   if(picks[picks.length-1]!==last){
-    if(last-picks[picks.length-1] < sx*0.55) picks.pop();   // 너무 가까우면 직전 것 제거
+    while(picks.length && (X(last) - X(picks[picks.length-1])) < LW) picks.pop();
     picks.push(last);
+  }
+  // 중간 라벨끼리도 겹치면 솎아냅니다(끝 라벨은 남김)
+  for(let k=picks.length-2; k>0; k--){
+    if(X(picks[k+1]) - X(picks[k]) < LW) picks.splice(k,1);
   }
   picks.forEach(i=>{
     const anchor = i===0 ? "start" : (i===last ? "end" : "middle");
@@ -1861,9 +1886,14 @@ function svgChart(months, series){
   {
     const last2=months.length-1, picks2=[];
     for(let i=0;i<months.length;i++) if(i%sx===0) picks2.push(i);
+    // [X축 겹침 · 2026-08] 위 차트와 같은 방식 — 글자 실제 폭으로 판단
+    const LW2 = 62;
     if(picks2[picks2.length-1]!==last2){
-      if(last2-picks2[picks2.length-1] < sx*0.55) picks2.pop();
+      while(picks2.length && (X(last2) - X(picks2[picks2.length-1])) < LW2) picks2.pop();
       picks2.push(last2);
+    }
+    for(let k=picks2.length-2; k>0; k--){
+      if(X(picks2[k+1]) - X(picks2[k]) < LW2) picks2.splice(k,1);
     }
     picks2.forEach(i=>{
       const a2 = i===0 ? "start" : (i===last2 ? "end" : "middle");
