@@ -332,9 +332,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.09 21:10 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.09 21:21 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.09 21:10</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.09 21:21</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -745,6 +745,26 @@ async function loadAllListOnce(){
   await new Promise(ok=>{ const s=document.createElement("script");
     s.src="./all_list.js"; s.onload=ok; s.onerror=ok; document.head.appendChild(s); });
 }
+/* ══ [진짜 실거래가로 비교하기 · 2026-08] ═══════════════════════════════════
+   왜 만들었나: 차트 선은 '월마다 상위 25%'로 요약한 값입니다. 요약이 실제 거래를
+   잘 대표하는지 사용자가 직접 눈으로 확인할 방법이 없었습니다.
+   이 모드는 요약하지 않은 **거래 하나하나를 점으로** 찍습니다.
+   증여든 저층 급매든 걸러내지 않고 다 보여주므로, 선이 어디쯤을 지나는지
+   (요약이 타당한지) 바로 판단할 수 있습니다.
+   점에 손을 올리면 층이 나옵니다 — "저건 2층이라 싸구나"를 알 수 있어야
+   요약값을 신뢰할지 판단할 수 있기 때문입니다.                              */
+let rawMode = false;
+
+async function ensureTxFor(keys){
+  const need = new Set();
+  for(const k of keys){
+    if((window.__TX__||{})[k]) continue;
+    const rc = String(k).split("|")[0];
+    if(rc) need.add(rc);
+  }
+  for(const rc of need){ try{ await ensureRegionSise(rc); }catch(e){} }
+}
+
 async function ensureRegionSise(rc){
   const pd = DATA.peerdata;
   if(!pd || !pd.series || !pd.months) return false;
@@ -763,6 +783,16 @@ async function ensureRegionSise(rc){
      그대로 붙이면 그래프가 옆으로 밀립니다. */
   const gi = {}; pd.months.forEach((mo,i)=>{ gi[mo]=i; });
   const pos = js.m.map(mo=> gi[mo]===undefined ? -1 : gi[mo]);
+  /* [개별 실거래 · 2026-08] 거래 하나하나(t)도 함께 보관합니다.
+     한 건 = [그 지역 월 번호, 금액(백만원), 층] → 전국 월 번호로 옮겨 담습니다.
+     (지역마다 첫 달이 달라서 그대로 쓰면 점이 옆으로 밀립니다) */
+  if(js.t){
+    window.__TX__ = window.__TX__ || {};
+    for(const uid in js.t){
+      const arr = js.t[uid].map(r=>[pos[r[0]], r[1], r[2]]).filter(r=>r[0]>=0);
+      if(arr.length) window.__TX__[rc + "|" + uid] = arr;
+    }
+  }
   /* all_list.js 에서 이 지역 단지의 세대수·건축년도·현재가를 꺼냅니다.
      한 줄 = [아파트명, 평형, 현재가, 세대수, 건축년도, 마지막거래가, 마지막거래월] */
   const AL = ((window.__ALLLIST__||{}).r||{})[rc] || {};
@@ -1112,7 +1142,24 @@ function drawChart(months, units, ids, mainId, colors){
   }
   const W=680,H=420,padL=58,padR=30,padT=16,padB=36;  // [2026-08] 차트 높이 360→420
   let vals=[]; ids.forEach(id=>units[id].prices.forEach(v=>{if(v!=null)vals.push(v);}));
-  if(!vals.length){$("#chart").innerHTML="<p>시세 없음</p>";return;}
+  /* [진짜 실거래 모드 · 2026-08] 켜져 있으면 거래 하나하나를 점으로 찍습니다.
+     선(월별 상위 25% 요약)이 실제 거래들 사이 어디를 지나는지 눈으로 확인하는 용도입니다.
+     __TX__ 한 건 = [전국 월 번호, 금액(백만원), 층] → 만원으로 바꿔 씁니다. */
+  let RAW=null;
+  if(rawMode){
+    const _i0 = (zoomA!=null && chartFullN) ? Math.round(zoomA*(chartFullN-1)) : 0;
+    RAW = ids.map(id=>{
+      const arr=(window.__TX__||{})[id]||[];
+      return { color: colors[id]||"#888",
+               label: ((units[id]||{}).name||"")+" "+((units[id]||{}).pyeong||"")+"평",
+               pts: arr.map(r=>[r[0]-_i0, r[1]*100, r[2]])
+                       .filter(r=>r[0]>=0 && r[0]<months.length) };
+    }).filter(r=>r.pts.length);
+    RAW.forEach(r=>r.pts.forEach(p=>vals.push(p[1])));
+  }
+  if(!vals.length){$("#chart").innerHTML=rawMode
+      ? "<p style='color:#9AA3AF'>이 단지·동급의 개별 실거래 자료가 아직 없어요. (밴드 밖 단지는 최근 3년만 저장해요)</p>"
+      : "<p>시세 없음</p>";return;}
   let ymin=Math.min(...vals),ymax=Math.max(...vals);
   function niceStep(x){const raw=x/5,p=Math.pow(10,Math.floor(Math.log10(raw))),n=raw/p;return (n<1.5?1:n<3?2:n<7?5:10)*p;}
   const step=niceStep((ymax-ymin)||1);
@@ -1187,6 +1234,20 @@ function drawChart(months, units, ids, mainId, colors){
     const anchor = i===0 ? "start" : (i===last ? "end" : "middle");
     g+=`<text x="${X(i)}" y="${H-12}" text-anchor="${anchor}" font-size="17" fill="#5A6472" font-weight="800">${months[i]}</text>`;
   });
+  if(RAW){
+    RAW.forEach(r=>{
+      r.pts.forEach(([i,v,fl])=>{
+        const x=X(i), y=Y(v);
+        g+=`<circle cx="${x}" cy="${y}" r="3.6" fill="${r.color}" opacity="0.72"/>`;
+        const _fl = fl ? fl+"층" : "층 모름";
+        g+=`<circle cx="${x}" cy="${y}" r="11" fill="transparent" style="cursor:pointer"
+              onclick="showPtTip(evt,'${months[i]}','${fmtEok(v)}','${_fl} · ${(r.label||"").replace(/'/g,"")}')">`
+          +`<title>${months[i]} · ${fmtEok(v)} · ${_fl}${r.label?" ("+r.label+")":""}</title></circle>`;
+      });
+    });
+    $("#chart").innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" style="width:100%;height:auto">${g}</svg>`;
+    return;      // 범례는 호출한 쪽(render)이 이어서 그립니다
+  }
   function line(pr,color,w,op,label){
     const pts=[]; pr.forEach((v,i)=>{ if(v!=null) pts.push([X(i),Y(v),i,v]); });
     if(pts.length<1) return "";
@@ -1870,9 +1931,12 @@ function drawPeerFilters(){
      그러면 차트가 아래로 밀려 화면(특히 휴대폰)을 가립니다.
      걸린 개수는 머리글에 숫자로 보이니 굳이 열어두지 않아도 알 수 있습니다. */
 }
-function svgChart(months, series){
+/* rawSets = [{color, label, pts:[[월번호, 금액(만원), 층], ...]}]
+   넘기면 '선'을 그리지 않고 거래 하나하나를 점으로 찍습니다(진짜 실거래 모드). */
+function svgChart(months, series, rawSets){
   const W=700,H=340,padL=58,padR=30,padT=12,padB=32;  // [2026-08] 300→340
   let vals=[]; series.forEach(s=>s.prices.forEach(v=>{if(v!=null)vals.push(v);}));
+  if(rawSets) rawSets.forEach(r=>r.pts.forEach(p=>vals.push(p[1])));
   if(!vals.length) return "<p style='color:#9AA3AF'>거래 시세가 없어요.</p>";
   let ymin=Math.min(...vals),ymax=Math.max(...vals);
   const ns=x=>{const raw=x/5,p=Math.pow(10,Math.floor(Math.log10(raw))),n=raw/p;return (n<1.5?1:n<3?2:n<7?5:10)*p;};
@@ -1899,6 +1963,20 @@ function svgChart(months, series){
       const a2 = i===0 ? "start" : (i===last2 ? "end" : "middle");
       g+=`<text x="${X(i)}" y="${H-10}" text-anchor="${a2}" font-size="17" fill="#5A6472" font-weight="800">${months[i]}</text>`;
     });
+  }
+  if(rawSets){
+    /* [진짜 실거래 모드] 요약하지 않은 거래를 그대로 점으로. 층까지 보여줍니다. */
+    rawSets.forEach(r=>{
+      r.pts.forEach(([i,v,fl])=>{
+        const x=X(i), y=Y(v);
+        g+=`<circle cx="${x}" cy="${y}" r="3.4" fill="${r.color}" opacity="0.75"/>`;
+        const _fl = fl ? fl+"층" : "층 모름";
+        g+=`<circle cx="${x}" cy="${y}" r="10" fill="transparent" style="cursor:pointer"
+              onclick="showPtTip(evt,'${months[i]}','${fmtEok(v)}','${_fl} · ${(r.label||"").replace(/'/g,"")}')">`
+          +`<title>${months[i]} · ${fmtEok(v)} · ${_fl}${r.label?" ("+r.label+")":""}</title></circle>`;
+      });
+    });
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" style="width:100%;height:auto">${g}</svg>`;
   }
   series.forEach(s=>{const pts=[];s.prices.forEach((v,i)=>{if(v!=null)pts.push([X(i),Y(v),i,v]);});
     if(pts.length>=2)g+=`<polyline points="${pts.map(p=>p[0]+','+p[1]).join(' ')}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round"/>`;
@@ -2193,6 +2271,27 @@ function render(){
     btn.textContent = hu ? `📋 ${tName} 전체 평형·거래이력 보기`
                          : "📋 이 단지 전체 평형·거래이력 보기";
     btn.onclick=()=>openDetail(tName, tRc);
+  }
+
+  /* ── [진짜 실거래가로 비교하기] 버튼 ──
+     누르면 '월별 상위 25% 요약선'을 끄고 거래 하나하나를 점으로 찍습니다.
+     점을 누르면 층이 나옵니다. 증여·저층 급매도 걸러내지 않고 다 보여주므로
+     요약선이 실제 거래들 사이 어디를 지나는지 직접 확인할 수 있습니다.
+     개별 거래는 그 지역 시세 파일에 함께 들어 있어, 처음 누를 때만 받아옵니다. */
+  {
+    const rb=$("#rawBtn");
+    if(rb){
+      rb.classList.toggle("on", rawMode);
+      rb.textContent = rawMode ? "📈 요약선으로 돌아가기" : "🔍 진짜 실거래가로 비교하기";
+      rb.onclick=async ()=>{
+        rawMode = !rawMode;
+        if(rawMode){
+          rb.textContent = "⏳ 실거래 불러오는 중…";
+          try{ await ensureTxFor(ids); }catch(e){}
+        }
+        render();
+      };
+    }
   }
 }
 // 검색: 질의어 포함 → 관련도 순 정렬(이름이 질의어로 '시작'하면 우선, 짧은 이름 우선) → 상위 60개

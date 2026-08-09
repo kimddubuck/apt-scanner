@@ -1042,6 +1042,21 @@ function clearSelect(){
 }
 
 /* 동급 이름 클릭 → 그 단지로 지도 이동 */
+/* ══ [차트 → 지도 이동 · 2026-08] ═══════════════════════════════════════════
+   차트는 이 페이지 안의 iframe(사이드 패널)에서 돕니다. 그 안에서 동급 이름 옆
+   📍를 누르면 이런 메시지를 보내옵니다. 받아서 지도를 그 아파트로 옮깁니다.
+   왜 필요한가: 차트에 "코오롱하늘채2차 5.5억"이라고 나와도 그게 지도 어디인지
+   찾으려면 검색을 다시 해야 했습니다. 한 번 눌러 바로 가게 합니다.            */
+window.addEventListener("message", (ev)=>{
+  const d = ev.data;
+  if(!d || d.type !== "aptmatch:goto") return;
+  const nm = String(d.name||"").trim();
+  if(!nm) return;
+  jumpToName(String(d.rc||""), nm);
+  // 지도를 보여주려면 패널을 접어야 합니다(모바일에선 패널이 화면을 덮습니다)
+  try{ if(typeof closePanel === "function") closePanel(); }catch(e){}
+});
+
 function jumpToName(rcode,name){
   // 같은 지역 우선, 없으면 전체에서 이름으로
   let target=BEST[rcode+'|'+name];
