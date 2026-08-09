@@ -319,6 +319,37 @@ async function boot(){
   catch(e){ fail('coords.json 못 읽음 — http 서버로 열어주세요'); return; }
   COORDS_G = COORDS;      // [검색용] 전역 보관
 
+  /* ══ [전체 표시 · 2026-08 B단계] all_list.js 불러와 아파트 단위로 묶기 ═════
+     왜: data.js 에는 '평당가 밴드 안 + 최근 거래 있는' 단지만 들어갑니다.
+         그래서 44평 단지가 지도·검색에 아예 없었습니다.
+     한 줄 = [아파트명, 평형, 현재가, 세대수, 건축년도, 마지막거래가, 마지막거래월]
+     금액은 '억×10'(65 = 6.5억) → 화면용 만원으로 바꿀 때 ×1000.
+     현재가가 0이면 최근 6개월 거래가 없는 단지 → 마지막 거래가를 대신 씁니다.
+     파일이 없어도 지도는 예전처럼 돌아갑니다(있으면 전체가 나옵니다). */
+  window.ALLAPT = {};
+  await new Promise(ok=>{ const s2=document.createElement('script');
+    s2.src='./all_list.js'; s2.onload=ok; s2.onerror=ok;
+    document.head.appendChild(s2); });
+  (function(){
+    const AL=(window.__ALLLIST__||{}).r||{};
+    for(const rc in AL){
+      const rn=AL[rc].n||'';
+      for(const u of (AL[rc].u||[])){
+        const nm=u[0], py=u[1], nowV=u[2]||0, hh=u[3]||0, by=u[4]||0,
+              lastV=u[5]||0, lastM=u[6]||'';
+        const id=rc+'|'+nm;
+        let a=ALLAPT[id];
+        if(!a) a=ALLAPT[id]={name:nm, rc:rc, rname:rn, pys:[],
+                             now:0, lastV:0, lastM:'', hh:hh, by:by};
+        if(py && a.pys.indexOf(py)<0) a.pys.push(py);
+        if(nowV>a.now) a.now=nowV;              // 평형 중 가장 비싼 값을 대표로
+        if(lastM>a.lastM){ a.lastM=lastM; a.lastV=lastV; }
+      }
+    }
+    for(const id in ALLAPT) ALLAPT[id].pys.sort((x,y)=>x-y);
+    console.log('[all_list] 아파트', Object.keys(ALLAPT).length);
+  })();
+
   // 후보 정리: 같은 단지는 저평가율 큰 평형 대표. 동급 중앙값(sibMed)도 보관.
   for(const reg of DATA.regions||[]){
     for(const c of reg.candidates||[]){
@@ -379,19 +410,34 @@ async function boot(){
      저평가 아닌 단지는 회색(#94A3B8) 핀으로 구분됩니다. */
   const SHOW_ALL = true;
 
-  // 후보가 아닌 단지도 BEST 에 넣어두기(회색). 좌표 있는 것만.
+  /* 후보가 아닌 단지도 BEST 에 넣어두기(회색). 좌표 있는 것만.
+     [B단계] 예전엔 peerdata.units(밴드 안 5,500개)만 봐서 44평 단지가 없었습니다.
+     이제 all_list.js(전체 96,726 단위 = 아파트 35,111개)를 씁니다.
+     all_list.js 가 없으면 예전 방식(peerdata.units)으로 자동 폴백합니다. */
   if(SHOW_ALL){
-    const PD = (window.__APTDATA__||{}).peerdata||{};
-    const units = PD.units||{}, rmap = PD.rmap||{};
-    for(const uk in units){
-      const u = units[uk];
-      const key = u.rc + '|' + u.name;
-      if(BEST[key]) continue;                 // 이미 후보면 건너뜀
-      if(!COORDS[key]) continue;              // 좌표 없으면 못 찍음
-      if(!BEST[key]){
+    const useAll = Object.keys(ALLAPT).length > 0;
+    if(useAll){
+      for(const key in ALLAPT){
+        const a=ALLAPT[key];
+        if(BEST[key]) continue;               // 이미 후보면 건너뜀
+        if(!COORDS[key]) continue;            // 좌표 없으면 못 찍음
+        BEST[key] = { key, name:a.name, rname:a.rname, rate:null,
+                      pyeong:a.pys[a.pys.length-1]||0,
+                      now:(a.now||a.lastV)*1000,   // 억×10 → 만원
+                      sibMed:0, sibs:[], regionCode:a.rc,
+                      hh:a.hh, pp:0, by:a.by, plain:true,
+                      pys:a.pys, lastM:a.lastM, noRecent:!a.now };
+      }
+    } else {
+      const PD = (window.__APTDATA__||{}).peerdata||{};
+      const units = PD.units||{}, rmap = PD.rmap||{};
+      for(const uk in units){
+        const u = units[uk];
+        const key = u.rc + '|' + u.name;
+        if(BEST[key] || !COORDS[key]) continue;
         BEST[key] = { key, name:u.name, rname:rmap[u.rc]||u.rn||'', rate:null,
                       pyeong:u.pyeong, now:0, sibMed:0, sibs:[], regionCode:u.rc,
-                      hh:u.hh||0, pp:0, by:u.by||0, plain:true };  // plain=저평가 아님(회색)
+                      hh:u.hh||0, pp:0, by:u.by||0, plain:true };
       }
     }
   }
@@ -474,22 +520,39 @@ function setupMapSearch(){
        · 같은 단지의 평형들을 묶어 "평형 N개"로 표시 (예전엔 첫 평형 하나만 나옴)
        · 매치 후보면 ⭐+저평가율, 좌표 있으면 📍(지도 이동), 없으면 📊(차트만)
        · 검색어로 '시작'하는 이름 우선 정렬 */
+    /* [B단계] 검색도 all_list.js(전체 아파트)를 봅니다.
+       예전엔 peerdata.units(밴드 안)만 봐서 44평 단지가 검색되지 않았습니다.
+       all_list 가 없으면 예전 방식으로 자동 폴백합니다. */
     const DATA=window.__APTDATA__;
-    const units=(DATA&&DATA.peerdata&&DATA.peerdata.units)||{};
     const grp={};                      // 'rc|이름' → 묶음
-    for(const uk in units){
-      const u=units[uk];
-      if(!(u.name||'').replace(/\s/g,'').toLowerCase().includes(q)) continue;
-      const id=u.rc+'|'+u.name;
-      if(!grp[id]){
-        const cand=BEST[id];           // 매치 후보?
-        const co=COORDS_G[id];         // 좌표?
-        grp[id]={name:u.name, rname:(cand?cand.rname:(u.rn||'')),
-                 pys:new Set(), rate:cand?cand.rate:null,
-                 key:cand?cand.key:null, rcode:u.rc,
-                 hasCoord:!!(co||cand&&cand.lat), coordKey:id};
+    const AA=window.ALLAPT||{};
+    if(Object.keys(AA).length){
+      for(const id in AA){
+        const a=AA[id];
+        if(!(a.name||'').replace(/\s/g,'').toLowerCase().includes(q)) continue;
+        const cand=BEST[id];
+        const co=COORDS_G[id];
+        grp[id]={name:a.name, rname:(cand&&cand.rname)||a.rname||'',
+                 pys:new Set(a.pys), rate:(cand?cand.rate:null),
+                 key:(cand&&!cand.plain)?cand.key:null, rcode:a.rc,
+                 hasCoord:!!(co||(cand&&cand.lat)), coordKey:id};
       }
-      if(u.pyeong) grp[id].pys.add(u.pyeong);
+    } else {
+      const units=(DATA&&DATA.peerdata&&DATA.peerdata.units)||{};
+      for(const uk in units){
+        const u=units[uk];
+        if(!(u.name||'').replace(/\s/g,'').toLowerCase().includes(q)) continue;
+        const id=u.rc+'|'+u.name;
+        if(!grp[id]){
+          const cand=BEST[id];
+          const co=COORDS_G[id];
+          grp[id]={name:u.name, rname:(cand?cand.rname:(u.rn||'')),
+                   pys:new Set(), rate:cand?cand.rate:null,
+                   key:cand?cand.key:null, rcode:u.rc,
+                   hasCoord:!!(co||cand&&cand.lat), coordKey:id};
+        }
+        if(u.pyeong) grp[id].pys.add(u.pyeong);
+      }
     }
     const starts=x=>x.name.replace(/\s/g,'').toLowerCase().startsWith(q)?0:1;
     const hits=Object.values(grp)
