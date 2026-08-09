@@ -76,13 +76,19 @@
   .chart-title #scopeToggle{flex:none}
   @media(max-width:820px){.chart-title{font-size:14.5px}}
   /* [Y축 안내 · 2026-08] 차트 아래 한 줄 설명 + '진짜 실거래가' 전환 버튼 */
-  .yaxis-note{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;
-    margin:8px 0 2px;padding:8px 10px;border-radius:9px;background:#FBF7EF;
-    font-size:12px;color:#5B6675;line-height:1.55}
+  /* [2026-08] 글자를 더 작게, 그리고 '단어 중간에서 잘리지 않게' 합니다.
+     word-break:keep-all = 한국어 단어를 쪼개지 않고 어절 단위로 넘김
+     text-wrap:pretty    = 마지막 줄에 한 단어만 남는 어색한 모양을 줄임 */
+  .yaxis-note{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;
+    justify-content:space-between;
+    margin:6px 0 2px;padding:7px 9px;border-radius:9px;background:#FBF7EF;
+    font-size:11px;color:#6B7482;line-height:1.5;
+    word-break:keep-all;overflow-wrap:break-word;text-wrap:pretty}
+  .yaxis-note > span{flex:1 1 190px;min-width:0}
   .yaxis-note b{color:var(--ink)}
   .yaxis-note button{border:1.5px solid var(--gold);background:#fff;color:var(--gold);
-    border-radius:999px;padding:6px 11px;font-size:12px;font-weight:800;
-    font-family:inherit;cursor:pointer;white-space:nowrap}
+    border-radius:999px;padding:5px 10px;font-size:11.5px;font-weight:800;
+    font-family:inherit;cursor:pointer;white-space:nowrap;flex:0 0 auto}
   .yaxis-note button.on{background:var(--gold);color:#fff}
   .chart-note{font-size:13px;color:var(--soft);margin-bottom:12px}
   .chart-note b{color:var(--gold)}
@@ -141,6 +147,10 @@
   .legend .it .swatch{flex:none}
   .legend .it .lg-nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .legend .it .val{white-space:nowrap;flex:none}
+  /* [지도 이동 · 2026-08] 동급 이름 옆 📍 */
+  .legend .it .lg-go{font-style:normal;cursor:pointer;flex:none;font-size:12px;
+    opacity:.55;padding:0 2px}
+  .legend .it .lg-go:hover{opacity:1}
   .swatch{width:16px;height:3px;border-radius:2px;display:inline-block}
   .legend .val{color:var(--soft);font-variant-numeric:tabular-nums}
   footer{margin-top:24px;font-size:12px;color:var(--soft);text-align:center}
@@ -310,10 +320,14 @@
     .grid > .card:nth-child(2) > .chart-title{order:1}   /* 어느 아파트인지 */
     .grid > .card:nth-child(2) > .chart-ctrl {order:2}   /* 평형·기준·연수  */
     .grid > .card:nth-child(2) > .peerbar    {order:3}   /* 🎯 차트 필터   */
+    .grid > .card:nth-child(2) > .fcard      {order:3}   /* 🎯 차트 필터(카드형) */
     .grid > .card:nth-child(2) > #chart      {order:4}   /* 📉 차트        */
     .grid > .card:nth-child(2) > .legend     {order:5}   /* 어떤 선인지    */
-    .grid > .card:nth-child(2) > .chart-note {order:6}   /* 설명           */
-    .grid > .card:nth-child(2) > .detail-link{order:7}
+    /* [2026-08] order 를 안 주면 order:0 이 되어 맨 위로 올라갑니다.
+       세로축 안내가 차트보다 위에 뜬 원인이었습니다. 범례 다음 자리로 지정합니다. */
+    .grid > .card:nth-child(2) > .yaxis-note {order:6}   /* 📏 세로축 안내 */
+    .grid > .card:nth-child(2) > .chart-note {order:7}   /* 설명           */
+    .grid > .card:nth-child(2) > .detail-link{order:8}
     /* [스크롤 최소화] 통계 3개는 차트를 본 뒤 봐도 되므로 아래로 내림 */
     #scanner.on{display:flex;flex-direction:column}
     #scanner > .grid{order:4}       /* 차트+목록 먼저 */
@@ -332,9 +346,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.09 21:21 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.09 21:27 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.09 21:21</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.09 21:27</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -417,8 +431,8 @@
       <!-- [Y축 안내 · 2026-08] 세로축이 무슨 값인지 모르면 그래프를 오해합니다.
            현재가·저평가율·대장과 같은 잣대(그 달 상위 25%)라는 것을 밝혀 둡니다. -->
       <div class="yaxis-note">
-        <span>📏 <b>세로축</b>은 <b>월마다 그 달 실거래가의 상위 25%</b>를 이은 값이에요.
-          저층·급매에 덜 흔들리고, 지도에 표시되는 현재가와 <b>같은 잣대</b>예요.</span>
+        <span>📏 <b>세로축</b>은 <b>월마다 그 달 실거래가의 상위 25%</b>예요.
+          저층·급매에 덜 흔들리고, 지도의 현재가와 <b>같은 잣대</b>랍니다.</span>
         <button id="rawBtn" type="button">🔍 진짜 실거래가로 비교하기</button>
       </div>
       <div class="detail-link"><button id="detailBtn">📋 이 단지 전체 평형·거래이력 보기</button></div></div>
@@ -1467,7 +1481,21 @@ function drawLegend(units, ids, mainId, colors){
     el.title="탭: 강조 추가 · 다시 탭: 그 선만 해제 (여러 개 골라 비교 가능)";
     if(highlightIds.length && !highlightIds.includes(id)) el.style.opacity="0.4";
     if(highlightIds.includes(id)) el.style.fontWeight="800";
-    el.onclick=()=>{
+    el.onclick=(ev)=>{
+      const go = ev.target && ev.target.classList && ev.target.classList.contains("lg-go");
+      if(go){
+        ev.stopPropagation();
+        const rc = ev.target.getAttribute("data-rc") || "";
+        const nm = ev.target.getAttribute("data-nm") || "";
+        try{
+          // 지도(부모 창)에 "이 아파트로 가 달라"고 알립니다.
+          if(window.parent && window.parent !== window)
+            window.parent.postMessage({type:"aptmatch:goto", rc:rc, name:nm}, "*");
+          else if(window.opener)
+            window.opener.postMessage({type:"aptmatch:goto", rc:rc, name:nm}, "*");
+        }catch(e){}
+        return;
+      }
       // [다중선택] 이미 선택돼 있으면 그것만 해제, 아니면 추가 (순서 유지)
       const i = highlightIds.indexOf(id);
       if(i>=0) highlightIds.splice(i,1); else highlightIds.push(id);
@@ -1475,7 +1503,12 @@ function drawLegend(units, ids, mainId, colors){
     };
     const rn = u.rn ? "·"+u.rn.replace(/^(서울|부산|대구|인천|광주|대전|울산|경기|경남|경북|충남|충북|전남|전북|강원|제주)\s*/,"$1 ").split(" ").slice(-1)[0] : "";
     el.innerHTML=`<span class="swatch" style="background:${colors[id]};height:${isMain?4:3}px"></span>
-      <span class="lgtxt">${u.name}(${u.pyeong}평${scope!=="gu"&&u.rn?"·"+u.rn:""})</span> <span class="val">${fmtEok(nowShown(id,u.prices))}</span>`;
+      <span class="lgtxt">${u.name}(${u.pyeong}평${scope!=="gu"&&u.rn?"·"+u.rn:""})</span> <span class="val">${fmtEok(nowShown(id,u.prices))}</span>`
+      /* [지도 이동 · 2026-08] 동급 이름 옆 📍를 누르면 지도가 그 아파트로 갑니다.
+         차트는 지도(index.html) 안의 iframe 이라, 부모 창에 알려주는 방식으로 합니다.
+         stopPropagation 이 없으면 범례 클릭(선 강조)까지 같이 일어납니다. */
+      + `<i class="lg-go" title="지도에서 이 아파트로 이동"
+             data-rc="${(u.rc||"").replace(/"/g,"")}" data-nm="${(u.name||"").replace(/"/g,"")}">📍</i>`;
     box.appendChild(el);
   });
   if(highlightIds.length){
