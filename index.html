@@ -613,8 +613,15 @@ async function boot(){
     const kpy = b.kingPy ? b.kingPy+'평' : '';
     const _kg = kingGrade(b);
     const _kt = _kg ? ` · ${_kg.name}(${_kg.desc})` : '';
-    const crown = b.king==='nat' ? `<span class="crown nat" title="${b.kingPy||'?'}평 기준 · 전국 동급 무리 중 실거래가 1위 (전국 대장)${_kt}">👑<em>${kpy}</em></span>`
-                : b.king==='gu'  ? `<span class="crown gu" title="${b.kingPy||'?'}평 기준 · 같은 시 동급 무리 중 실거래가 1위 (우리 시 대장)${_kt}">👑<em>${kpy}</em></span>`
+    /* [2026-08] 등급을 마커에 바로 보여줍니다.
+       예전엔 말풍선에만 넣었는데, 마커를 누르면 select() 가 사이드 패널을
+       곧바로 열어서 말풍선이 뜰 틈이 없었습니다(등급을 아무도 볼 수 없었음).
+         부동의 대장 → 👑★  ·  신흥 대장 → 👑NEW  ·  그냥 대장 → 👑
+       자세한 내용(몇 달 중 몇 달 1위)은 마커에 손을 올리면 나옵니다. */
+    const _kmark = !_kg ? '' : (_kg.name==='부동의 대장' ? '★'
+                              : _kg.name==='신흥 대장'  ? 'NEW' : '');
+    const crown = b.king==='nat' ? `<span class="crown nat" title="${b.kingPy||'?'}평 기준 · 전국 동급 무리 중 실거래가 1위 (전국 대장)${_kt}">👑<em>${kpy}${_kmark?" "+_kmark:""}</em></span>`
+                : b.king==='gu'  ? `<span class="crown gu" title="${b.kingPy||'?'}평 기준 · 같은 시 동급 무리 중 실거래가 1위 (우리 시 대장)${_kt}">👑<em>${kpy}${_kmark?" "+_kmark:""}</em></span>`
                 : '';
     const kingCls = b.king ? ` king-${b.king}` : '';
     const tagIcon=L.divIcon({className:'',iconSize:[1,1],
