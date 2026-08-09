@@ -30,7 +30,18 @@
     box-shadow:0 6px 16px rgba(0,0,0,.06)}
   /* [2026-08] 접기 기능 없앰 — 필터는 항상 보입니다.
      접혀 있으면 필터가 있는 줄도 모르고, 열고 닫는 손이 한 번 더 갑니다. */
-  .fbbody{display:flex;flex-wrap:wrap;gap:7px;padding:7px 12px 9px;align-items:flex-start}
+  /* [2026-08 · 모바일] 필터가 화면 절반을 가려서 접기를 되살렸습니다.
+     기본은 '접힘'이고, 머리글을 눌러야 펼쳐집니다.
+     기본 필터(200세대·평당가 1000만)가 걸려 있으므로 자동으로 펼치지 않습니다
+     — 자동으로 펼치면 접기를 만든 의미가 없어집니다. */
+  .fbhead{display:flex;align-items:center;justify-content:space-between;
+    height:42px;padding:0 14px;cursor:pointer;user-select:none;
+    font-size:13px;font-weight:800;color:var(--ink)}
+  .fbhead b{color:var(--accent);margin-left:6px;font-weight:800}
+  .fbhead i{font-style:normal;color:#94A3B8;font-size:11px;transition:transform .15s}
+  .filterbar.open .fbhead i{transform:rotate(180deg)}
+  .fbbody{display:none;flex-wrap:wrap;gap:7px;padding:2px 12px 10px;align-items:flex-start}
+  .filterbar.open .fbbody{display:flex}
   /* ── [범위 슬라이더] 검색 필터와 같은 부품. 손잡이 두 개로 정밀 조절 ── */
   .frng{flex:1 1 132px;min-width:126px;max-width:190px;border:1.5px solid var(--line);
     border-radius:10px;padding:4px 9px 6px;background:#fff}
@@ -208,6 +219,8 @@
 
 <!-- [필터 · 2026-08] 아실처럼 지도 위 필터 — 골라 켜면 핀이 걸러짐 -->
 <div class="filterbar" id="filterbar">
+  <div class="fbhead" onclick="document.getElementById('filterbar').classList.toggle('open')">
+    <span>🔍 지도 필터<b id="fbCount"></b></span><i>▾</i></div>
   <div class="fbbody">
   <select id="fKing">
     <option value="">👑 대장 전체</option>
@@ -329,10 +342,13 @@ function passFilter(b){
    카드가 닫혀 있어도 필터가 걸려 있는지 알 수 있어야 합니다. */
 function markFilterCount(){
   const bar=document.getElementById('filterbar'); if(!bar) return;
-  const sels=bar.querySelectorAll('.fbbody select');   // 슬라이더는 스스로 색이 바뀝니다
+  const sels=bar.querySelectorAll('.fbbody select');
   let n=0;
   sels.forEach(s=>{ if(s.value){ s.classList.add('on'); n++; } else s.classList.remove('on'); });
-  // (머리글을 없앴으므로 개수 표시는 하지 않습니다 — 슬라이더가 스스로 색으로 알려줍니다)
+  // 슬라이더(.frng.on)도 함께 셉니다 — 접혀 있어도 몇 개 걸렸는지 알아야 하니까요
+  n += bar.querySelectorAll('.fbbody .frng.on').length;
+  const lab=document.getElementById('fbCount');
+  if(lab) lab.textContent = n ? ' ' + n + '개 적용' : '';
 }
 function applyFilter(){
   markFilterCount();
