@@ -450,8 +450,11 @@ async function boot(){
       // 내부 표기는 기존 그대로 씁니다(CSS·필터 호환): nat=보라 · gu=금(시 대장)
       // kingPy = 왕관이 나온 평형. 말풍선에 보여줘야 헷갈리지 않습니다
       //   (BEST 대표 평형과 대장 평형이 다를 수 있습니다)
-      if(c.king==='nat'){ b.king='nat'; b.kingN=c.kingN||0; b.kingPy=c.pyeong; }
-      else if(b.king!=='nat'){ b.king='gu'; b.kingN=c.kingN||0; b.kingPy=c.pyeong; }
+      /* kingMo/kingLen/kingRun = 최근 N개월 중 1위였던 달 · 판정 가능한 달 · 최근 연속 */
+      if(c.king==='nat'){ b.king='nat'; b.kingN=c.kingN||0; b.kingPy=c.pyeong;
+                          b.kingMo=c.kingMo||0; b.kingLen=c.kingLen||0; b.kingRun=c.kingRun||0; }
+      else if(b.king!=='nat'){ b.king='gu'; b.kingN=c.kingN||0; b.kingPy=c.pyeong;
+                          b.kingMo=c.kingMo||0; b.kingLen=c.kingLen||0; b.kingRun=c.kingRun||0; }
     }
   }
 
@@ -592,8 +595,10 @@ async function boot(){
        그래서 어느 평형이 대장인지 왕관 옆에 적어줍니다.
        (예: 24평 차트를 보는데 왕관은 31평 것이면 아무도 이해 못 합니다) */
     const kpy = b.kingPy ? b.kingPy+'평' : '';
-    const crown = b.king==='nat' ? `<span class="crown nat" title="${b.kingPy||'?'}평 기준 · 전국 동급 무리 중 실거래가 1위 (전국 대장)">👑<em>${kpy}</em></span>`
-                : b.king==='gu'  ? `<span class="crown gu" title="${b.kingPy||'?'}평 기준 · 같은 시 동급 무리 중 실거래가 1위 (우리 시 대장)">👑<em>${kpy}</em></span>`
+    const _kg = kingGrade(b);
+    const _kt = _kg ? ` · ${_kg.name}(${_kg.desc})` : '';
+    const crown = b.king==='nat' ? `<span class="crown nat" title="${b.kingPy||'?'}평 기준 · 전국 동급 무리 중 실거래가 1위 (전국 대장)${_kt}">👑<em>${kpy}</em></span>`
+                : b.king==='gu'  ? `<span class="crown gu" title="${b.kingPy||'?'}평 기준 · 같은 시 동급 무리 중 실거래가 1위 (우리 시 대장)${_kt}">👑<em>${kpy}</em></span>`
                 : '';
     const kingCls = b.king ? ` king-${b.king}` : '';
     const tagIcon=L.divIcon({className:'',iconSize:[1,1],
@@ -846,6 +851,21 @@ function refreshTags(){
   }
 }
 
+/* ══ [대장 지속성 등급 · 2026-08] ═══════════════════════════════════════════
+   예전엔 대장이 '오늘의 1위'만 뜻했습니다. 그러면 5년째 부동의 1위와
+   지난달에 막 역전한 신흥 1위가 똑같이 보였습니다.
+   최근 N개월을 되감아 '몇 달 동안 1위였나'를 세서 셋으로 나눕니다.
+     · 부동의 대장 : 판정 가능한 달의 80% 이상 1위 — 오래된 기준점
+     · 신흥 대장   : 절반 미만인데 최근 6개월 안쪽으로 연속 1위 — 최근 역전(강한 신호)
+     · 그냥 대장   : 그 사이 (오르내리며 1·2위를 주고받는 관계)                */
+function kingGrade(b){
+  const n=b.kingLen||0, w=b.kingMo||0, run=b.kingRun||0;
+  if(!n) return null;
+  if(w >= n*0.8) return {name:'부동의 대장', desc:`${n}개월 중 ${w}개월 1위`};
+  if(w < n*0.5 && run>0 && run<=6) return {name:'신흥 대장', desc:`최근 ${run}개월 연속 1위 · ${n}개월 중 ${w}개월`};
+  return {name:'대장', desc:`${n}개월 중 ${w}개월 1위`};
+}
+
 /* 팝업 내용: 현재가·동급중앙값·저평가율·동급 목록 */
 function popupHtml(b){
   /* [2026-08] 조건 밖 단지(회색 핀)는 저평가 후보가 아니라 rate 가 null 입니다.
@@ -879,6 +899,20 @@ function popupHtml(b){
     ${hasRate
       ? `<div class="rate" style="color:${color}">${b.pyeong}평 기준 ${rateTxt}</div>`
       : `<div class="rate" style="color:${color}">저평가 후보 아님${b.noRecent&&b.lastM?` · 마지막 거래 ${String(b.lastM).replace('-','.')}`:''}</div>`}
+    ${(function(){
+        if(!b.king) return '';
+        const g=kingGrade(b);
+        const who=b.king==='nat'?'전국 대장':'우리 시 대장';
+        const cl=b.king==='nat'?'#7A6DB0':'#C8901E';
+        return `<div style="margin:8px 0 2px;padding:8px 10px;border-radius:9px;`
+          +`background:${b.king==='nat'?'#F5F1FF':'#FBF2DA'};font-size:12.5px;line-height:1.55">`
+          +`<b style="color:${cl}">👑 ${who}</b>`
+          +`${b.kingPy?` · ${b.kingPy}평 기준`:''}`
+          +`<br><span style="color:#5B6675">동급 ${b.kingN}곳 중 실거래가 1위</span>`
+          +(g?`<br><b style="color:${cl}">${g.name}</b>`
+              +`<span style="color:#5B6675"> · ${g.desc}</span>`:'')
+          +`</div>`;
+      })()}
     ${sibItems?`<div class="peers"><div class="pt">동급 아파트 · 같은 구 기준 (누르면 이동)</div>${sibItems}</div>`:''}
     <a class="go" href="javascript:void(0)" onclick="openPanel('${b.regionCode}','${b.name.replace(/'/g,"\\'")}')">📊 차트·거래이력 보기 (구/시/전국)</a>
     <div class="hint">새 탭에서 열려요 · 지도는 그대로</div>
