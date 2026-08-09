@@ -267,7 +267,15 @@ function fmtEok(man){ if(!man)return'-'; return (man/10000).toFixed(1)+'억'; }
 let map, layerTags, layerDots, selCircle=null, selKey=null;
 /* [필터 · 2026-08] 저평가율·평형·세대수 조건. 바꾸면 핀이 즉시 걸러짐 */
 const NOW_YEAR = new Date().getFullYear();
-const FILTER = { rate:null, py:null, hh:0, by:null, now:null, pp:null, king:'' };
+/* ══ [지도 필터 기본값 · 2026-08] ═══════════════════════════════════════════
+   요청: 지도를 처음 열었을 때 '200세대 이상 · 평당가 1000만 이상'이 기본으로
+        걸려 있어야 함(나홀로·초저가 단지가 지도를 덮는 것을 막음).
+        슬라이더를 양 끝까지 벌리면 언제든 전체로 되돌릴 수 있습니다.
+   중요: 세대수는 '미상(0)'도 함께 통과시킵니다.
+        신축은 세대수 정보가 늦게 들어와서(예: 레이카운티(2단지)),
+        200세대 조건을 엄격히 걸면 새 아파트가 지도에서 통째로 사라집니다. */
+const FILTER = { rate:null, py:null, hh:[200, Infinity], by:null,
+                 now:null, pp:[1000, Infinity], king:'' };
 function passFilter(b){
   if(!b) return false;
   // [대장 필터] any=대장 아무거나 · nat=전국 대장만 · gu=우리 시 대장만
@@ -283,26 +291,38 @@ function passFilter(b){
     if(r<FILTER.rate[0] || r>=FILTER.rate[1]) return false;
   }
   if(FILTER.hh){
+    /* [2026-08] 세대수 미상(0)은 통과시킵니다.
+       신축은 세대수가 늦게 들어와서, 엄격히 걸면 새 아파트가 다 사라집니다. */
     const hh=b.hh||0;
-    if(!hh || hh<FILTER.hh[0] || hh>FILTER.hh[1]) return false;
+    if(hh && (hh<FILTER.hh[0] || hh>FILTER.hh[1])) return false;
   }
-  if(FILTER.py && !(b.pyeong>=FILTER.py[0] && b.pyeong<=FILTER.py[1])) return false;
+  /* ══ [평형·가격·평당가 필터 · 2026-08 개편] ═════════════════════════════════
+     예전엔 '대표 평형 하나'만 봤습니다. 그래서 동래SKVIEW(대표 50평 8.5억)는
+     "30평대 · 6억대"로 걸러도 안 잡혔습니다 — 34평 6억대가 실제로 있는데도요.
+     지금은 pyList(그 아파트의 모든 평형)를 보고 **하나라도 맞으면 통과**합니다.
+     · 평형과 가격을 함께 걸면 '같은 평형에서 둘 다 맞는지'를 봅니다
+       (34평이 6억, 50평이 8.5억일 때 "30평대+6억대"는 통과, "30평대+8억대"는 탈락) */
+  const _pl = (b.pyList && b.pyList.length) ? b.pyList
+            : [{py:b.pyeong, now:b.now||0, pp:b.pp||0}];
+  if(FILTER.py || FILTER.now || FILTER.pp){
+    const ok = _pl.some(u=>{
+      if(FILTER.py && !(u.py>=FILTER.py[0] && u.py<=FILTER.py[1])) return false;
+      if(FILTER.now && !(u.now && u.now>=FILTER.now[0] && u.now<=FILTER.now[1])) return false;
+      if(FILTER.pp){
+        const pp = u.pp || (u.now&&u.py ? Math.round(u.now/u.py) : 0);
+        if(!pp || pp<FILTER.pp[0] || pp>FILTER.pp[1]) return false;
+      }
+      return true;
+    });
+    if(!ok) return false;
+  }
   // 입주년차 = 올해 - 건축년도 (by 0이면 미상 → 필터 켜면 제외)
   if(FILTER.by){
     const age = b.by ? (NOW_YEAR - b.by) : -1;
     if(age<0 || age<FILTER.by[0] || age>FILTER.by[1]) return false;
   }
-  // 현재가(만원)
-  if(FILTER.now){
-    if(!b.now || b.now<FILTER.now[0] || b.now>FILTER.now[1]) return false;
-  }
+  // (현재가·평당가는 위 pyList 블록에서 평형과 함께 판정합니다)
   // 평당가(만원)
-  if(FILTER.pp){
-    // [2026-08] 조건 밖 단지는 pp 가 0 이라 예전엔 평당가 필터를 켜면
-    //   회색 핀이 전부 사라졌습니다. 없으면 현재가÷평형으로 계산해서 씁니다.
-    const pp = b.pp || (b.now&&b.pyeong ? Math.round(b.now/b.pyeong) : 0);
-    if(!pp || pp<FILTER.pp[0] || pp>FILTER.pp[1]) return false;
-  }
   return true;
 }
 /* [카드형 · 2026-08] 머리글에 '몇 개 적용'을 표시하고, 켜진 필터에 색 테두리.
@@ -358,10 +378,15 @@ async function boot(){
               lastV=u[5]||0, lastM=u[6]||'';
         const id=rc+'|'+nm;
         let a=ALLAPT[id];
-        if(!a) a=ALLAPT[id]={name:nm, rc:rc, rname:rn, pys:[],
+        if(!a) a=ALLAPT[id]={name:nm, rc:rc, rname:rn, pys:[], byPy:{},
                              now:0, lastV:0, lastM:'', hh:hh, by:by};
         if(py && a.pys.indexOf(py)<0) a.pys.push(py);
-        if(nowV>a.now) a.now=nowV;              // 평형 중 가장 비싼 값을 대표로
+        /* [2026-08] 평형별 가격을 반드시 남깁니다.
+           예전엔 `if(nowV>a.now) a.now=nowV` 로 **가장 비싼 평형 하나만** 남겼습니다.
+           그래서 동래SKVIEW 34평 6억대가 사라지고 50평 8.5억만 남아,
+           지도 마커도 8.5억으로 찍히고 "30평대+6억대" 필터에도 안 잡혔습니다. */
+        if(py) a.byPy[py] = Math.max(a.byPy[py]||0, nowV || lastV || 0);
+        if(nowV>a.now) a.now=nowV;              // (전체 대표값 — 폴백용으로만 유지)
         if(lastM>a.lastM){ a.lastM=lastM; a.lastV=lastV; }
       }
     }
@@ -369,19 +394,43 @@ async function boot(){
     console.log('[all_list] 아파트', Object.keys(ALLAPT).length);
   })();
 
-  // 후보 정리: 같은 단지는 저평가율 큰 평형 대표. 동급 중앙값(sibMed)도 보관.
+  /* ══ [대표 평형·기준 개편 · 2026-08] ══════════════════════════════════════
+     예전 문제 두 가지:
+      ① 대표 평형을 '저평가율이 가장 큰 평형'으로 골랐습니다.
+         → 동래SKVIEW 가 50평 8.5억으로 지도에 찍혔습니다. 사람들은 그 단지를
+           30평대 6억대로 아는데, 지도만 보면 "8.5억?" 하고 오해합니다.
+      ② 저평가율을 '구(區) 동급' 기준(rate)으로 썼습니다.
+         → 차트는 '시 동급'(siRate)으로 그리는데 마커는 구 기준이라 숫자가 달랐습니다.
+           (코오롱하늘채1차: 마커 +6% vs 차트 +21%)
+     지금:
+      ① 대표 = **33평에 가장 가까운 평형** (사람들이 그 아파트 가격으로 떠올리는 값)
+      ② 저평가율 = **시 동급 기준(siRate)** 우선, 없으면 구 기준(rate)
+      ③ 그 아파트의 모든 평형 정보를 pyList 에 담아둡니다 → 필터가 '어느 평형이라도
+         조건에 맞으면 통과'하도록. (예전엔 대표 평형 하나만 봐서, 30평대·6억으로
+         걸러도 동래SKVIEW 가 안 잡혔습니다 — 필터가 사실상 무의미했습니다)     */
+  const _PY_IDEAL = 33;                 // 30평대 대표. 사람들이 가장 먼저 떠올리는 크기
   for(const reg of DATA.regions||[]){
     for(const c of reg.candidates||[]){
       const key = reg.code + '|' + c.name;
+      const _rate = (c.siRate != null) ? c.siRate : (c.rate || 0);
       const prev = BEST[key];
-      if(!prev || (c.rate||0) > prev.rate){
-        BEST[key] = { key, name:c.name, rname:reg.name, rate:c.rate||0,
-                      pyeong:c.pyeong, now:c.now||0, sibMed:c.sibMed||0,
-                      sibMax:c.sibMax||0,
-                      king:null, kingN:0, kingPy:0,
-                      sibs:c.sibs||[], regionCode:reg.code, hh:c.hh||0,
-                      pp:c.pp||0, by:c.by||0 };   // [필터용] 평당가·건축년도 추가
+      if(prev){
+        // 이미 있으면 '평형 목록'만 늘리고, 대표는 33평에 더 가까운 쪽으로 교체
+        prev.pyList.push({py:c.pyeong, now:c.now||0, pp:c.pp||0, rate:_rate});
+        if(Math.abs(c.pyeong - _PY_IDEAL) < Math.abs(prev.pyeong - _PY_IDEAL)){
+          Object.assign(prev, { rate:_rate, pyeong:c.pyeong, now:c.now||0,
+                                sibMed:c.sibMed||0, sibMax:c.sibMax||0,
+                                sibs:c.sibs||[], pp:c.pp||0 });
+        }
+        continue;
       }
+      BEST[key] = { key, name:c.name, rname:reg.name, rate:_rate,
+                    pyeong:c.pyeong, now:c.now||0, sibMed:c.sibMed||0,
+                    sibMax:c.sibMax||0,
+                    king:null, kingN:0, kingPy:0,
+                    sibs:c.sibs||[], regionCode:reg.code, hh:c.hh||0,
+                    pp:c.pp||0, by:c.by||0,
+                    pyList:[{py:c.pyeong, now:c.now||0, pp:c.pp||0, rate:_rate}] };
     }
   }
 
@@ -438,14 +487,46 @@ async function boot(){
     if(useAll){
       for(const key in ALLAPT){
         const a=ALLAPT[key];
-        if(BEST[key]) continue;               // 이미 후보면 건너뜀
+        if(BEST[key]){
+          /* [2026-08] 이미 후보인 단지도 **전체 평형을 합쳐** 줍니다.
+             예전엔 continue 로 건너뛰어서, 후보에 없는 평형(자격 미달 34평 등)이
+             pyList 에 빠졌습니다. 동래SKVIEW 가 50평만 남은 원인입니다. */
+          const B=BEST[key];
+          B.pyList = B.pyList || [];
+          const have = new Set(B.pyList.map(x=>x.py));
+          for(const _p of a.pys){
+            if(have.has(_p)) continue;
+            const _v=(a.byPy[_p]||0)*1000;    // 억×10 → 만원
+            B.pyList.push({py:_p, now:_v, pp:0, rate:null});
+          }
+          // 대표 평형을 전체 평형 중 33평에 가장 가까운 것으로 다시 고름
+          let best=B.pyList[0];
+          for(const u of B.pyList)
+            if(Math.abs(u.py-_PY_IDEAL) < Math.abs(best.py-_PY_IDEAL)) best=u;
+          if(best && best.py!==B.pyeong){
+            B.pyeong=best.py;
+            if(best.now) B.now=best.now;
+            if(best.rate!=null) B.rate=best.rate;
+            else { B.rate=null; B.sibMed=0; B.sibs=[]; }   // 후보 아닌 평형이 대표면 저평가율 없음
+          }
+          continue;
+        }
         if(!COORDS[key]) continue;            // 좌표 없으면 못 찍음
+        /* [2026-08] 예전엔 pys 의 '마지막(가장 큰) 평형'을 대표로 써서
+           대형 평형 가격이 지도에 찍혔습니다. 후보와 같은 규칙(33평에 가까운 것)으로. */
+        let _rep = a.pys[0]||0;
+        for(const _p of a.pys)
+          if(Math.abs(_p-_PY_IDEAL) < Math.abs(_rep-_PY_IDEAL)) _rep=_p;
+        // 대표 평형의 '그 평형 가격'을 씁니다(전체 최고가가 아님)
+        const _nowW = ((a.byPy[_rep]||a.now||a.lastV)||0)*1000;   // 억×10 → 만원
         BEST[key] = { key, name:a.name, rname:a.rname, rate:null,
-                      pyeong:a.pys[a.pys.length-1]||0,
-                      now:(a.now||a.lastV)*1000,   // 억×10 → 만원
+                      pyeong:_rep,
+                      now:_nowW,
                       sibMed:0, sibs:[], regionCode:a.rc,
                       hh:a.hh, pp:0, by:a.by, plain:true,
-                      pys:a.pys, lastM:a.lastM, noRecent:!a.now };
+                      pys:a.pys, lastM:a.lastM, noRecent:!a.now,
+                      pyList:a.pys.map(_p=>({py:_p,
+                        now:((a.byPy[_p]||0)||0)*1000, pp:0, rate:null})) };
       }
     } else {
       const PD = (window.__APTDATA__||{}).peerdata||{};
@@ -519,7 +600,7 @@ async function boot(){
       html:`<div class="tag${b.plain?' plain':''}${kingCls}" id="tag-${cssId(key)}">
               ${crown}
               <div class="nm">${b.name}</div>
-              <div class="pr" style="background:${color}">${b.plain?label:fmtEok(b.now)+' · '+label}</div>
+              <div class="pr" style="background:${color}">${b.plain?label:fmtEok(b.now)+' · '+b.pyeong+'평 '+label}</div>
             </div>`});
     const tag=L.marker([b.lat,b.lon],{icon:tagIcon});   // 흩뿌린 좌표 사용
     tag.on('click',()=>select(key));
@@ -579,13 +660,25 @@ function buildRanges(){
   }
   const mm=a=>a.length?[Math.min(...a),Math.max(...a)]:[0,1];
   const eok=v=> v>=10000 ? (v/10000).toFixed(1).replace(/\.0$/,'')+'억' : v+'만';
+  /* ══ [범위 상한 묶기 · 2026-08] ═══════════════════════════════════════════
+     실제 최대값을 그대로 쓰면 손잡이 한 칸이 너무 거칠어집니다.
+       세대수 18~12,028세대 · 가격 1,000만~244억 · 평형 ~100평 초과
+     대부분의 단지가 아래쪽에 몰려 있어서, 손잡이를 조금만 밀어도 확 걸러졌습니다.
+     그래서 상한을 잘라 '그 이상'으로 묶습니다. 손잡이를 맨 끝에 두면
+     상한 없음(=그 이상 전부 포함)으로 동작하므로 큰 단지가 사라지지 않습니다.  */
+  const CAP = {hh:5000, now:500000, py:100, pp:10000}; // 5,000세대·50억·100평·평당1억
+  const capped=(r,cap)=>[r[0], Math.min(r[1], cap)];
+  const capLab=(cap,fmt)=> v => (v>=cap ? fmt(cap)+' 이상' : fmt(v));
 
   const mk=(title,key,lo,hi,step,fmt)=>{
-    lo=Math.floor(lo); hi=Math.ceil(hi);
+    /* [2026-08] step 배수로 맞춥니다. 예전엔 min=18·step=10 이라 오른쪽 끝이
+       4,998 에서 멈춰 상한(5,000)에 절대 닿지 못했고, 그래서 '이상' 표시가
+       뜨지 않았습니다. */
+    lo=Math.floor(lo/step)*step; hi=Math.ceil(hi/step)*step;
     if(hi<=lo) hi=lo+step;
     const cur=FILTER[key];
     let a=cur?Math.max(lo,Math.min(hi,cur[0])):lo;
-    let b=cur?Math.max(lo,Math.min(hi,cur[1])):hi;
+    let b=cur?Math.max(lo,Math.min(hi,(cur[1]===Infinity?hi:cur[1]))):hi;
     if(a>b) a=b;
     const w=document.createElement('div');
     const isAll=(a<=lo&&b>=hi);
@@ -607,7 +700,9 @@ function buildRanges(){
     };
     const commit=()=>{
       const A=+r1.value,B=+r2.value;
-      FILTER[key] = (A<=lo&&B>=hi) ? null : [A,B];
+      // 오른쪽 손잡이가 끝에 있으면 '그 이상 전부' → 상한을 무한으로 둡니다.
+      //   (상한을 잘랐으니, 100평·50억·5,000세대 넘는 단지가 사라지면 안 됩니다)
+      FILTER[key] = (A<=lo&&B>=hi) ? null : [A, (B>=hi ? Infinity : B)];
       applyFilter();
     };
     r1.oninput=()=>{ if(+r1.value>+r2.value) r1.value=r2.value; paint(); };
@@ -618,12 +713,13 @@ function buildRanges(){
     paint();
     box.appendChild(w);
   };
-  const P=mm(vals.py), H=mm(vals.hh), B2=mm(vals.by), N=mm(vals.now), PP=mm(vals.pp);
-  mk('평형','py',  P[0],P[1],1,   v=>v+'평');
-  mk('세대수','hh',H[0],H[1],10,  v=>v.toLocaleString()+'세대');
+  const P=capped(mm(vals.py),CAP.py), H=capped(mm(vals.hh),CAP.hh),
+        B2=mm(vals.by), N=capped(mm(vals.now),CAP.now), PP=capped(mm(vals.pp),CAP.pp);
+  mk('평형','py',  P[0],P[1],1,   capLab(CAP.py,  v=>v+'평'));
+  mk('세대수','hh',H[0],H[1],10,  capLab(CAP.hh,  v=>v.toLocaleString()+'세대'));
   mk('연식','by',  B2[0],B2[1],1, v=>v+'년');
-  mk('가격','now', N[0],N[1],500, eok);
-  mk('평당가','pp',PP[0],PP[1],50,v=>v+'만');
+  mk('가격','now', N[0],N[1],500, capLab(CAP.now, eok));
+  mk('평당가','pp',PP[0],PP[1],50,capLab(CAP.pp, v=>v.toLocaleString()+'만'));
 }
 
 /* ── [검색 · 2026-08] 아파트 이름 검색 → 그 위치로 지도 이동 ──
@@ -781,7 +877,7 @@ function popupHtml(b){
         : `<div class="n"><div class="t">평형</div><div class="v">${(b.pys&&b.pys.length)?b.pys.join('·')+'평':(b.pyeong+'평')}</div></div>`}
     </div>
     ${hasRate
-      ? `<div class="rate" style="color:${color}">${rateTxt}</div>`
+      ? `<div class="rate" style="color:${color}">${b.pyeong}평 기준 ${rateTxt}</div>`
       : `<div class="rate" style="color:${color}">저평가 후보 아님${b.noRecent&&b.lastM?` · 마지막 거래 ${String(b.lastM).replace('-','.')}`:''}</div>`}
     ${sibItems?`<div class="peers"><div class="pt">동급 아파트 · 같은 구 기준 (누르면 이동)</div>${sibItems}</div>`:''}
     <a class="go" href="javascript:void(0)" onclick="openPanel('${b.regionCode}','${b.name.replace(/'/g,"\\'")}')">📊 차트·거래이력 보기 (구/시/전국)</a>

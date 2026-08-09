@@ -319,9 +319,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.09 13:49 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.09 15:31 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.09 13:49</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.09 15:31</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -351,7 +351,13 @@
     <div class="info-step"><div class="n">1</div><div><b>비슷한 크기</b><span>평수가 서로 ±18% 이내 (꼭 같은 평수 아니어도 OK — 24평이면 대략 20~28평까지)</span></div></div>
     <div class="info-step"><div class="n">2</div><div><b>과거에 비슷한 값</b><span>수집 시작부터 <b>처음 7년간</b> 가격이 서로 ±10% 이내 (3·5·10년으로 바꿔볼 수 있어요)</span></div></div>
     <div class="info-step"><div class="n">3</div><div><b>함께 움직임</b><span>그 시절 두 단지의 가격 비율이 거의 일정 (같이 오르내림)</span></div></div><div class="info-step"><div class="n">4</div><div><b>진짜 거래가 충분</b><span>그 기간의 15% 이상 달에 실제 거래가 있어야 해요. 거래가 뜸한 단지는 빈 달을 직전 값으로 채우다 보니 &quot;일직선&quot;이 되어 잘못 동급으로 잡히거든요</span></div></div>
-    <p class="ip">이 셋을 다 통과한 단지가 <b>동급</b>이고, 지금 동급 평균보다 가격이 낮은 단지를 매치로 보여줘요.</p>
+    <p class="ip">이 셋을 다 통과한 단지가 <b>동급</b>이고, 지금 동급 중앙값보다 가격이 낮은 단지를 매치로 보여줘요.</p>
+    <p class="ip"><b>현재가는 최근 6개월 실거래가의 상위 25%</b>로 정해요. 최고가를 쓰면 거래가 많은 단지가
+    무조건 이기고, 중앙값을 쓰면 1층 급매까지 그대로 반영돼요. 상위 25%는 그 사이라서 증여·급매에 덜 흔들리고,
+    사람들이 떠올리는 <b>중상층 가격</b>에 더 가까워요. (실제로 3개월 뒤 거래를 가장 잘 맞혔어요)</p>
+    <p class="ip">👑 <b>대장</b>은 그 무리에서 <b>지금 가장 비싼 단지</b>예요. 저평가의 반대편이고,
+    무리의 기준점이 돼요. 같은 아파트라도 <b>34평은 대장인데 24평은 저평가</b>일 수 있어요 —
+    평형마다 시장 평가가 다르니까요. 그래서 <b>몇 평 기준인지</b>를 항상 함께 적어드려요.</p>
     <p class="ip" style="background:#F7F9FC;border-radius:10px;padding:10px 12px;font-size:13px;color:#3a4658">📊 <b>기준을 바꿔가며 볼 수 있어요.</b><br>· <b>기간</b>: 과거 3년 · 5년 · 7년 · 10년 (차트에서 선택)<br>· <b>시점</b>: <b>과거 기준</b>(처음 N년이 닮았나) 또는 <b>현재 기준</b>(최근 N년이 닮았나)<br>같은 단지도 기간·시점을 바꾸면 동급과 저평가율이 달라져요.</p>
     <div class="info-note">💡 옛날 반에서 성적이 비슷했던 친구들 중 한 명만 뒤처졌다면, 다시 치고 올라올 여지가 있는지 보는 것과 같아요.<br><br>※ 집값은 재건축·학군·개발 등 여러 이유로 벌어질 수 있으니 <b>참고용</b>이에요.</div>
   </div>
@@ -428,7 +434,7 @@
     두 단지의 평균 가격 수준이 서로 ±10% 이내여야 합니다.
     애초에 가격대가 완전히 다르면 같은 급으로 볼 수 없기 때문입니다.</li>
     <li><strong>함께 움직인 궤적</strong> — 그 기간 동안 두 단지의 가격 비율이 크게 흔들리지 않아야 합니다.
-    구체적으로는 월별 가격 비율의 변동계수(CV)가 0.12 이하일 때만 동급으로 인정합니다.
+    구체적으로는 월별 가격 비율의 변동계수(CV)가 0.08 이하일 때만 동급으로 인정합니다.
     한쪽만 급등하거나 급락한 관계는 애초에 같은 급이 아니었다고 보는 것입니다.</li>
     <li><strong>충분한 실거래</strong> — 판정 기간의 <strong>15% 이상 달에 실제 거래</strong>가 있어야 하고,
     기간의 마지막 3분의 1 구간에도 거래가 최소 한 건 있어야 합니다.
@@ -448,6 +454,68 @@
   <p>이 세 조건을 통과한 단지들을 모아 ‘동급 그룹’을 만들고, 그룹의 현재 평균 가격과
   각 단지의 현재 가격을 비교합니다. 동급 평균보다 눈에 띄게 낮은 단지가 <strong>저평가 후보(★)</strong>로 표시됩니다.
   반대로 동급보다 높으면 상대적으로 앞서 있다는 뜻입니다.</p>
+
+  <h2>현재가는 어떻게 정하나요?</h2>
+  <p>모든 비교의 출발점은 <strong>“이 아파트 지금 얼마인가”</strong>입니다. 그런데 아파트는 주식처럼
+  하루하루 시세가 찍히지 않습니다. 한 달에 한 건도 거래가 없는 단지가 흔하고, 같은 단지 같은 평형이라도
+  <strong>1층과 21층이 30% 넘게 벌어집니다</strong>. 그래서 어떤 거래를 골라 쓰느냐가 결과를 좌우합니다.</p>
+  <p>본 서비스는 <strong>최근 6개월 실거래가의 상위 25% 값(3분위)</strong>을 그 평형의 현재가로 씁니다.
+  최고가가 아니라 상위 25%인 이유는, 최고가를 쓰면 <strong>거래가 많은 단지가 무조건 유리해지기</strong>
+  때문입니다. 거래 300건 중 최고가는 거래 20건 중 최고가보다 높게 나오기 마련이고, 그러면
+  아파트의 가치가 아니라 거래 횟수를 재는 셈이 됩니다. 분위수는 표본 크기에 흔들리지 않습니다.</p>
+  <p>이 방식은 두 가지 문제를 함께 해결합니다. 첫째, <strong>증여·특수관계 저가 거래</strong>는 대체로
+  하위권에 있으므로 상위 25%를 보면 자연히 덜 반영됩니다. 둘째, 사람들이 그 아파트 가격으로 떠올리는 값은
+  1층 급매가 아니라 <strong>중상층의 정상 물건대</strong>인데, 상위 25%가 그쪽에 더 가깝습니다.</p>
+  <p>기간을 6개월로 잡은 것도 측정 결과입니다. 시계를 3개월 전으로 되돌려 여러 방식으로 현재가를 낸 뒤,
+  실제로 그 후 3개월간 일어난 거래와 얼마나 맞는지 비교했습니다(단위 1,594개).
+  6개월 상위 25%가 오차 3.73%로 가장 정확했고, 12개월 중앙값은 5.00%로 더 나빴습니다.
+  기간이 짧으면 표본이 부족하고, 길면 지금 시세와 멀어집니다.
+  <strong>최근 6개월에 거래가 아예 없는 평형은 현재가를 정하지 않고 분석에서 제외</strong>합니다.
+  몇 년 전 가격을 “현재가”라고 부를 수는 없기 때문입니다.</p>
+
+  <h2>저평가율은 어떻게 계산되나요?</h2>
+  <p>저평가율은 <strong>(동급 중앙값 − 내 현재가) ÷ 동급 중앙값 × 100</strong> 입니다.
+  값이 <strong>양수면 동급보다 싸다(저평가)</strong>, <strong>음수면 동급보다 비싸다(고평가)</strong>는 뜻입니다.
+  평균이 아니라 중앙값을 쓰는 이유는, 유난히 비싸거나 싼 한두 곳에 결과가 휘둘리지 않게 하기 위함입니다.</p>
+  <p>동급이 수십 곳일 때는 <strong>가장 닮은 7곳</strong>만 골라 중앙값을 냅니다. ‘닮음’은
+  과거 가격 수준이 1에 가깝고 비율의 흔들림이 작은 순서로 판단합니다. 화면 차트도 같은 7곳을 그리므로,
+  <strong>차트에 보이는 선들과 화면에 표시된 저평가율이 같은 근거</strong>를 갖게 됩니다.</p>
+  <p>지도 마커와 목록에는 <strong>어느 평형 기준인지</strong>가 함께 표시됩니다.
+  같은 아파트라도 24평과 34평의 저평가율은 다를 수 있고, 한쪽은 저평가인데 다른 쪽은 고평가일 수 있습니다.
+  지도 마커는 사람들이 그 아파트 가격으로 가장 먼저 떠올리는 <strong>30평대에 가까운 평형</strong>을
+  대표로 보여줍니다.</p>
+
+  <h2>대장 아파트(👑)는 어떻게 뽑나요?</h2>
+  <p>대장은 <strong>같은 동급 무리 안에서 지금 가장 비싼 아파트</strong>입니다. 저평가 후보의 반대편에 있는
+  개념으로, 그 무리의 기준점 역할을 합니다. 왕관은 두 가지입니다.</p>
+  <ul>
+    <li><strong>전국 대장</strong> — 전국의 동급 무리 안에서 실거래가 1위</li>
+    <li><strong>우리 시 대장</strong> — 같은 시(광역시는 시 전체) 동급 무리 안에서 1위. 전국 1위는 아님</li>
+  </ul>
+  <p>판정에는 몇 가지 안전장치가 있습니다.</p>
+  <ul>
+    <li><strong>동급이 2곳 이상</strong>일 때만 왕관을 줍니다. 비교 대상이 없는데 “1위”라고 하는 것은
+    의미가 없기 때문입니다.</li>
+    <li><strong>화면에 보이는 단위(0.1억)로 반올림한 뒤</strong> 비교합니다. 4억 3,200만원과 4억 3,000만원은
+    화면에 둘 다 “4.3억”으로 나오는데, 그 200만원 차이로 대장을 정하면 “같은 값인데 왜 저게 대장이냐”가
+    됩니다. 눈에 보이게 더 비쌀 때만 대장입니다.</li>
+    <li><strong>최근 6개월 실거래가 3건 이상</strong>인 평형만 대장 경쟁에 참여합니다. 거래 한 건으로 정해진
+    가격은 그 한 건이 저층이냐 고층이냐에 따라 순위를 뒤집어 버립니다.</li>
+    <li>왕관은 <strong>평형별로</strong> 붙습니다. 그래서 마커의 왕관 옆에 <strong>어느 평형이 대장인지</strong>를
+    함께 적어 둡니다. 34평이 대장인데 24평 차트를 보고 있으면 헷갈리기 때문입니다.</li>
+  </ul>
+  <p>같은 아파트라도 <strong>대장인 평형과 저평가인 평형이 동시에 있을 수 있습니다</strong>.
+  34평은 동급 중 1위인데 24평은 동급 중앙값보다 낮은 경우가 실제로 흔합니다. 모순이 아니라,
+  평형마다 시장이 다르게 평가하고 있다는 뜻입니다.</p>
+
+  <h2>세대수를 모르는 단지는 어떻게 되나요?</h2>
+  <p>세대수는 실거래가 자료에 들어 있지 않아, 국토교통부 단지 정보를 따로 받아 채웁니다.
+  그래서 <strong>준공한 지 얼마 안 된 신축은 세대수가 아직 비어 있을 수 있습니다</strong>.</p>
+  <p>이런 단지는 <strong>후보·동급 판정에서는 제외</strong>됩니다. 200세대 이상인지 확인할 수 없으면
+  비교군에 넣을 근거가 없기 때문입니다. 다만 <strong>지도와 검색에는 그대로 나옵니다</strong>.
+  지도 상단의 세대수 필터도 ‘세대수 미상’ 단지는 걸러내지 않습니다. 정보가 없다는 이유로 새 아파트가
+  지도에서 통째로 사라지면, 그게 더 큰 문제이기 때문입니다.
+  세대수 자료는 매일 갱신되므로, 시간이 지나면 대부분 채워집니다.</p>
 
   <h2>분석 대상과 범위</h2>
   <p>분석 대상은 <strong>평당 1,000만원 이상 3억원 이하</strong> 구간의 아파트입니다.
@@ -557,7 +625,22 @@
       <div class="info-step"><div class="n">1</div><div><b>비슷한 크기</b><span>평수가 서로 ±18% 이내 (꼭 같은 평수 아니어도 OK — 24평이면 대략 20~28평까지). 차트의 🎯필터에서 평형대를 직접 고르면 그 평형대와 비교해요 (이땐 총액 대신 <b>평당가</b>로 급을 재요)</span></div></div>
       <div class="info-step"><div class="n">2</div><div><b>과거에 비슷한 값</b><span>수집 시작부터 <b>처음 7년간</b> 가격이 서로 ±10% 이내 (3·5·10년으로 바꿔볼 수 있어요)</span></div></div>
       <div class="info-step"><div class="n">3</div><div><b>함께 움직임</b><span>그 시절 두 단지의 가격 비율이 거의 일정 (같이 오르내림)</span></div></div><div class="info-step"><div class="n">4</div><div><b>진짜 거래가 충분</b><span>그 기간의 15% 이상 달에 실제 거래가 있어야 해요. 거래가 뜸한 단지는 빈 달을 직전 값으로 채우다 보니 &quot;일직선&quot;이 되어 잘못 동급으로 잡히거든요</span></div></div>
-      <p style="margin-top:12px">이 셋을 다 통과한 단지가 <b>동급</b>이고, 지금 동급 평균보다 가격이 낮은 단지를 매치로 보여줘요. ‘처음 몇 년’은 전국 동급 보기 화면에서 직접 바꿀 수 있어요.</p>
+      <p style="margin-top:12px">이 셋을 다 통과한 단지가 <b>동급</b>이고, 지금 동급 중앙값보다 가격이 낮은 단지를 매치로 보여줘요. ‘처음 몇 년’은 화면에서 직접 바꿀 수 있어요.</p>
+      <div class="info-note" style="background:#FFF8EC">💰 <b>현재가</b>는 <b>최근 6개월 실거래가의 상위 25%</b>예요.<br>
+        · 최고가를 쓰면 <b>거래 많은 단지가 무조건 이겨요</b> (300건 중 최고가 &gt; 20건 중 최고가)<br>
+        · 중앙값을 쓰면 <b>1층 급매</b>까지 그대로 들어가요 (같은 평형도 1층↔21층이 30% 차이)<br>
+        · 상위 25%는 그 사이 — 증여·급매에 덜 흔들리고 <b>중상층 가격</b>에 가까워요<br>
+        · 최근 6개월 거래가 <b>아예 없으면 분석에서 빼요</b> (몇 년 전 값을 '현재가'라 할 수 없으니까요)</div>
+      <div class="info-note" style="background:#F5F1FF">👑 <b>대장</b>은 그 무리에서 <b>지금 가장 비싼 단지</b>예요. 저평가의 반대편이에요.<br>
+        · <span style="color:#7A6DB0">보라</span> = 전국 동급 중 1위 · <span style="color:#C8901E">금</span> = 우리 시 동급 중 1위<br>
+        · 동급이 <b>2곳 이상</b>이어야 주고, <b>0.1억 단위로 반올림해</b> 눈에 보이게 더 비쌀 때만 줘요<br>
+        · <b>최근 6개월 거래 3건 이상</b>이어야 참여해요 (한 건으로 정하면 저층·고층에 순위가 뒤집혀요)<br>
+        · <b>같은 아파트라도 34평은 대장인데 24평은 저평가</b>일 수 있어요 — 평형마다 평가가 달라요.
+          그래서 <b>몇 평 기준인지</b>를 항상 함께 적어드려요.</div>
+      <div class="info-note">🏢 <b>세대수를 모르는 단지</b>도 있어요. 세대수는 실거래 자료에 없어서 따로 받아오는데,
+        신축은 아직 안 채워진 경우가 있어요. 이런 단지는 <b>후보·동급 판정에서는 빠지지만</b>
+        <b>지도·검색에는 그대로 나와요</b>. 정보가 없다는 이유로 새 아파트가 지도에서 사라지면 더 이상하니까요.
+        (세대수는 매일 갱신돼서 시간이 지나면 대부분 채워져요)</div>
       <p style="margin-top:8px">🔍 <b>검색 필터</b>(위쪽)는 <b>매치 목록</b>을 거르고, 🎯 <b>차트 필터</b>(차트 제목 아래)는 <b>비교 상대(동급)</b>를 걸러요. 예: 전국 비교에서 <b>대구 수성구 · 20평대 · 200세대 이상 · 10년 이내</b>하고만 비교할 수 있어요.</p>
       <div class="info-note">💡 옛날 반에서 성적이 비슷했던 친구들 중 한 명만 뒤처졌다면, 다시 치고 올라올 여지가 있는지 보는 것과 같아요.<br><br>※ 집값은 재건축·학군·개발 등 여러 이유로 벌어질 수 있으니 <b>참고용</b>이에요.</div>
     </div>
@@ -708,7 +791,11 @@ let peerPy = "";                     // 동급 평형대 필터: ""(내 평수 �
 let peerPp = "";                     // 동급 평당가 필터: ""(전체) | "1500-2000"(만원/평 구간)
 let peerFound = 0;                   // 이번에 찾은 동급 총 개수(화면에 안내용)
 let legendUnits = {};                // 지금 범례(차트)에 그려진 단지들 — 상세보기 버튼이 씀
-let peerHhMin = ((DATA.elig&&DATA.elig.hhMin)||0), peerHhMax = 10000; // [7a] 기본 200세대 이상 (사용자가 바꿀 수 있음)
+/* [2026-08] 기본값을 0(전체)으로. 예전엔 200세대가 처음부터 켜져 있어서
+   ⓐ '차트 필터 1개 적용'이 항상 떠 있고 ⓑ 마커(빌더 계산, 필터 없음)와
+   차트(화면 계산, 200세대 필터)가 서로 다른 동급을 봐서 숫자가 달랐습니다.
+   200세대 조건은 빌더가 이미 '자격'으로 걸러 놓았으므로 여기서 또 걸 필요가 없습니다. */
+let peerHhMin = 0, peerHhMax = 10000;
 const $ = s => document.querySelector(s);
 const fmtEok = v => { if(v==null) return "-"; const e=v/10000; return (Number.isInteger(e)?e:e.toFixed(1))+"억"; };
 
@@ -1418,6 +1505,10 @@ function computePeers(meKey, years, scp, basis, built){
            ② 한 시·도에서 최대 2곳까지만 뽑아 여러 지역이 골고루 나오게 함.       */
   out.sort((a,b)=>a.sim-b.sim);
   peerFound = out.length;              // 실제로 찾은 동급 총 개수 (화면 안내용)
+  /* [2026-08] 찾은 동급 '전부'를 따로 보관합니다.
+     차트는 알아보기 쉽게 8곳만 그리는데, 예전엔 그 8곳으로 중앙값을 냈습니다.
+     빌더(마커의 %)는 동급 전부로 내므로 두 숫자가 달랐습니다. */
+  window.__PEERALL__ = out.map(x=>x.key);
   if(scp==="nat"){
     const cnt={}, first=[], rest=[];
     out.forEach(x=>{
@@ -1663,7 +1754,10 @@ function drawPeerFilters(){
     highlightIds=[]; render();
   };
   const prng = (title, lo, hi, step, fmt, getAB, setAB) => {
-    lo=Math.floor(lo); hi=Math.ceil(hi);
+    /* [2026-08] step 배수로 맞춥니다. 안 맞추면 오른쪽 끝이 상한에 못 닿아
+       손잡이가 끝에 있는데도 '전체'가 아니라 값이 찍히는 '유령 필터'가 됩니다.
+       (평당가가 1000만~13850만 으로 계속 켜져 있던 원인) */
+    lo=Math.floor(lo/step)*step; hi=Math.ceil(hi/step)*step;
     if(hi<=lo) hi=lo+step;
     let [ca,cb]=getAB(lo,hi);
     let a=Math.max(lo,Math.min(hi,ca)), b=Math.max(lo,Math.min(hi,cb));
@@ -1912,7 +2006,11 @@ function render(){
       const lastOf=id=>{ const nv=nowOf(id); if(nv) return nv*1000;
                          const p=(units[id]||{}).prices||[]; for(let i=p.length-1;i>=0;i--) if(p[i]!=null) return p[i]; return null; };
       const meNow=lastOf(meKey);
+      // 말풍선 설명용 목록은 '화면에 그린 것'만 (사용자가 눈으로 대조할 수 있게)
       const peers=ids.filter(k=>k!==meKey).map(k=>({name:(units[k]||{}).name||"", py:(units[k]||{}).pyeong||0, now:lastOf(k)})).filter(x=>x.now!=null);
+      /* [2026-08 확정] 중앙값은 '화면에 그린 동급'으로 냅니다.
+         빌더도 같은 방식(가장 닮은 7곳)으로 바꿨기 때문에 두 숫자가 맞습니다.
+         한때 '동급 전부'로 바꿔봤지만, 그러면 마커(빌더)와 또 어긋났습니다. */
       const peerNows=peers.map(x=>x.now);
       if(ids.length>=2 && meNow!=null && peerNows.length){
         const medPeer=medianOf(peerNows);
@@ -2224,23 +2322,25 @@ async function openFromHash(){
      ② 없으면 그 지역·이름의 첫 유닛
      ③ 그래도 없으면 이름만으로
      (예전엔 ②만 있어서 42평 같은 비주류 평형이 먼저 열렸음) */
-  let found = null;
-  const reg = (DATA.regions||[]).find(r=>r.code===rc);
-  if(reg){
-    const cand = (reg.candidates||[]).find(c=>c.name===nm);
-    if(cand && cand.id){
-      const tryKey = rc + "|" + cand.id;       // id = "이름|면적"
-      if(pd.units[tryKey]) found = tryKey;
-    }
+  /* [평형 선택 · 2026-08 개편] 33평(30평대)에 가장 가까운 평형으로 엽니다.
+     예전엔 ① 후보 평형 → ② 첫 유닛 순서였는데, 후보가 50평이거나 유닛 순서가
+     대형부터면 "동래SKVIEW (50평)"처럼 뜬금없는 대형이 먼저 열렸습니다.
+     지도 마커도 33평 기준으로 대표를 고르므로, 눌렀을 때 같은 평형이 나와야 합니다. */
+  const PY_IDEAL = 33;
+  let found = null, _bestGap = Infinity;
+  for(const k in pd.units){
+    const u = pd.units[k];
+    if(u.rc!==rc || u.name!==nm) continue;
+    const gap = Math.abs((u.pyeong||0) - PY_IDEAL);
+    if(gap < _bestGap){ _bestGap = gap; found = k; }
   }
-  if(!found){
+  if(!found){                         // 지역이 안 맞으면 이름만으로 (역시 33평 기준)
     for(const k in pd.units){
       const u = pd.units[k];
-      if(u.rc===rc && u.name===nm){ found=k; break; }
+      if(u.name!==nm) continue;
+      const gap = Math.abs((u.pyeong||0) - PY_IDEAL);
+      if(gap < _bestGap){ _bestGap = gap; found = k; }
     }
-  }
-  if(!found){                         // 지역 안 맞으면 이름만으로
-    for(const k in pd.units){ if(pd.units[k].name===nm){ found=k; break; } }
   }
   if(!found) return false;
   searchKey = found; mode="region"; scope="si"; highlightIds=[];
