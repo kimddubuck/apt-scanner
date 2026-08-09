@@ -190,6 +190,19 @@
   .chart-ctrl::-webkit-scrollbar{display:none}       /* 스크롤바 숨김(깔끔하게) */
   .chart-ctrl > *{flex-shrink:0}                      /* 항목이 찌그러지지 않게 */
   .chart-ctrl select{padding:2px 4px}                 /* 좁은 화면에서 한 줄에 들어가도록 여백 축소 */
+  /* ── [차트 필터 · 2026-08 카드형] 검색 필터와 같은 '접히는 카드' 모양으로 통일.
+       예전엔 필터가 여러 줄로 접혀 차트를 밀어냈습니다. 이제 머리글만 보이고,
+       눌러야 펼쳐집니다. 적용한 개수는 머리글에 숫자로 나옵니다. ── */
+  .fcard{border:1px solid var(--line);border-radius:12px;background:#fff;
+         margin:6px 0 8px;overflow:hidden}
+  .fcard-head{display:flex;align-items:center;justify-content:space-between;
+         padding:8px 11px;font-size:12.5px;font-weight:800;color:var(--ink);
+         cursor:pointer;user-select:none;background:#FDFBF7}
+  .fcard-head b{color:var(--gold);margin-left:5px;font-weight:800}
+  .fcard-head i{font-style:normal;color:var(--soft);font-size:11px;transition:transform .15s}
+  .fcard.open .fcard-head i{transform:rotate(180deg)}
+  .fcard-body{display:none;padding:8px 11px 10px}
+  .fcard.open .fcard-body{display:flex}
   /* ── [차트 필터] 차트 제목 아래, 비교 상대(동급)를 거르는 작은 필터 줄 ── */
   .peerbar{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin:6px 0 4px}
   .peerbar select{border:1px solid var(--line);border-radius:8px;padding:5px 6px;font-size:12px;font-family:inherit;color:var(--ink);background:#FDFBF7;max-width:110px}
@@ -306,9 +319,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.09 07:41 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.09 11:25 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.09 07:41</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.09 11:25</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -375,7 +388,11 @@
       <div class="chart-ctrl" id="chartCtrl"></div>
       <!-- ── [차트 필터] 지금 보는 단지의 '비교 상대(동급)'를 거르는 필터입니다. ──
            예: 전국 비교에서 대구 수성구·20평대·200세대 이상·10년 이내하고만 비교 -->
-      <div class="peerbar" id="peerFilters"></div>
+      <div class="fcard" id="peerCard">
+        <div class="fcard-head" onclick="this.parentNode.classList.toggle('open')">
+          <span>🎯 차트 필터<b id="peerCount"></b></span><i>▾</i></div>
+        <div class="peerbar fcard-body" id="peerFilters"></div>
+      </div>
       <div class="chart-note" id="cnote"></div>
       <div id="chart"></div><div class="legend" id="legend"></div>
       <div class="detail-link"><button id="detailBtn">📋 이 단지 전체 평형·거래이력 보기</button></div></div>
@@ -590,6 +607,76 @@ const DATA = window.__APTDATA__ || {};
     }
   }
 })();
+
+/* == [전체 표시 · 2026-08 C단계] 조건 밖 단지의 시세를 그때그때 받아오기 ======
+   data.js 에는 "평당가 밴드 안 + 최근 거래 있는" 단지만 들어 있습니다.
+   그래서 44평 같은 단지는 시세가 없어 차트를 못 그렸습니다.
+   빌더가 미리 뽑아둔 sise/<지역코드>.json 을, 그 지역을 처음 열 때 한 번만 받아
+   peerdata.series / units / now 에 채워 넣습니다.
+   → 차트를 그리는 코드는 한 줄도 바꾸지 않습니다.
+   금액 단위는 peerdata 와 같은 "억×10", 거래 없는 달은 null 입니다.
+   ※ 시세 파일이 없는 지역(단지 3개 미만으로 분석을 건너뛴 곳)은 조용히 넘어갑니다. */
+window.__SISE__ = {};
+const _JEONYONG = 0.75, _PYEONG = 3.3058;   // config.py 전용률·PYEONG 과 같아야 함
+let __allTried = false;
+async function loadAllListOnce(){
+  if(__allTried) return;
+  __allTried = true;
+  if(window.__ALLLIST__) return;
+  await new Promise(ok=>{ const s=document.createElement("script");
+    s.src="./all_list.js"; s.onload=ok; s.onerror=ok; document.head.appendChild(s); });
+}
+async function ensureRegionSise(rc){
+  const pd = DATA.peerdata;
+  if(!pd || !pd.series || !pd.months) return false;
+  if(window.__SISE__[rc]) return window.__SISE__[rc]==="ok";
+  window.__SISE__[rc] = "loading";
+  await loadAllListOnce();
+  let js = null;
+  try{ const res = await fetch("./sise/"+rc+".json"); if(res.ok) js = await res.json(); }
+  catch(e){}
+  if(!js || !js.m || !js.s){
+    window.__SISE__[rc] = "none";
+    console.warn("[sise] 이 지역은 시세 자료가 없어요:", rc);
+    return false;
+  }
+  /* 지역 월 목록 → 전국 월 목록 자리 대조표. 지역마다 첫 달이 다르므로
+     그대로 붙이면 그래프가 옆으로 밀립니다. */
+  const gi = {}; pd.months.forEach((mo,i)=>{ gi[mo]=i; });
+  const pos = js.m.map(mo=> gi[mo]===undefined ? -1 : gi[mo]);
+  /* all_list.js 에서 이 지역 단지의 세대수·건축년도·현재가를 꺼냅니다.
+     한 줄 = [아파트명, 평형, 현재가, 세대수, 건축년도, 마지막거래가, 마지막거래월] */
+  const AL = ((window.__ALLLIST__||{}).r||{})[rc] || {};
+  const rn = AL.n || (pd.rmap||{})[rc] || "";
+  const meta = {};
+  for(const u of (AL.u||[])) meta[u[0]+"|"+u[1]] = {now:u[2], hh:u[3], by:u[4], lastV:u[5]};
+  let added = 0;
+  pd.now = pd.now || {};
+  for(const uid in js.s){
+    const gkey = rc + "|" + uid;
+    if(pd.series[gkey]) continue;              // 이미 data.js 에 있으면 건드리지 않음
+    const arr = new Array(pd.months.length).fill(null);
+    const src = js.s[uid];
+    for(let i=0;i<src.length;i++){
+      const j = pos[i];
+      if(j>=0 && src[i]) arr[j] = src[i];      // 0(거래 없음) 은 null 로 남김
+    }
+    pd.series[gkey] = arr;
+    const area = parseFloat(String(uid).split("|")[1]) || 0;
+    const py = area ? Math.round((area/_JEONYONG)/_PYEONG) : 0;
+    const nm = String(uid).split("|")[0];
+    const mt = meta[nm+"|"+py] || {};
+    pd.units[gkey] = {name:nm, pyeong:py, rc:rc, rn:rn, by:mt.by||0, hh:mt.hh||0};
+    /* 현재가는 빌더가 증여를 걸러 계산한 값을 씁니다(없으면 마지막 거래가). */
+    const nowv = mt.now || mt.lastV || 0;
+    if(nowv) pd.now[gkey] = nowv;
+    added++;
+  }
+  window.__SISE__[rc] = "ok";
+  console.log("[sise]", rc, "시세 추가", added, "개");
+  return true;
+}
+
 let mode = "region";                 // "region"(구별) | "tier"(평당가별)
 /* [차트 확대] 보여줄 기간 구간을 0~1 비율로 저장.
    zoomA=0, zoomB=1 이면 전체 기간. 손가락을 벌리면 이 폭이 좁아짐(=확대). */
@@ -1173,6 +1260,14 @@ function drawLegend(units, ids, mainId, colors){
   legendUnits = units;            // [상세보기용] 지금 범례에 그린 단지들을 기억해 둠
   const box=$("#legend"); box.innerHTML="";
   const last=pr=>{for(let i=pr.length-1;i>=0;i--)if(pr[i]!=null)return pr[i];return null;};
+  /* ── [현재가 통일 · 2026-08] 범례 숫자를 '대장 판정이 쓰는 값'과 같게 맞춥니다.
+     예전엔 범례가 시세 그래프의 '마지막 점'(마지막 거래가 있던 그 달 하나)을 썼고,
+     판정은 nowOf(최근 1→3→6개월로 넓혀 구한 중앙값, 증여 제외)를 썼습니다.
+     그래서 화면엔 4.1억인데 판정은 4.3억으로 계산해
+     "꼴찌인데 왜 대장이냐"가 됐습니다.
+     ※ last 는 이 함수 안에만 있는 지역 함수라, 이 도우미도 반드시 안에 둡니다
+       (밖에 두면 ReferenceError: last is not defined 가 납니다 — 실제로 겪었습니다). */
+  const nowShown=(key,prices)=>{ const v=nowOf(key); return v ? v*1000 : last(prices); };
   [mainId,...ids.filter(i=>i!==mainId)].forEach(id=>{
     const u=units[id],isMain=id===mainId,el=document.createElement("div");el.className="it";
     el.style.cursor="pointer";
@@ -1187,7 +1282,7 @@ function drawLegend(units, ids, mainId, colors){
     };
     const rn = u.rn ? "·"+u.rn.replace(/^(서울|부산|대구|인천|광주|대전|울산|경기|경남|경북|충남|충북|전남|전북|강원|제주)\s*/,"$1 ").split(" ").slice(-1)[0] : "";
     el.innerHTML=`<span class="swatch" style="background:${colors[id]};height:${isMain?4:3}px"></span>
-      <span class="lgtxt">${u.name}(${u.pyeong}평${scope!=="gu"&&u.rn?"·"+u.rn:""})</span> <span class="val">${fmtEok(last(u.prices))}</span>`;
+      <span class="lgtxt">${u.name}(${u.pyeong}평${scope!=="gu"&&u.rn?"·"+u.rn:""})</span> <span class="val">${fmtEok(nowShown(id,u.prices))}</span>`;
     box.appendChild(el);
   });
   if(highlightIds.length){
@@ -1200,7 +1295,8 @@ function drawLegend(units, ids, mainId, colors){
 const aptOf = id => id.split("|")[0];
 // ── 화면에서 '처음 N년' 기준으로 동급 즉석 계산 ──
 // 시 단위 키: 광역시·특별시·세종은 시도(앞 2자리), 그 외는 시(앞 4자리)
-function siKey(rc){ const M=["11","26","27","28","29","30","31","36"]; return M.includes(rc.slice(0,2))?rc.slice(0,2):rc.slice(0,4); }
+/* [2026-07 개편] 12 = 전남광주통합특별시. 빌더의 _si_key 와 반드시 같아야 합니다. */
+function siKey(rc){ const M=["11","12","26","27","28","29","30","31","36"]; return M.includes(rc.slice(0,2))?rc.slice(0,2):rc.slice(0,4); }
 // 숫자 배열의 중앙값 (없으면 null)
 /* ── [현재가 정합 · 2026-08] 화면에서 쓰는 '깨끗한 현재가' ──────────────────
    pd.series(월별 값)의 마지막 값을 현재가로 쓰면 증여 거래(예: 12억짜리가 6.9억)가
@@ -1600,6 +1696,13 @@ function drawPeerFilters(){
     rb.onclick=()=>{ peerSido="";peerGu="";peerPy="";peerPp="";peerBuilt="";peerHhMin=0;peerHhMax=10000; highlightIds=[]; render(); };
     box.appendChild(rb);
   }
+  /* [카드형 · 2026-08] 머리글에 '몇 개 적용'을 표시합니다.
+     닫혀 있어도 필터가 걸려 있는지 알 수 있어야 하니까요. */
+  const _cnt = box.querySelectorAll("select.on").length;
+  const _lab = $("#peerCount");
+  if(_lab) _lab.textContent = _cnt ? " " + _cnt + "개 적용" : "";
+  const _card = $("#peerCard");
+  if(_card && _cnt && !_card.classList.contains("open")) _card.classList.add("open");
 }
 function svgChart(months, series){
   const W=700,H=340,padL=58,padR=30,padT=12,padB=32;  // [2026-08] 300→340
@@ -2079,12 +2182,18 @@ function setupHome(){
    지도(map.html)에서 "상세 보기"를 누르면 index.html#u=지역코드|단지명 으로 옵니다.
    그 단지의 밴드 키를 찾아 검색으로 연 것과 똑같이 보여줍니다(시 동급 기준).
    예: index.html#u=26350|센텀롯데캐슬아파트                                  */
-function openFromHash(){
+async function openFromHash(){
   const h = decodeURIComponent(location.hash||"");
   const m = h.match(/^#u=([^|]+)\|(.+)$/);
   if(!m) return false;
   const rc = m[1], nm = m[2];
   const pd = DATA.peerdata; if(!pd) return false;
+  /* [C단계] 이 단지가 data.js 에 아예 없으면(=조건 밖 단지)
+     그 지역 시세 파일을 받아 peerdata 에 채운 뒤 계속합니다. */
+  let _has = false;
+  for(const k in pd.units){ const u=pd.units[k];
+    if(u.rc===rc && u.name===nm){ _has=true; break; } }
+  if(!_has) await ensureRegionSise(rc);
   /* [2026-08 수정] 평형 선택 우선순위:
      ① 그 지역의 '매치 후보' 평형 (index 검색과 동일하게 대표 평형이 열리도록)
      ② 없으면 그 지역·이름의 첫 유닛
