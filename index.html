@@ -120,6 +120,13 @@
     #panel{width:100%;left:-100%}
     body.panel-open #panel{left:0}
     #panelResize{display:none}       /* 폭 조절 손잡이는 모바일에서 필요 없음(peek 손잡이와 겹침) */
+    /* ── [겹침 버그 · 2026-08] ─────────────────────────────────────────────
+       Leaflet 의 +/− 버튼과 아래쪽 출처 표기(© VWorld)는 z-index 1000 이고
+       차트 패널은 900 입니다. 그래서 폰에서 패널이 화면을 덮어도 그 위로
+       +/− 버튼이 뚫고 올라와 차트 글씨와 겹쳐 보였습니다.
+       패널이 '펼쳐진' 동안만 지도 조작판을 감춥니다.
+       (밀어둔 peek 상태에서는 지도를 보는 중이니 당연히 다시 보입니다)        */
+    body.panel-open:not(.panel-peek) .leaflet-control-container{display:none}
     /* [peek] 왼쪽으로 밀어 36px만 남김. 드래그 중에는 JS 가 인라인 transform 으로 덮어씀 */
     body.panel-open.panel-peek #panel{transform:translateX(calc(-100% + 22px))}
     body.panel-open.panel-peek #peekGrip{display:flex}
@@ -129,7 +136,11 @@
     background:rgba(255,255,255,.88);backdrop-filter:blur(10px);
     border-bottom:1px solid rgba(0,0,0,.06);
     display:flex;align-items:center;gap:12px;padding:0 14px}
-  .topbar .logo{font-weight:900;font-size:20px;letter-spacing:-0.5px;white-space:nowrap;color:var(--ink)}
+  .topbar .logo{font-weight:900;font-size:20px;letter-spacing:-0.5px;white-space:nowrap;color:var(--ink);
+    text-decoration:none;cursor:pointer;
+    /* [2026-08] 아래 `.topbar a` 규칙(테두리·배경·여백)이 로고에도 묻습니다.
+       로고는 버튼이 아니라 글자여야 하므로 그 세 가지를 되돌립니다. */
+    border:0;background:none;padding:0}
   .topbar .logo em{color:var(--accent);font-style:normal}
   .topbar .count{font-size:12px;color:var(--soft);margin-left:auto}
   .topbar a{font-size:12px;color:var(--soft);text-decoration:none;
@@ -236,7 +247,9 @@
 <body>
 
 <div class="topbar">
-  <div class="logo">아파트 <em>매치</em></div>
+  <!-- [2026-08] 로고를 누르면 홈(차트 첫 화면)으로. 폰에서 지도만 보다가
+       돌아갈 길이 없어서 뒤로가기를 여러 번 눌러야 했습니다. -->
+  <a class="logo" href="./chart.html" title="홈으로">아파트 <em>매치</em></a>
   <div class="search">
     <input id="mapSearch" type="text" placeholder="아파트 검색 🔍" autocomplete="off">
     <div class="sr-box" id="mapSearchResults"></div>
@@ -715,14 +728,8 @@ function openFromGotoHash(){
   const m = h.match(/^#goto=([^|&]*)\|([^&]+)(?:&back=([^|&]*)\|(.+))?$/);
   if(!m) return;
   const rc = m[1], nm = m[2], brc = m[3] || "", bnm = m[4] || "";
-  const findApt = (r, n)=>{
-    if(!n) return null;
-    let h2 = BEST[r + "|" + n];
-    if(!h2) for(const k in BEST){ if(BEST[k].name === n){ h2 = BEST[k]; break; } }
-    return h2 || null;
-  };
-  const hit = findApt(rc, nm);
-  if(!hit || !hit.lat){ console.warn("[차트→지도] 좌표를 못 찾았어요:", rc, nm); return; }
+  const hit = findAptPos(rc, nm);          // 목록 → 이름 → 좌표파일 3단계로 찾기
+  if(!hit){ toastMsg(nm + " 은(는) 지도 위치 정보가 없어요"); return; }
   map.setView([hit.lat, hit.lon], 16, {animate:false});
   // 어디로 왔는지 눈에 띄게 1.6초 동안 원을 그립니다 (📍와 같은 표시)
   try{
@@ -1177,6 +1184,45 @@ function hideToMap(){
   }
   closePanel();
 }
+/* ══ [아파트 위치 찾기 · 2026-08] ═════════════════════════════════════════════
+   📍가 눌렸을 때 "지도에서 그 아파트가 어디인가"를 찾는 공용 도우미입니다.
+   왜 새로 만드나: 예전엔 지도 목록(BEST)만 봤습니다. 그런데 BEST 는
+   **좌표가 있는 아파트만** 담습니다(좌표 없으면 마커를 못 찍으니까).
+   게다가 조건에 따라 목록에서 빠지는 단지도 있어, 동급 아파트를 눌렀는데
+   목록에 없으면 아무 일도 안 일어났습니다 — 이게 "📍가 안 먹는다"의 원인입니다.
+   그래서 ① 목록 → ② 이름만으로 목록 → ③ 좌표 파일(coords.json) 직접
+   3단계로 찾습니다. 좌표 파일에만 있어도 지도는 옮길 수 있습니다.             */
+function findAptPos(rc, nm){
+  if(!nm) return null;
+  let h = BEST[rc + "|" + nm];                                  // ① 지역코드+이름
+  if(!h) for(const k in BEST){ if(BEST[k].name === nm){ h = BEST[k]; break; } }  // ② 이름만
+  if(h && h.lat) return { lat:h.lat, lon:h.lon };
+  const C = window.COORDS_G || {};                              // ③ 좌표 파일에서 직접
+  let co = C[rc + "|" + nm];
+  if(!co) for(const k in C){ if(k.slice(k.indexOf("|") + 1) === nm){ co = C[k]; break; } }
+  if(co && co.lat) return { lat:co.lat, lon:co.lon };
+  console.warn("[지도이동] 좌표를 못 찾았어요:", rc, nm);
+  return null;
+}
+/* [안내 쪽지] 화면 아래에 잠깐 떴다 사라지는 알림. 조용한 실패를 없애기 위한 것.
+   왜 alert 를 안 쓰나: alert 는 확인을 눌러야 사라져서 흐름이 끊깁니다.        */
+function toastMsg(msg){
+  let t = document.getElementById("aptToast");
+  if(!t){
+    t = document.createElement("div");
+    t.id = "aptToast";
+    t.style.cssText = "position:fixed;left:50%;bottom:80px;transform:translateX(-50%);"
+      + "background:rgba(24,20,16,.92);color:#fff;font-size:13px;font-weight:700;"
+      + "padding:10px 16px;border-radius:20px;z-index:99999;max-width:82%;text-align:center;"
+      + "box-shadow:0 4px 16px rgba(0,0,0,.3);pointer-events:none;opacity:0;"
+      + "transition:opacity .18s ease";
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = "1";
+  clearTimeout(toastMsg._tm);
+  toastMsg._tm = setTimeout(()=>{ t.style.opacity = "0"; }, 2600);
+}
 function openPanelTab(){             // 새 탭에서 크게 보기
   if(panelKey) window.open('./chart.html#u=' + encodeURIComponent(panelKey), '_blank');
 }
@@ -1231,11 +1277,15 @@ window.addEventListener("message", (ev)=>{
   const nm = String(d.name||"").trim();
   if(!nm){ console.warn("[지도이동] 아파트 이름이 비어 있어요"); return; }
   const rc = String(d.rc||"");
-  // 그 아파트가 지도 목록(BEST)에 있는지 먼저 확인 — 없으면 왜 안 움직이는지 알려줍니다
-  let hit = BEST[rc+"|"+nm];
-  if(!hit) for(const k in BEST){ if(BEST[k].name===nm){ hit=BEST[k]; break; } }
-  if(!hit){ console.warn("[지도이동] 지도에 없는 아파트예요:", rc, nm); return; }
-  if(!hit.lat){ console.warn("[지도이동] 좌표가 없어요:", nm); return; }
+  const _p = findAptPos(rc, nm);
+  if(!_p){
+    /* [2026-08] 예전엔 콘솔에만 남기고 조용히 끝났습니다. 그래서 사용자는
+       "📍를 눌러도 아무 일도 안 일어난다"고만 느꼈습니다. 이제 이유를 화면에
+       띄웁니다(좌표가 없는 아파트는 전체의 1% 정도 남아 있습니다).            */
+    toastMsg(nm + " 은(는) 지도 위치 정보가 없어요");
+    return;
+  }
+  const hit = { lat:_p.lat, lon:_p.lon };
   /* [2026-08 수정] 예전엔 jumpToName 을 썼는데, 그 함수는 지도를 옮긴 뒤
      select() 까지 불러서 **차트 패널이 그 아파트로 바뀌어** 버렸습니다.
      📍는 "지도에서 어디인지 보여 달라"는 뜻이므로, 보고 있던 차트는 그대로 두고

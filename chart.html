@@ -360,9 +360,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.10 11:14 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.10 11:48 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.10 11:14</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.10 11:48</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -2804,6 +2804,17 @@ window.addEventListener("hashchange", openFromHash);
 (function(){
   const grip=document.getElementById("mapGrip");
   if(!grip) return;
+  /* ── [겹침 버그 · 2026-08] ─────────────────────────────────────────────────
+     이 차트가 '지도 안의 창(iframe)'일 때는 이 카드를 쓰지 않습니다.
+     이유: 지도를 보려고 패널을 왼쪽으로 밀면, 남은 22px 자리에 이 카드가
+     같이 끌려와 왼쪽에 카드가 **두 개** 겹쳐 보였습니다(차트 카드 + 지도 카드).
+     iframe 안에는 이미 머리글에 🗺 버튼이 있으니 그것으로 충분합니다.
+     이 카드는 폰에서 차트를 단독 페이지로 볼 때만 필요합니다.                 */
+  try{
+    if(window.parent && window.parent !== window){ grip.style.display="none"; return; }
+  }catch(e){ /* 다른 도메인 iframe 이면 접근 자체가 막힘 → 그때도 숨김 */
+    grip.style.display="none"; return;
+  }
   const GO_PX=55;                        // 이만큼 왼쪽으로 끌면 지도로 이동
   let sx=0, sy=0, dx=0, dragging=false;
   const follow=(px)=>{ grip.style.transition="none";
