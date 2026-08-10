@@ -84,7 +84,7 @@
   body.panel-open #map{left:var(--panelW,420px)}
   #panel{position:absolute;top:94px;bottom:0;left:calc(-1*var(--panelW,420px) - 10px);width:var(--panelW,420px);z-index:900;
     background:#fff;border-right:1px solid rgba(0,0,0,.08);
-    box-shadow:4px 0 20px rgba(0,0,0,.08);transition:left .25s ease;
+    box-shadow:4px 0 20px rgba(0,0,0,.08);transition:left .25s ease, transform .25s ease;
     display:flex;flex-direction:column}
   body.panel-open #panel{left:0}
   #panel .phead{display:flex;align-items:center;gap:8px;padding:10px 12px;
@@ -100,10 +100,26 @@
   #panelResize:hover{background:rgba(112,72,232,.15)}
   body.resizing{cursor:ew-resize;user-select:none}
   body.resizing #panel,body.resizing #map{transition:none}
+  /* ══ [📍 지도 보기 · 차트 살짝 숨김(peek) · 2026-08] ═══════════════════════
+     차트 안에서 📍를 누르면 모바일은 화면 전체가 차트라 지도를 볼 수 없었습니다.
+     그래서 차트를 왼쪽으로 밀어 두고 오른쪽 가장자리 36px만 남깁니다(=손잡이).
+     그 손잡이를 오른쪽으로 끌면(또는 톡 누르면) 차트가 다시 돌아옵니다.
+     ※ 패널을 '닫는' 게 아니라 '밀어두는' 것이라 iframe 이 새로 안 읽혀 빠릅니다. */
+  #peekGrip{display:none;position:absolute;left:0;top:94px;bottom:0;width:36px;
+    z-index:960;align-items:center;justify-content:center;cursor:grab;
+    background:linear-gradient(90deg,rgba(112,72,232,.92),rgba(112,72,232,.62));
+    color:#fff;font-size:16px;font-weight:800;
+    border-radius:0 12px 12px 0;box-shadow:2px 0 12px rgba(0,0,0,.18);
+    touch-action:none;user-select:none;-webkit-user-select:none}
+  #peekGrip span{writing-mode:vertical-rl;letter-spacing:2px;font-size:11px;opacity:.95}
   @media (max-width:760px){          /* 모바일: 패널이 화면 대부분 차지 */
     body.panel-open #map{left:0}
     #panel{width:100%;left:-100%}
     body.panel-open #panel{left:0}
+    #panelResize{display:none}       /* 폭 조절 손잡이는 모바일에서 필요 없음(peek 손잡이와 겹침) */
+    /* [peek] 왼쪽으로 밀어 36px만 남김. 드래그 중에는 JS 가 인라인 transform 으로 덮어씀 */
+    body.panel-open.panel-peek #panel{transform:translateX(calc(-100% + 36px))}
+    body.panel-open.panel-peek #peekGrip{display:flex}
   }
 
   .topbar{position:absolute;top:0;left:0;right:0;height:52px;z-index:1000;
@@ -262,12 +278,16 @@
 <div id="panel">
   <div class="phead">
     <div class="pt" id="panelTitle">단지 상세</div>
-    <button onclick="openPanelTab()" title="새 탭에서 크게 보기">⧉</button>
-    <button onclick="closePanel()" title="닫기">×</button>
+    <!-- [2026-08] 아이콘 뜻을 알기 쉽게: ⧉→🏠(홈=새 탭에서 크게) · ×→🗺(지도로 돌아가기) -->
+    <button onclick="openPanelTab()" title="새 탭에서 크게 보기">🏠</button>
+    <button onclick="closePanel()" title="지도로 돌아가기">🗺</button>
   </div>
   <iframe id="panelFrame" src="about:blank"></iframe>
   <div id="panelResize" title="끌어서 넓히기 ↔"></div>
 </div>
+
+<!-- [peek 손잡이 · 2026-08] 📍로 지도를 볼 때만 나타남. 오른쪽으로 끌면 차트 복귀 -->
+<div id="peekGrip" title="오른쪽으로 끌면 차트로 돌아갑니다"><span>차트 ❯</span></div>
 
 <div class="legend">
   <b>저평가율 (동급 대비)</b>
@@ -1003,6 +1023,9 @@ function openPanel(rcode, name){
     panelKey = key;
   }
   document.getElementById('panelTitle').textContent = name;
+  /* [peek 해제 · 2026-08] 차트를 왼쪽에 밀어둔 상태에서 지도의 다른 아파트를 누르면
+     그 아파트 차트로 갈아타면서 바로 다시 열립니다(사용자 선택 사항).           */
+  unpeekPanel();
   const wasOpen = document.body.classList.contains('panel-open');
   document.body.classList.add('panel-open');
   // [뒤로가기 · 2026-08] 패널 열 때 히스토리 항목 추가 →
@@ -1014,6 +1037,7 @@ function openPanel(rcode, name){
 }
 function closePanel(fromPop){
   const wasOpen = document.body.classList.contains('panel-open');
+  unpeekPanel();                     // [2026-08] 밀어둔 상태였다면 먼저 원위치(잔상 방지)
   document.body.classList.remove('panel-open');
   // ×버튼 등으로 직접 닫을 땐, 우리가 넣어둔 히스토리 항목도 하나 되돌림
   if(wasOpen && !fromPop){
@@ -1026,6 +1050,79 @@ window.addEventListener('popstate', ()=>{
   if(document.body.classList.contains('panel-open')){
     closePanel(true);   // fromPop=true: 이미 뒤로가기가 일어났으니 history.back 재호출 안 함
   }
+});
+/* ══ [📍 지도 보기 · peek 제어 · 2026-08] ══════════════════════════════════════
+   왜 필요한가: 모바일은 차트 패널이 화면을 100% 덮습니다. 차트 안에서 📍를 눌러
+   "이 동급 아파트가 지도에서 어디인지" 보려 해도 지도가 안 보였습니다.
+   그래서 패널을 닫지 않고 왼쪽으로 밀어(peek) 36px 손잡이만 남깁니다.
+     · peekPanel()   : 밀어두기 (모바일에서만. PC는 지도가 이미 옆에 보이므로 그대로)
+     · unpeekPanel() : 원위치 (손잡이 드래그/탭, 다른 마커 클릭, 패널 닫기)
+   ※ 인라인 transform 을 반드시 지웁니다. 안 지우면 드래그 중 위치에 굳어버립니다. */
+const PEEK_EDGE = 36;                                   // 남겨 둘 손잡이 폭(px) — CSS와 같은 값
+function isMobileView(){ return window.matchMedia('(max-width:760px)').matches; }
+function peekPanel(){
+  if(!document.body.classList.contains('panel-open')) return;   // 패널이 안 열려 있으면 할 일 없음
+  if(!isMobileView()) return;                                   // PC는 지도가 이미 보임
+  const p=document.getElementById('panel');
+  if(p){ p.style.transition=''; p.style.transform=''; }          // 이전 드래그 잔상 제거
+  document.body.classList.add('panel-peek');
+}
+function unpeekPanel(){
+  const p=document.getElementById('panel');
+  if(p){ p.style.transition=''; p.style.transform=''; }
+  document.body.classList.remove('panel-peek');
+}
+/* [손잡이 드래그] 오른쪽으로 일정 거리 끌면 복귀, 조금만 끌면 다시 숨음.
+   톡 누르기(탭)만 해도 복귀합니다 — 손잡이가 좁아 실수로 눌리기 어렵습니다.     */
+(function(){
+  const grip=document.getElementById('peekGrip');
+  if(!grip) return;
+  const panel=()=>document.getElementById('panel');
+  let sx=0, sy=0, dx=0, dragging=false;
+  const BACK_PX = 70;                       // 이만큼 오른쪽으로 끌면 차트 복귀
+  const follow=(px)=>{                      // 손가락을 따라 패널을 살짝 끌어당김
+    const p=panel(); if(!p) return;
+    p.style.transition='none';
+    p.style.transform=`translateX(calc(-100% + ${PEEK_EDGE + px}px))`;
+  };
+  const start=(x,y)=>{ sx=x; sy=y; dx=0; dragging=true; };
+  const move=(x,y)=>{
+    if(!dragging) return;
+    dx=x-sx;
+    /* 오른쪽(양수)으로만 따라갑니다. 왼쪽으로 끌어도 더 숨길 곳이 없습니다.
+       세로로 크게 움직이면 지도를 만지려는 것으로 보고 취소합니다.            */
+    if(Math.abs(y-sy) > 60 && Math.abs(y-sy) > Math.abs(dx)*1.5){ end(true); return; }
+    follow(Math.max(0, Math.min(dx, window.innerWidth)));
+  };
+  const end=(cancel)=>{
+    if(!dragging) return;
+    dragging=false;
+    const p=panel(); if(p) p.style.transition='';               // 부드러운 애니메이션 복구
+    if(!cancel && dx > BACK_PX){ unpeekPanel(); }               // 충분히 끌었다 → 차트 복귀
+    else if(!cancel && Math.abs(dx) < 6){ unpeekPanel(); }      // 톡 누름(탭) → 차트 복귀
+    else if(p){ p.style.transform=''; }                          // 애매하면 다시 숨은 상태로
+  };
+  grip.addEventListener('touchstart',e=>{
+    e.preventDefault(); e.stopPropagation();                     // 지도 이동·페이지 스크롤 차단
+    const t=e.touches[0]; start(t.clientX, t.clientY);
+  },{passive:false});
+  grip.addEventListener('touchmove',e=>{
+    e.preventDefault(); e.stopPropagation();
+    const t=e.touches[0]; move(t.clientX, t.clientY);
+  },{passive:false});
+  grip.addEventListener('touchend',e=>{ e.preventDefault(); e.stopPropagation(); end(false); },{passive:false});
+  grip.addEventListener('touchcancel',()=>end(true),{passive:true});
+  // PC에서도 같은 방식으로 동작(창을 좁혔을 때 대비)
+  grip.addEventListener('mousedown',e=>{ e.preventDefault(); start(e.clientX,e.clientY); });
+  window.addEventListener('mousemove',e=>{ if(dragging) move(e.clientX,e.clientY); });
+  window.addEventListener('mouseup',()=>end(false));
+})();
+/* [화면 회전 대비 · 2026-08] 폰을 가로로 돌리면 폭이 760px를 넘어 PC 규칙이 됩니다.
+   그러면 패널은 화면에 다시 나타나는데 'panel-peek' 딱지만 남아 어긋납니다.
+   (다시 세로로 돌리면 사용자가 아무것도 안 했는데 차트가 숨어 있음)
+   그래서 PC 폭이 되는 순간 숨김 상태를 깔끔히 풉니다.                          */
+window.addEventListener('resize', ()=>{
+  if(!isMobileView() && document.body.classList.contains('panel-peek')) unpeekPanel();
 });
 function openPanelTab(){             // 새 탭에서 크게 보기
   if(panelKey) window.open('./chart.html#u=' + encodeURIComponent(panelKey), '_blank');
@@ -1099,6 +1196,12 @@ window.addEventListener("message", (ev)=>{
   /* [2026-08 최종] 패널(차트)을 닫지 않습니다.
      닫으면 보고 있던 차트가 사라져 버립니다 — 📍는 "이 동급 아파트가 어디 있나"만
      확인하는 것이므로, 차트는 그대로 두고 그 옆 지도만 옮깁니다. */
+  /* [2026-08 모바일 추가] 다만 모바일은 패널이 화면을 100% 덮어 지도가 안 보였습니다.
+     그래서 닫지는 않고 왼쪽으로 밀어둡니다(peek) → 손잡이를 끌면 차트로 복귀.
+     PC는 지도가 이미 패널 옆에 있으므로 peekPanel() 이 스스로 아무것도 안 합니다.
+     ※ 모바일 지도는 항상 화면 전체 폭(body.panel-open #map{left:0})이라
+       패널을 밀어도 지도 크기가 안 바뀝니다 → invalidateSize 불필요(위치 흔들림 없음). */
+  peekPanel();
   setTimeout(()=>{
     map.setView([hit.lat, hit.lon], 16, {animate:false});
     /* [2026-08] 말풍선은 띄우지 않습니다. 📍는 "이 동급 아파트가 어디에 있나"만
