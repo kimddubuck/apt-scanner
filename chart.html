@@ -340,15 +340,29 @@
     .stat b{font-size:16px}
     .stat span{font-size:10px}
   }
+/* ══ [지도 카드 · 2026-08] ════════════════════════════════════════════════════
+   차트를 보다가 지도로 넘어가는 손잡이. 화면 오른쪽 가장자리에 얇게 붙습니다.
+   왼쪽으로 끌거나(스와이프) 톡 누르면 지도로 갑니다.
+   폰에서만 보입니다 — PC는 지도가 이미 옆에 있거나 위 버튼으로 충분합니다.
+   ※ position:fixed 라 페이지를 아무리 스크롤해도 같은 자리에 붙어 있습니다.       */
+#mapGrip{display:none;position:fixed;right:0;top:50%;transform:translateY(-50%);
+  width:22px;height:132px;z-index:9990;
+  align-items:center;justify-content:center;cursor:grab;
+  background:#EFE3CC;border:1px solid #D8C6A4;border-right:0;
+  color:#2B2118;font-weight:800;
+  border-radius:10px 0 0 10px;box-shadow:-2px 0 8px rgba(0,0,0,.16);
+  touch-action:none;user-select:none;-webkit-user-select:none}
+#mapGrip span{writing-mode:vertical-rl;letter-spacing:2px;font-size:11px;line-height:1}
+@media (max-width:760px){ #mapGrip{display:flex} }
 </style></head>
-<body><div class="wrap">
+<body><div id="mapGrip" title="왼쪽으로 끌면 지도로 갑니다"><span>지도 ❮</span></div><div class="wrap">
 
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.10 10:52 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.10 11:14 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.10 10:52</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.10 11:14</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -1659,7 +1673,23 @@ function drawLegend(units, ids, mainId, colors){
           try{
             if(window.parent && window.parent !== window) window.parent.postMessage(msg,"*");
             else if(window.opener) window.opener.postMessage(msg,"*");
-            else console.warn("[지도이동] 부모 창을 찾지 못했어요", msg);
+            /* ── [2026-08 추가] 여기가 진짜 중요합니다 ─────────────────────────
+               폰으로 접속하면 index.html 이 chart.html 로 넘겨버립니다(모바일 첫화면).
+               즉 폰에서 보는 차트 홈은 '지도 안의 창(iframe)'이 아니라 **단독 페이지**라
+               부모 창이 없습니다. 그래서 예전엔 📍를 눌러도 아무 일도 없었습니다
+               (콘솔에만 "부모 창을 찾지 못했어요"). 이제 지도 페이지로 직접 갑니다.
+                 goto = 지도에서 찾아갈 아파트(누른 동급)
+                 back = 돌아갈 차트(지금 보고 있던 단지) → 지도 왼쪽 카드로 복귀   */
+            else{
+              let back = "";
+              try{
+                const _mu = (DATA.peerdata && DATA.peerdata.units) ? DATA.peerdata.units[searchKey] : null;
+                if(_mu && _mu.name) back = (_mu.rc||"") + "|" + _mu.name;
+              }catch(e){}
+              const q = "#goto=" + encodeURIComponent((u.rc||"") + "|" + (u.name||""))
+                      + (back ? "&back=" + encodeURIComponent(back) : "");
+              location.href = "./index.html?m=1" + q;
+            }
           }catch(e){ console.warn("[지도이동] 전달 실패", e); }
         });
       }
@@ -2765,4 +2795,61 @@ async function openFromHash(){
 if(DATA.regions && DATA.regions.length){ pickDefault(); render(); setupSearch(); setupHome(); openFromHash(); }
 else { $("#list").innerHTML="<p>표시할 데이터가 없어요. collect_all.py 로 먼저 모으세요.</p>"; }
 window.addEventListener("hashchange", openFromHash);
+/* ══ [지도 카드 · 2026-08] 오른쪽 얇은 카드를 왼쪽으로 끌면(또는 톡 누르면) 지도로 ══
+   두 가지 상황을 모두 처리합니다.
+     ① 이 차트가 지도 안의 창(iframe)일 때 → 부모에게 "지도 보여줘" 라고만 말합니다.
+        (페이지를 새로 읽지 않으니 순간이동처럼 빠르고, 차트는 왼쪽에 대기)
+     ② 폰에서 단독 페이지로 볼 때 → 지도 페이지로 이동합니다. 이때 지금 보던
+        단지를 함께 알려줘서, 지도에 도착하면 왼쪽에 그 차트 카드가 생깁니다.     */
+(function(){
+  const grip=document.getElementById("mapGrip");
+  if(!grip) return;
+  const GO_PX=55;                        // 이만큼 왼쪽으로 끌면 지도로 이동
+  let sx=0, sy=0, dx=0, dragging=false;
+  const follow=(px)=>{ grip.style.transition="none";
+    grip.style.transform="translate("+(-px)+"px,-50%)"; };
+  const rest=()=>{ grip.style.transition=""; grip.style.transform=""; };
+  function curKeyStr(){                  // 지금 보고 있는 단지 "지역코드|이름"
+    try{
+      const u=(DATA.peerdata&&DATA.peerdata.units)?DATA.peerdata.units[searchKey]:null;
+      if(u&&u.name) return (u.rc||"")+"|"+u.name;
+    }catch(e){}
+    return "";
+  }
+  function goMap(){
+    try{
+      if(window.parent && window.parent!==window){
+        window.parent.postMessage({type:"aptmatch:showmap"},"*"); rest(); return;
+      }
+      if(window.opener){ window.opener.postMessage({type:"aptmatch:showmap"},"*"); rest(); return; }
+    }catch(e){}
+    const k=curKeyStr();
+    const q=k ? ("#goto="+encodeURIComponent(k)+"&back="+encodeURIComponent(k)) : "";
+    location.href="./index.html?m=1"+q;
+  }
+  const start=(x,y)=>{ sx=x; sy=y; dx=0; dragging=true; };
+  const move=(x,y)=>{
+    if(!dragging) return;
+    dx=sx-x;                             // 왼쪽으로 끌면 양수
+    /* 세로로 크게 움직이면 페이지를 스크롤하려는 것으로 보고 취소합니다 */
+    if(Math.abs(y-sy)>60 && Math.abs(y-sy)>Math.abs(dx)*1.5){ end(true); return; }
+    follow(Math.max(0, Math.min(dx, 200)));
+  };
+  const end=(cancel)=>{
+    if(!dragging) return;
+    dragging=false;
+    if(cancel){ rest(); return; }
+    if(dx>GO_PX || Math.abs(dx)<6){ goMap(); }   // 충분히 끌거나, 톡 누름 → 지도로
+    else rest();                                  // 애매하면 제자리
+  };
+  grip.addEventListener("touchstart",e=>{ e.preventDefault(); e.stopPropagation();
+    const t=e.touches[0]; start(t.clientX,t.clientY); },{passive:false});
+  grip.addEventListener("touchmove",e=>{ e.preventDefault(); e.stopPropagation();
+    const t=e.touches[0]; move(t.clientX,t.clientY); },{passive:false});
+  grip.addEventListener("touchend",e=>{ e.preventDefault(); e.stopPropagation(); end(false); },{passive:false});
+  grip.addEventListener("touchcancel",()=>end(true),{passive:true});
+  grip.addEventListener("mousedown",e=>{ e.preventDefault(); start(e.clientX,e.clientY); });
+  window.addEventListener("mousemove",e=>{ if(dragging) move(e.clientX,e.clientY); });
+  window.addEventListener("mouseup",()=>end(false));
+})();
 </script></body></html>

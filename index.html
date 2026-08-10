@@ -105,23 +105,23 @@
      그래서 차트를 왼쪽으로 밀어 두고 오른쪽 가장자리 36px만 남깁니다(=손잡이).
      그 손잡이를 오른쪽으로 끌면(또는 톡 누르면) 차트가 다시 돌아옵니다.
      ※ 패널을 '닫는' 게 아니라 '밀어두는' 것이라 iframe 이 새로 안 읽혀 빠릅니다. */
-  /* [손잡이 모양] 세로 전체를 덮는 막대는 지도 마커를 많이 가립니다.
-     그래서 화면 가운데 높이에 '반쯤 튀어나온 카드' 모양으로 둡니다.            */
+  /* [손잡이 모양 · 2026-08 수정] 폭을 최소로 줄이고 베이지 톤 + 검은 글씨.
+     (보라 카드는 너무 넓고 튀어서 지도 마커를 가렸습니다)                      */
   #peekGrip{display:none;position:absolute;left:0;top:50%;transform:translateY(-50%);
-    width:34px;height:170px;
+    width:22px;height:132px;
     z-index:960;align-items:center;justify-content:center;cursor:grab;
-    background:linear-gradient(90deg,rgba(112,72,232,.96),rgba(112,72,232,.78));
-    color:#fff;font-size:16px;font-weight:800;
-    border-radius:0 14px 14px 0;box-shadow:3px 0 14px rgba(0,0,0,.28);
+    background:#EFE3CC;border:1px solid #D8C6A4;border-left:0;
+    color:#2B2118;font-weight:800;
+    border-radius:0 10px 10px 0;box-shadow:2px 0 8px rgba(0,0,0,.16);
     touch-action:none;user-select:none;-webkit-user-select:none}
-  #peekGrip span{writing-mode:vertical-rl;letter-spacing:3px;font-size:12px;opacity:.98}
+  #peekGrip span{writing-mode:vertical-rl;letter-spacing:2px;font-size:11px;line-height:1}
   @media (max-width:760px){          /* 모바일: 패널이 화면 대부분 차지 */
     body.panel-open #map{left:0}
     #panel{width:100%;left:-100%}
     body.panel-open #panel{left:0}
     #panelResize{display:none}       /* 폭 조절 손잡이는 모바일에서 필요 없음(peek 손잡이와 겹침) */
     /* [peek] 왼쪽으로 밀어 36px만 남김. 드래그 중에는 JS 가 인라인 transform 으로 덮어씀 */
-    body.panel-open.panel-peek #panel{transform:translateX(calc(-100% + 36px))}
+    body.panel-open.panel-peek #panel{transform:translateX(calc(-100% + 22px))}
     body.panel-open.panel-peek #peekGrip{display:flex}
   }
 
@@ -699,6 +699,43 @@ async function boot(){
   document.getElementById('loading').style.display='none';
   setupMapSearch();       // [검색] 데이터 로딩 후 검색창 활성화
   setupFilters();         // [필터] 저평가율·평형·세대수
+  openFromGotoHash();     // [2026-08] 차트 홈에서 📍로 넘어온 경우 그 아파트로 이동
+}
+
+/* ══ [차트 홈 → 지도 · 2026-08] ═══════════════════════════════════════════════
+   왜 필요한가: 폰으로 접속하면 첫 화면이 차트 홈(chart.html)입니다. 그 홈은
+   '지도 안의 창'이 아니라 단독 페이지라 부모 창이 없어서, 📍를 눌러도 지도가
+   움직일 방법이 없었습니다(아무 일도 안 일어남 = 사용자가 겪은 문제).
+   그래서 차트 홈이 이런 주소로 넘겨보냅니다:
+       index.html?m=1#goto=지역코드|찾아갈아파트&back=지역코드|돌아갈차트
+   여기서 ① 지도를 그 아파트로 옮기고 ② 돌아갈 차트를 왼쪽에 카드로 대기시킵니다.
+   ※ 반드시 boot() 끝에서 부릅니다 — BEST(아파트 목록)가 채워진 뒤여야 찾습니다. */
+function openFromGotoHash(){
+  const h = decodeURIComponent(location.hash || "");
+  const m = h.match(/^#goto=([^|&]*)\|([^&]+)(?:&back=([^|&]*)\|(.+))?$/);
+  if(!m) return;
+  const rc = m[1], nm = m[2], brc = m[3] || "", bnm = m[4] || "";
+  const findApt = (r, n)=>{
+    if(!n) return null;
+    let h2 = BEST[r + "|" + n];
+    if(!h2) for(const k in BEST){ if(BEST[k].name === n){ h2 = BEST[k]; break; } }
+    return h2 || null;
+  };
+  const hit = findApt(rc, nm);
+  if(!hit || !hit.lat){ console.warn("[차트→지도] 좌표를 못 찾았어요:", rc, nm); return; }
+  map.setView([hit.lat, hit.lon], 16, {animate:false});
+  // 어디로 왔는지 눈에 띄게 1.6초 동안 원을 그립니다 (📍와 같은 표시)
+  try{
+    const ring = L.circleMarker([hit.lat, hit.lon], {
+      radius:26, color:"#7A6DB0", weight:3, opacity:.95,
+      fillColor:"#7A6DB0", fillOpacity:.12 }).addTo(map);
+    setTimeout(()=>{ try{ map.removeLayer(ring); }catch(e){} }, 1600);
+  }catch(e){}
+  /* 돌아갈 차트를 왼쪽 카드로 준비. back 이 없으면(직접 주소를 친 경우 등)
+     찾아온 그 아파트 차트를 대기시킵니다.                                     */
+  const backName = bnm || nm, backRc = bnm ? brc : rc;
+  openPanel(backRc, backName);   // 차트 준비(iframe 로드) — 안에서 peek 를 풀므로
+  peekPanel();                   // 바로 다시 왼쪽으로 밀어 카드만 남깁니다
 }
 
 function setupFilters(){
@@ -1061,7 +1098,7 @@ window.addEventListener('popstate', ()=>{
      · peekPanel()   : 밀어두기 (모바일에서만. PC는 지도가 이미 옆에 보이므로 그대로)
      · unpeekPanel() : 원위치 (손잡이 드래그/탭, 다른 마커 클릭, 패널 닫기)
    ※ 인라인 transform 을 반드시 지웁니다. 안 지우면 드래그 중 위치에 굳어버립니다. */
-const PEEK_EDGE = 36;                                   // 남겨 둘 손잡이 폭(px) — CSS와 같은 값
+const PEEK_EDGE = 22;                                   // 남겨 둘 손잡이 폭(px) — CSS와 같은 값
 function isMobileView(){ return window.matchMedia('(max-width:760px)').matches; }
 function peekPanel(){
   if(!document.body.classList.contains('panel-open')) return;   // 패널이 안 열려 있으면 할 일 없음
@@ -1184,6 +1221,9 @@ function clearSelect(){
    찾으려면 검색을 다시 해야 했습니다. 한 번 눌러 바로 가게 합니다.            */
 window.addEventListener("message", (ev)=>{
   const d = ev.data;
+  /* [지도 카드 · 2026-08] 차트(iframe) 오른쪽 카드를 왼쪽으로 끌면 이 신호가 옵니다.
+     패널을 닫지 않고 왼쪽으로 밀어두기만 하면 지도가 보입니다(차트는 대기).      */
+  if(d && d.type === "aptmatch:showmap"){ peekPanel(); return; }
   if(!d || d.type !== "aptmatch:goto") return;
   /* 아래 console.warn 세 줄은 정상 동작에서는 찍히지 않습니다.
      📍를 눌러도 지도가 안 움직이는 일이 생기면 콘솔에서 이유를 바로 알 수 있게
