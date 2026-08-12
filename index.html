@@ -146,6 +146,11 @@
   .topbar a{font-size:12px;color:var(--soft);text-decoration:none;
     border:1px solid rgba(0,0,0,.08);background:rgba(255,255,255,.7);
     border-radius:8px;padding:6px 10px}
+  /* [지도 종류 전환 버튼 · 2026-08] 오른쪽 위, 흰 알약 모양 */
+  .map-mode-btn{background:#fff;border:1px solid rgba(0,0,0,.15);border-radius:8px;
+    padding:6px 12px;font-size:13px;font-weight:800;color:#2B2118;cursor:pointer;
+    box-shadow:0 1px 5px rgba(0,0,0,.2);line-height:1;white-space:nowrap}
+  .map-mode-btn:hover{background:#F5EFE3}
   /* [검색] 지도 상단 검색창 — 치면 목록이 뜨고, 고르면 그 단지로 지도 이동 */
   .topbar .search{position:relative;flex:1;max-width:320px}
   .topbar .search input{width:100%;border:1.5px solid var(--line);border-radius:10px;
@@ -537,13 +542,58 @@ async function boot(){
      · 한국 학교·상가·역·등산로가 네이버 수준으로 표시됨 (Voyager는 서양용이라 텅 비었음)
      · 아래 VWORLD_KEY 에 발급받은 키를 넣어야 합니다 (collect_coords.py 와 같은 키) */
   const VWORLD_KEY = "D5FA780D-E92F-3BB0-BBA2-7DD5F5FBECF7";   // ← 여기에 VWorld 키 입력!
+  /* ══ [지도 종류 · 2026-08] 일반 ↔ 위성 전환 ═══════════════════════════════════
+     왜 넣나: 국토부 일반지도(Base)는 재개발 완공 반영이 느립니다(예: 거제동
+     레이카운티가 아직 "재개발 신축공사"로 표시). 위성(항공)영상은 실제로 찍은
+     사진이라 완공된 건물이 그대로 보입니다. 네이버의 '일반/위성'과 같은 개념.
+       · 일반  = Base (도로·지명·상가까지 깔끔)
+       · 위성  = Satellite(항공사진) + Hybrid(그 위에 도로·지명 글씨만 겹침)
+                위성만 켜면 글자가 하나도 없어 어디가 어딘지 모르므로 Hybrid 필수. */
+  let _baseLayer=null, _satLayer=null, _hybLayer=null, _mapMode="normal";
   if(VWORLD_KEY){
-    L.tileLayer(`https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_KEY}/Base/{z}/{y}/{x}.png`,
-      {maxZoom:19, attribution:'© VWorld 국토교통부'}).addTo(map);
+    _baseLayer = L.tileLayer(`https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_KEY}/Base/{z}/{y}/{x}.png`,
+      {maxZoom:19, attribution:'© VWorld 국토교통부'});
+    _satLayer = L.tileLayer(`https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_KEY}/Satellite/{z}/{y}/{x}.jpeg`,
+      {maxZoom:19, attribution:'© VWorld 국토교통부'});
+    _hybLayer = L.tileLayer(`https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_KEY}/Hybrid/{z}/{y}/{x}.png`,
+      {maxZoom:19});                          // 위성 위에 얹는 '지명·도로' 글씨 레이어
+    _baseLayer.addTo(map);                    // 처음엔 일반지도
   }else{
     // 키 없으면 임시로 Voyager (한국 상세표시 없음)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    _baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
       {maxZoom:19, subdomains:'abcd', attribution:'© OpenStreetMap © CARTO'}).addTo(map);
+  }
+  /* 전환 함수: 버튼을 누르면 일반↔위성을 오갑니다. 마커·클러스터는 별도 레이어라
+     배경만 갈아끼워도 핀은 그대로 남습니다. */
+  function setMapMode(mode){
+    if(!_satLayer) return;                     // 위성 레이어가 없으면(키 없음) 무시
+    if(mode==="satellite"){
+      map.removeLayer(_baseLayer);
+      _satLayer.addTo(map); _hybLayer.addTo(map);
+      _satLayer.bringToBack();                 // 사진을 맨 아래, 그 위에 글씨(Hybrid)
+      _mapMode="satellite";
+    }else{
+      map.removeLayer(_satLayer); map.removeLayer(_hybLayer);
+      _baseLayer.addTo(map); _baseLayer.bringToBack();
+      _mapMode="normal";
+    }
+    const btn=document.getElementById("mapModeBtn");
+    if(btn) btn.textContent = (_mapMode==="satellite") ? "🗺️ 일반" : "🛰️ 위성";
+  }
+  /* 지도 위 오른쪽 위에 작은 전환 버튼 하나 추가 (Leaflet 컨트롤로) */
+  if(_satLayer){
+    const Ctl = L.Control.extend({
+      options:{position:"topright"},
+      onAdd:function(){
+        const b=L.DomUtil.create("button","map-mode-btn");
+        b.id="mapModeBtn"; b.type="button"; b.textContent="🛰️ 위성";
+        b.title="일반지도 ↔ 위성지도 전환";
+        L.DomEvent.disableClickPropagation(b);   // 버튼 눌러도 지도 안 움직이게
+        L.DomEvent.on(b,"click",()=> setMapMode(_mapMode==="satellite"?"normal":"satellite"));
+        return b;
+      }
+    });
+    map.addControl(new Ctl());
   }
 
   layerTags = L.layerGroup();      // 이름 말풍선 (확대 시)
