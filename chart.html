@@ -361,9 +361,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.18 19:56 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.18 22:01 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.18 19:56</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.18 22:01</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -725,10 +725,14 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202608181956";</script>
-<script src="data.js"></script>
+<script>window.__BUILD_V__="202608182201"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
+<script src="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
+/* [R2 이전 · 2026-08-18] 데이터를 받아올 주소.
+   build_all.py 의 DATA_BASE_URL 값이 빌드할 때 여기로 들어옵니다.
+   반드시 / 로 끝납니다. 같은 폴더에서 받을 때는 "./" 입니다. */
+const DATA_BASE = window.__DATA_BASE__ || "./";
 /* ── [용량 절약 복원] ──
    data.js 파일에는 시세를 '억×10'(예: 4.5억 → 45)으로 압축해 저장합니다.
    숫자 자릿수가 줄어 파일이 절반 이하로 작아지고, 친구가 받는 양도 줄어듭니다.
@@ -777,7 +781,7 @@ async function loadAllListOnce(){
   __allTried = true;
   if(window.__ALLLIST__) return;
   await new Promise(ok=>{ const s=document.createElement("script");
-    s.src="./all_list.js"; s.onload=ok; s.onerror=ok; document.head.appendChild(s); });
+    s.src=DATA_BASE+"all_list.js"; s.onload=ok; s.onerror=ok; document.head.appendChild(s); });
 }
 /* ══ [진짜 실거래가로 비교하기 · 2026-08] ═══════════════════════════════════
    왜 만들었나: 차트 선은 '월마다 상위 25%'로 요약한 값입니다. 요약이 실제 거래를
@@ -809,7 +813,7 @@ async function ensureTx(rc){
   window.__TXRC__[rc] = "loading";
   const pd = DATA.peerdata;
   let js=null;
-  try{ const res = await fetch("./sise/"+rc+".json"); if(res.ok) js = await res.json(); }
+  try{ const res = await fetch(DATA_BASE+"sise/"+rc+".json"); if(res.ok) js = await res.json(); }
   catch(e){}
   if(!js || !js.t || !js.m || !pd || !pd.months){
     window.__TXRC__[rc]="none"; delete window.__TXP__[rc]; _done(); return;
@@ -854,7 +858,7 @@ async function ensureDetail(rc){
   let js=null;
   try{
     const v = window.__BUILD_V__ ? ("?v="+encodeURIComponent(window.__BUILD_V__)) : "";
-    const res = await fetch("./detail/"+rc+".json"+v);
+    const res = await fetch(DATA_BASE+"detail/"+rc+".json"+v);
     if(res.ok) js = await res.json();
   }catch(e){}
   if(js && js.details){
@@ -892,7 +896,7 @@ async function ensureRegionSise(rc){
   window.__SISE__[rc] = "loading";
   await loadAllListOnce();
   let js = null;
-  try{ const res = await fetch("./sise/"+rc+".json"); if(res.ok) js = await res.json(); }
+  try{ const res = await fetch(DATA_BASE+"sise/"+rc+".json"); if(res.ok) js = await res.json(); }
   catch(e){}
   if(!js || !js.m || !js.s){
     window.__SISE__[rc] = "none";

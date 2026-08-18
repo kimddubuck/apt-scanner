@@ -436,14 +436,21 @@ function applyFilter(){
 let BEST={}, MARKERS={}, COORDS_G={};          // key → 후보정보 / key → {tag, dot}
 const ZOOM_TAG = 14;              // 이 배율 이상이면 이름 말풍선, 미만이면 점
 
+/* ══ [Cloudflare R2 이전 · 2026-08-18] 데이터를 어디서 받을지 ═══════════════
+   무거운 데이터(data.js · coords.json · all_list.js)를 GitHub 대신
+   Cloudflare R2 에서 받아옵니다.
+   · 주소는 반드시 / 로 끝나야 합니다.
+   · 예전처럼 같은 폴더에서 받으려면  './'  로 바꾸세요. */
+const DATA_BASE = 'https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/';
+
 async function boot(){
   await new Promise((ok,err)=>{ const s=document.createElement('script');
-    s.src='./data.js'; s.onload=ok; s.onerror=()=>err(); document.head.appendChild(s); });
+    s.src=DATA_BASE+'data.js'; s.onload=ok; s.onerror=()=>err(); document.head.appendChild(s); });
   const DATA = window.__APTDATA__;
   if(!DATA){ fail('data.js 에 데이터가 없어요'); return; }
 
   let COORDS;
-  try{ COORDS = await (await fetch('./coords.json')).json(); window.COORDS_G = COORDS; }
+  try{ COORDS = await (await fetch(DATA_BASE+'coords.json')).json(); window.COORDS_G = COORDS; }
   catch(e){ fail('coords.json 못 읽음 — http 서버로 열어주세요'); return; }
   COORDS_G = COORDS;      // [검색용] 전역 보관
 
@@ -456,7 +463,7 @@ async function boot(){
      파일이 없어도 지도는 예전처럼 돌아갑니다(있으면 전체가 나옵니다). */
   window.ALLAPT = {};
   await new Promise(ok=>{ const s2=document.createElement('script');
-    s2.src='./all_list.js'; s2.onload=ok; s2.onerror=ok;
+    s2.src=DATA_BASE+'all_list.js'; s2.onload=ok; s2.onerror=ok;
     document.head.appendChild(s2); });
   (function(){
     const AL=(window.__ALLLIST__||{}).r||{};
