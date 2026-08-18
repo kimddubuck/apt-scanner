@@ -17,7 +17,7 @@
 <meta name="twitter:title" content="아파트매치">
 <meta name="twitter:description" content="동급 단지와 최근 10년치 실거래가 시세를 비교해 보세요. 아파트매치.">
 <!-- 애드센스 미설정 (build_all.py 위쪽 ADSENSE_CLIENT/SLOT 에 ID를 넣으면 켜집니다) -->
-<meta name="naver-site-verification" content="834ed7ce1c26f65e1d4202e5e4bc4fc85a5c14aa">
+<!-- 검색엔진 소유확인 미설정 (build_all.py 위쪽 NAVER_VERIFY/GOOGLE_VERIFY 에 넣으면 검색 노출) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZYJNWJ8B5S"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -361,9 +361,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.16 10:39 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.18 10:39 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.16 10:39</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.18 10:39</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -725,6 +725,7 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
+<script>window.__BUILD_V__="202608181039";</script>
 <script src="data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -823,6 +824,55 @@ async function ensureTx(rc){
   }
   window.__TXRC__[rc] = "ok";
   delete window.__TXP__[rc];
+  _done();
+}
+
+/* ══ [경량화 2단계 · 2026-08-16] ensureDetail ═══════════════════════════════════
+   아파트를 눌렀을 때, 그 지역의 차트 데이터(details)가 메모리에 없으면
+   detail/<지역코드>.json 을 받아 채워 넣습니다. ensureTx(거래이력) 와 완전히
+   같은 패턴입니다.
+     · data.js 에 details 가 아직 있으면(구버전) 곧바로 반환 → 아무 동작 안 함(무해).
+     · details 가 없어졌을 때(경량화 후)만 파일을 받아옵니다.
+   → STEP1 에서는 data.js 에 details 가 그대로 있으므로 이 함수는 늘 즉시 반환합니다.
+     (사이트 동작 100% 동일. 다음 STEP 에서 data.js 에서 details 를 뺄 때 실제로 작동) */
+window.__DETP__  = window.__DETP__  || {};   // 받는 중인 작업(약속)
+window.__DETRC__ = window.__DETRC__ || {};   // 완료/없음 표시
+async function ensureDetail(rc){
+  if(!rc) return;
+  // 이미 이 지역 details 가 메모리에 있으면(구버전 data.js 포함) 그냥 반환
+  const r0 = regionByCode(rc);
+  if(r0 && r0.details && Object.keys(r0.details).length) return;
+  if(DATA.hiddenDetails && DATA.hiddenDetails[rc]
+     && DATA.hiddenDetails[rc].details
+     && Object.keys(DATA.hiddenDetails[rc].details).length) return;
+  // 받는 중이면 함께 기다림 (ensureTx 와 동일한 안전장치)
+  if(window.__DETP__[rc]) { try{ await window.__DETP__[rc]; }catch(e){} return; }
+  if(window.__DETRC__[rc]) return;            // 이미 끝났거나 자료 없음
+  let _done;
+  window.__DETP__[rc] = new Promise(res=>{ _done=res; });
+  window.__DETRC__[rc] = "loading";
+  let js=null;
+  try{
+    const v = window.__BUILD_V__ ? ("?v="+encodeURIComponent(window.__BUILD_V__)) : "";
+    const res = await fetch("./detail/"+rc+".json"+v);
+    if(res.ok) js = await res.json();
+  }catch(e){}
+  if(js && js.details){
+    // 억×10 → 만원 복원 (restorePrices 의 ex 와 동일한 규칙)
+    const ex = a => Array.isArray(a) ? a.map(v => (v==null||v===0)?null:v*1000) : a;
+    Object.values(js.details).forEach(d=>{ (d.types||[]).forEach(t=>{ t.prices = ex(t.prices); }); });
+    const r = regionByCode(rc);
+    if(r){
+      r.details = js.details;
+      if(!r.months || !r.months.length) r.months = js.months || r.months;
+    }else if(DATA.hiddenDetails){
+      DATA.hiddenDetails[rc] = {name: js.name, months: js.months, details: js.details};
+    }
+    window.__DETRC__[rc] = "ok";
+  }else{
+    window.__DETRC__[rc] = "none";            // 못 받으면 openDetail 이 peerdata 로 대체
+  }
+  delete window.__DETP__[rc];
   _done();
 }
 
@@ -2243,14 +2293,19 @@ function detailFromPeers(apt, rc){
            _rn: inf.rn || "", _fromPeers: true };
 }
 function openDetail(apt, rc){
-  /* [거래이력 보완 · 2026-08] 이 함수는 async 가 아니라 await 를 쓸 수 없습니다.
-     그래서 개별 거래를 '백그라운드로' 받아오고, 도착하면 표만 다시 그립니다.
-     (창은 곧바로 열려서 기다리는 느낌이 없습니다) */
+  /* [경량화 2단계] 차트 데이터(details)가 그 지역에 없으면 detail/<코드>.json 을
+     먼저 받은 뒤 창을 엽니다. 이미 있으면(구버전 data.js 포함) ensureDetail 이
+     즉시 반환하므로 예전과 똑같이 곧바로 열립니다. */
   if(rc){
-    try{
-      ensureTx(rc).then(()=>{ if(detailState) redrawDetail(); }).catch(()=>{});
-    }catch(e){}
+    ensureDetail(rc).then(()=>{ _openDetailNow(apt, rc); }).catch(()=>{ _openDetailNow(apt, rc); });
+    // 거래이력은 예전처럼 백그라운드로 받아 표만 다시 그림
+    try{ ensureTx(rc).then(()=>{ if(detailState) redrawDetail(); }).catch(()=>{}); }catch(e){}
+    return;
   }
+  _openDetailNow(apt, rc);
+}
+function _openDetailNow(apt, rc){
+  /* [거래이력 보완 · 2026-08] 개별 거래를 '백그라운드로' 받아오고, 도착하면 표만 다시 그립니다. */
   let r = rc ? regionByCode(rc) : current().r;
   // 숨은 지역(지역칩엔 없지만 검색·그래프엔 나오는 지역)은 별도 상세 창고에서 찾기
   if(!r && rc && DATA.hiddenDetails && DATA.hiddenDetails[rc]) r = DATA.hiddenDetails[rc];
