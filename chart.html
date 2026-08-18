@@ -361,9 +361,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.18 10:39 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.18 19:12 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.18 10:39</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.18 19:12</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -725,7 +725,7 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202608181039";</script>
+<script>window.__BUILD_V__="202608181912";</script>
 <script src="data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -970,12 +970,14 @@ let scope = "gu";                    // 비교 범위: "gu"(구) | "si"(시) | "
 let scopeUserSet = false;            // [2026-08] 사용자가 구/시/전국 버튼을 '직접' 눌렀는지
 let peerYears = (DATA.defaultYears||5);   // 동급 판정 기준: 처음/최근 N년
 let peerBasis = "past";              // 동급 '판정' 시점: "past"(처음 N년) | "recent"(최근 N년) — 순위 매기기와는 무관
+let peerShowAll = false;             // [2026-08] 동급 '더보기'를 눌렀나. false면 8개만, true면 전부
 let peerBuilt = "";                  // 동급 연식 필터: ""(전체) | "lo-hi"(건축년도 구간)
 let peerSido = "";                   // 동급 '비교 지역' 필터: ""(전국 전체) | "대구" 등 시·도 이름
 let peerGu = "";                     // 동급 '비교 구' 필터: ""(전체) | "대구 수성구" 같은 지역 전체 이름
 let peerPy = "";                     // 동급 평형대 필터: ""(내 평수 ±18% 기본) | "20-30"(20평대) 등
 let peerPp = "";                     // 동급 평당가 필터: ""(전체) | "1500-2000"(만원/평 구간)
 let peerFound = 0;                   // 이번에 찾은 동급 총 개수(화면에 안내용)
+let peerTotal = 0;                   // [2026-08] 차트에 그릴 수 있는 동급 총 수(더보기 버튼 판단용)
 let legendUnits = {};                // 지금 범례(차트)에 그려진 단지들 — 상세보기 버튼이 씀
 /* [2026-08] 기본값을 0(전체)으로. 예전엔 200세대가 처음부터 켜져 있어서
    ⓐ '차트 필터 1개 적용'이 항상 떠 있고 ⓑ 마커(빌더 계산, 필터 없음)와
@@ -1747,6 +1749,15 @@ function drawLegend(units, ids, mainId, colors){
     }
     box.appendChild(el);
   });
+  // [2026-08] 동급 '더보기' 버튼: 8개만 보이는 상태에서 더 있으면 전부 펼침 (다시 누르면 접기)
+  if(peerTotal > 8){
+    const moreBtn=document.createElement("button");
+    moreBtn.style.cssText="width:100%;margin-top:8px;padding:7px 10px;border:1px solid var(--line);"
+      +"border-radius:8px;background:#fff;color:var(--ink);font:inherit;cursor:pointer";
+    moreBtn.textContent = peerShowAll ? "접기 (동급 8곳만 보기)" : `더보기 (동급 ${peerTotal}곳 전부 보기)`;
+    moreBtn.onclick=()=>{ peerShowAll=!peerShowAll; highlightIds=[]; render(); };
+    box.appendChild(moreBtn);
+  }
   if(highlightIds.length){
     const hint=document.createElement("div");
     hint.style.cssText="font-size:12px;color:#9AA3AF;width:100%";
@@ -2467,7 +2478,22 @@ function render(){
     const localKeys = (ctx && peerBasis==="past") ? ctx.c.sibs.map(s=>ctx.r.code+"|"+s).filter(k=>pd.series[k] && builtOk(k) && hhOk(k) && regOk(k) && pyOk(k) && ppOk(k)) : [];
     const far=computePeers(meKey, peerYears, eff, peerBasis, peerBuilt).filter(k=>!localKeys.includes(k));
     let list=[meKey, ...localKeys.slice(0,4), ...far];
-    const seen=new Set(); let ids=list.filter(k=>{ if(seen.has(k)) return false; seen.add(k); return true; }).slice(0,8);
+    // [2026-08] 전국(nat) 모드일 땐 '나와 같은 지역(구/시)'은 동급에서 제외 → 다른 지역만 비교
+    const seen=new Set();
+    let deduped=list.filter(k=>{ if(seen.has(k)) return false; seen.add(k); return true; });
+    if(eff==="nat" && ctx && ctx.r){
+      const myRc = ctx.r.code, mySi = (typeof siKey==="function") ? siKey(myRc) : String(myRc).slice(0,2);
+      deduped = deduped.filter(k=>{
+        if(k===meKey) return true;                     // 나 자신은 항상 포함
+        const inf = pd.units[k]; if(!inf) return true;
+        if(inf.rc===myRc) return false;                // 같은 구 제외
+        const kSi = (typeof siKey==="function") ? siKey(inf.rc) : String(inf.rc).slice(0,2);
+        if(kSi===mySi) return false;                   // 같은 시 제외
+        return true;
+      });
+    }
+    peerTotal = deduped.length;                        // 더보기 판단용: 전체 동급 수
+    let ids = peerShowAll ? deduped : deduped.slice(0, 8);
     const units=peerUnits(ids);
     const colors={}; colors[meKey]="#C8901E";
     ids.filter(k=>k!==meKey).forEach((k,i)=>colors[k]=PALETTE[i%PALETTE.length]);

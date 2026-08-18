@@ -1402,6 +1402,36 @@ function fail(msg){
 }
 
 boot();
+
+/* ══ [PC 첫 화면 · 2026-08] 왼쪽에 아파트매치 홈(오늘의 매치)을 미리 띄웁니다 ══════
+   왜: 예전엔 PC 로 처음 열면 오른쪽 지도만 보이고 왼쪽이 비어 있었습니다.
+       이제 처음부터 왼쪽 패널에 chart.html 홈(오늘의 매치·구별 보기·소개)을 띄워
+       "왼쪽 메인 + 오른쪽 지도"가 함께 보이게 합니다.
+   안전장치:
+     · 폰(<760px)은 이미 chart.html 로 넘어가므로 여기서 아무 것도 안 함.
+     · 아파트를 눌러 특정 단지 차트를 열면 그쪽이 우선(panelKey 로 구분).
+     · 히스토리(pushState)는 넣지 않습니다 → 첫 화면에서 뒤로가기 눌러도
+       사이트를 안 나가고 그대로 유지(홈은 '기본 상태'라 되돌릴 대상이 아님). */
+function openHomePanel(){
+  if(window.innerWidth < 760) return;        // 폰은 제외 (이미 chart.html 홈)
+  const fr = document.getElementById('panelFrame');
+  if(!fr) return;
+  if(panelKey === "__home__") return;        // 이미 홈이면 다시 안 함
+  fr.src = './chart.html';                    // 해시 없음 = 홈(오늘의 매치)
+  panelKey = "__home__";
+  const tt = document.getElementById('panelTitle');
+  if(tt) tt.textContent = "아파트 매치";
+  document.body.classList.add('panel-open');
+  setTimeout(()=>{ try{ map.invalidateSize(); }catch(e){} }, 300);
+}
+// 지도 준비가 끝난 뒤 홈을 띄웁니다 (map 이 생기면 실행)
+(function waitMapThenHome(){
+  const t = setInterval(()=>{
+    if(typeof map !== "undefined" && map){ clearInterval(t); openHomePanel(); }
+  }, 120);
+  setTimeout(()=>clearInterval(t), 6000);     // 6초 넘으면 그만 (안전)
+})();
+
 // 지도 이동 멈추면 화면 안 말풍선 갱신
 document.addEventListener('DOMContentLoaded',()=>{ 
   const t=setInterval(()=>{ if(map){ map.on('moveend',refreshTags); clearInterval(t);} },200);
