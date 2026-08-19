@@ -365,9 +365,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.19 17:02 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.19 17:31 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.19 17:02</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.19 17:31</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -746,7 +746,7 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202608191702"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
+<script>window.__BUILD_V__="202608191731"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
 <script src="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -1220,11 +1220,11 @@ function rStar(g){
   return (g.siStarCount!=null) ? g.siStarCount : (g.starCount||0);
 }
 function useSiRank(){
-  //  [2026-08 확장] 구별 보기(지역별 매치)도 시 기준으로 통일했습니다.
-  //    왜: 같은 단지가 전국 목록과 지역 목록에서 다른 %로 보여 헷갈렸습니다.
-  //    ※ 평당가별 보기(tier·ALL 아님)는 예전처럼 구 기준을 유지합니다.
-  return peerBasis==="past"
-      && ((mode==="tier" && tierCode==="ALL") || mode==="region");
+  //  [2026-08] 모든 화면을 시 기준으로 통일했습니다.
+  //    전국 매치 → 구별 보기 → 평당가별 보기 순으로 넓혀 왔고, 이제 전부 같습니다.
+  //    왜: 같은 단지가 화면마다 다른 %로 보이면 어느 쪽을 믿어야 할지 알 수 없습니다.
+  //    '현재 기준'일 때는 저평가 줄 세우기를 안 하므로 그때만 false 입니다.
+  return peerBasis==="past";
 }
 function itemRate(it){
   if(useSiRank() && it && it.siRate!=null) return it.siRate;   // 시 기준 갭
