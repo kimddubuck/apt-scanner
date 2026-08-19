@@ -16,7 +16,8 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="아파트매치">
 <meta name="twitter:description" content="동급 단지와 최근 10년치 실거래가 시세를 비교해 보세요. 아파트매치.">
-<!-- 애드센스 미설정 (build_all.py 위쪽 ADSENSE_CLIENT/SLOT 에 ID를 넣으면 켜집니다) -->
+<meta name="google-adsense-account" content="ca-pub-7416290773673983">
+<script async crossorigin="anonymous" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7416290773673983"></script>
 <!-- 검색엔진 소유확인 미설정 (build_all.py 위쪽 NAVER_VERIFY/GOOGLE_VERIFY 에 넣으면 검색 노출) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZYJNWJ8B5S"></script>
 <script>
@@ -361,9 +362,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.18 22:01 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.19 14:09 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.18 22:01</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.19 14:09</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -725,7 +726,7 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202608182201"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
+<script>window.__BUILD_V__="202608191409"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
 <script src="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -1192,7 +1193,11 @@ const RATE_KEYS=["past3","past5","past7","past10"];
      - 시 기준은 '과거 7년 하나'만 계산했으므로 연수(3·5·10년) 선택과 무관하게 7년 값 사용.
    · 그 외(구별 보기) → 기존처럼 구 기준 rate + 연수별 rates                     */
 function useSiRank(){
-  return mode==="tier" && tierCode==="ALL" && peerBasis==="past";
+  //  [2026-08 확장] 구별 보기(지역별 매치)도 시 기준으로 통일했습니다.
+  //    왜: 같은 단지가 전국 목록과 지역 목록에서 다른 %로 보여 헷갈렸습니다.
+  //    ※ 평당가별 보기(tier·ALL 아님)는 예전처럼 구 기준을 유지합니다.
+  return peerBasis==="past"
+      && ((mode==="tier" && tierCode==="ALL") || mode==="region");
 }
 function itemRate(it){
   if(useSiRank() && it && it.siRate!=null) return it.siRate;   // 시 기준 갭
@@ -1227,9 +1232,18 @@ function drawList(){
   };
   if(mode==="region"){
     const r=regionByCode(regionCode);
-    r.candidates.filter(c=>matchFilters(c,r.code)).sort((a,b)=>itemRate(b)-itemRate(a)).forEach(c=>{
+    const _siRankR = useSiRank();
+    r.candidates.filter(c=>matchFilters(c,r.code))
+           // [시 기준 통일] 시 기준으로 줄 세우므로, 시 기준 값이 없는 단지는 뺍니다.
+           //   섞으면 값이 없는 단지가 구 기준 값으로 대체돼 엉뚱하게 위로 올라옵니다.
+           .filter(c=> !_siRankR || c.siRate!=null)
+           .sort((a,b)=>itemRate(b)-itemRate(a)).forEach(c=>{
       push(c.name, `${c.pyeong}평 · 현재 ${fmtEok(c.now)}`,
-      itemRate(c), c.star, c.id===activeId, ()=>{ activeId=c.id; highlightIds=[]; searchKey=null; scope="gu"; scopeUserSet=true; render(); scrollToChart(); });});
+      itemRate(c), _siRankR ? (c.siStar||c.star) : c.star, c.id===activeId,
+      ()=>{ activeId=c.id; highlightIds=[]; searchKey=null;
+            // 목록이 시 기준이므로 카드도 '같은 시 동급'으로 엽니다(직접 바꾸면 그 선택 유지)
+            scope = _siRankR ? "si" : "gu"; scopeUserSet = !_siRankR;
+            render(); scrollToChart(); });});
   } else {
     const t=tierByCode(tierCode);
     const _siRank = useSiRank();
@@ -1261,7 +1275,8 @@ function drawList(){
       const cut = (shown < total) ? ` · 상위 <b>${shown}</b>위까지 표시 (전체 ${total.toLocaleString()}곳)` : "";
       if(useSiRank()){
         // 시 기준 랭킹: 같은 시 안에서 동급을 찾아 매긴 순위 (과거 7년 고정)
-        hint.innerHTML=`${head}<b>${filters.sido} 안에서</b> 과거 7년 기준 저평가 순위 · 눌러서 그래프 보기${cut}`;
+        const _siWhere = filters.sido ? `<b>${filters.sido} 안에서</b>` : "<b>같은 시 안에서</b>";
+        hint.innerHTML=`${head}${_siWhere} 과거 7년 기준 저평가 순위 · 눌러서 그래프 보기${cut}`;
       } else {
         hint.innerHTML=`${head}<b>과거 ${peerYears}년</b> 기준 매력도 순위 · 눌러서 그래프 보기${cut}`;
       }

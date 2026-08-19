@@ -29,7 +29,22 @@
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:var(--ink)}
-  #map{position:absolute;inset:0;top:94px;transition:left .25s ease}
+  #map{position:absolute;inset:0;top:94px;bottom:30px;transition:left .25s ease}
+  /* [2026-08 · 검색·애드센스] 화면 맨 아래 얇은 띠.
+     소개·개인정보처리방침·문의 페이지로 가는 길이 첫 화면에 없으면
+     구글이 그 페이지들을 늦게 찾거나 못 찾습니다. 지도는 30px 위로 올려
+     띠가 지도를 가리지 않게 했습니다. */
+  .sitefootbar{position:absolute;left:0;right:0;bottom:0;height:30px;z-index:1200;
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    background:#fff;border-top:1px solid rgba(0,0,0,.08);
+    font-size:12px;color:#6B7076;padding:0 10px;box-sizing:border-box}
+  .sitefootbar p{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sitefootbar a{color:#B4763A;text-decoration:none;white-space:nowrap}
+  .sitefootbar a:hover{text-decoration:underline}
+  .sitefootbar nav{white-space:nowrap}
+  /* 링크 이름은 PC에선 길게(검색엔진이 무슨 페이지인지 알기 쉽게),
+     폰에선 짧게. 긴 이름 그대로 두면 360px 폰에서 줄이 넘칩니다. */
+  .sitefootbar .fs{display:none}
   /* [필터바 · 2026-08 카드형] 예전엔 한 줄 가로스크롤이라 오른쪽 필터가
      화면 밖으로 숨어 있는지도 몰랐습니다. 이제 차트의 검색 필터와 같은
      '접히는 카드'로 통일했습니다. 머리글만 42px 자리를 차지하고(지도 위치 그대로),
@@ -92,7 +107,7 @@
      패널 안에는 기존 index.html 을 iframe(창문)으로 끼움 →
      차트·구시전국·거래이력 등 기존 기능이 100% 그대로 작동. */
   body.panel-open #map{left:var(--panelW,420px)}
-  #panel{position:absolute;top:94px;bottom:0;left:calc(-1*var(--panelW,420px) - 10px);width:var(--panelW,420px);z-index:900;
+  #panel{position:absolute;top:94px;bottom:30px;left:calc(-1*var(--panelW,420px) - 10px);width:var(--panelW,420px);z-index:900;
     background:#fff;border-right:1px solid rgba(0,0,0,.08);
     box-shadow:4px 0 20px rgba(0,0,0,.08);transition:left .25s ease, transform .25s ease;
     display:flex;flex-direction:column}
@@ -127,6 +142,10 @@
   #peekGrip span{writing-mode:vertical-rl;letter-spacing:2px;font-size:11px;line-height:1}
   @media (max-width:760px){          /* 모바일: 패널이 화면 대부분 차지 */
     body.panel-open #map{left:0}
+    .sitefootbar p{display:none}        /* 폰에서는 링크만 (한 줄에 안 들어감) */
+    .sitefootbar .fl{display:none}
+    .sitefootbar .fs{display:inline}
+    .sitefootbar{font-size:12.5px;gap:0}
     #panel{width:100%;left:-100%}
     body.panel-open #panel{left:0}
     #panelResize{display:none}       /* 폭 조절 손잡이는 모바일에서 필요 없음(peek 손잡이와 겹침) */
@@ -304,6 +323,13 @@
 </div>
 
 <div id="map"></div>
+
+<!-- [2026-08 · 검색 노출] 첫 화면에서 소개·방침·문의 페이지로 가는 길.
+     사람에게도 필요하고, 구글이 사이트 구조를 파악하는 데도 쓰입니다. -->
+<footer class="sitefootbar">
+  <p>국토교통부 실거래가로 과거엔 값이 나란히 움직였는데 지금 혼자 뒤처진 아파트를 찾아 주는 무료 서비스입니다.</p>
+  <nav><a href="./about.html"><span class="fl">서비스 소개와 분석 원리</span><span class="fs">소개</span></a> · <a href="./privacy.html"><span class="fl">개인정보처리방침</span><span class="fs">개인정보처리방침</span></a> · <a href="./contact.html"><span class="fl">문의하기</span><span class="fs">문의</span></a></nav>
+</footer>
 
 <!-- [B안] 아실식 사이드 패널: 기존 index.html 을 창문(iframe)으로 -->
 <div id="panel">
