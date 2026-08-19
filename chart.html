@@ -86,7 +86,8 @@
     margin:6px 0 2px;padding:7px 9px;border-radius:9px;background:#FBF7EF;
     font-size:11px;color:#6B7482;line-height:1.5;
     word-break:keep-all;overflow-wrap:break-word;text-wrap:pretty}
-  .yaxis-note > span{flex:1 1 190px;min-width:0}
+  .yaxis-note > span{flex:1 1 190px;min-width:0;line-height:1.75}
+  .yaxis-note > span br{content:"";display:block;margin-bottom:3px}
   .yaxis-note b{color:var(--ink)}
   .yaxis-note button{border:1.5px solid var(--gold);background:#fff;color:var(--gold);
     border-radius:999px;padding:5px 10px;font-size:11.5px;font-weight:800;
@@ -265,6 +266,8 @@
   .qcard b{font-size:15px;font-weight:800;display:block;line-height:1.3}
   .qcard.big b{font-size:12px;letter-spacing:-.02em;line-height:1.35}
   .qcard span{font-size:12px;color:var(--soft)}
+  /* 위 두 장은 <a> 라서 button 기본 모양이 안 먹습니다. 같은 모양으로 맞춥니다. */
+  a.qcard{text-decoration:none;display:flex;flex-direction:column;justify-content:center}
   .qcard.big span{color:#B9C6D8}
   .qcard.big .qnum{font-size:30px;font-weight:800;color:#F1C97A;line-height:1.1}
   /* [2026-08] 매치 카드 소제목 — '동급 대비 가격 매력 단지' 바로 위에 붙는 금색 라벨 */
@@ -362,9 +365,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.19 14:45 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.19 16:20 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.19 14:45</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.19 16:20</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -384,6 +387,15 @@
     <button class="qcard" onclick="goScanner('tier')">
       <span class="qi">💰</span><b>평당가별 보기</b><span>1000~30000만 구간</span>
     </button>
+    <!-- [2026-08] 글·오늘의저평가로 가는 길.
+         예전엔 화면 맨 아래 30px 띠에만 링크가 있어 사람 눈에 거의 안 띄었습니다.
+         사람이 실제로 머무는 이 패널에 같은 모양의 카드로 놓습니다. -->
+    <a class="qcard" href="https://아파트매치.com//today.html">
+      <span class="qi">📄</span><b>오늘의 저평가</b><span>매일 갱신되는 목록</span>
+    </a>
+    <a class="qcard" href="https://아파트매치.com//articles.html">
+      <span class="qi">📖</span><b>읽을거리</b><span>사용법 · 원리 · 업데이트</span>
+    </a>
   </div>
   <div class="home-sec">바로가기</div>
   <div class="igrid" id="homeGrid"></div>
@@ -447,8 +459,16 @@
       <!-- [Y축 안내 · 2026-08] 세로축이 무슨 값인지 모르면 그래프를 오해합니다.
            현재가·저평가율·대장과 같은 잣대(그 달 상위 25%)라는 것을 밝혀 둡니다. -->
       <div class="yaxis-note">
-        <span>📏 <b>세로축</b>은 <b>월마다 그 달 실거래가의 상위 25%</b>예요.
-          저층·급매에 덜 흔들리고, 지도의 현재가와 <b>같은 잣대</b>랍니다.</span>
+        <span>
+          <b>📏 세로축은 그 달 실거래가의 상위 25%</b>예요.<br>
+          싼 거래 4분의 1을 빼고 보기 때문에 저층·급매·증여에 덜 흔들리고,
+          지도에 뜨는 현재가와 <b>같은 잣대</b>랍니다.<br>
+          <b>다만 그 달 거래가 1건뿐이면</b> 뺄 아래쪽이 없어서, 그 한 건이
+          곧 그 달의 값이 돼요.<br>
+          그래서 <b>오늘의 매치(★)에는 최근 6개월 실거래가 3건 이상</b>인
+          단지만 올립니다. 거래가 드문 단지는 그래프엔 보이지만
+          추천 목록에선 빠져요.
+        </span>
         <button id="rawBtn" type="button">🔍 진짜 실거래가로 비교하기</button>
       </div>
       <div class="detail-link"><button id="detailBtn">📋 이 단지 전체 평형·거래이력 보기</button></div></div>
@@ -726,7 +746,7 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202608191445"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
+<script>window.__BUILD_V__="202608191620"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
 <script src="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -1347,9 +1367,42 @@ function drawChart(months, units, ids, mainId, colors){
         "이 단지·동급의 개별 실거래 자료가 아직 없어요(다시 빌드하면 채워져요).");
     }
   }
-  if(!vals.length){$("#chart").innerHTML=rawMode
-      ? "<p style='color:#9AA3AF'>이 단지·동급의 개별 실거래 자료가 아직 없어요. (밴드 밖 단지는 최근 3년만 저장해요)</p>"
-      : "<p>시세 없음</p>";return;}
+  if(!vals.length){
+    /* [2026-08 수정] 예전엔 여기서 #chart 안을 통째로 안내문으로 갈아끼웠습니다.
+       그러면 SVG 와 줌바가 사라지고 bindZoom 도 안 불려서, 손가락 확대·이동이
+       먹지 않고 '전체 보기' 버튼도 없어져 그 화면에 갇혔습니다.
+       특히 실거래 모드에서 거래가 없는 기간을 확대하면 바로 이 상태가 됐습니다.
+       → 이제 틀(SVG·줌바)은 그대로 두고 안내만 얹습니다. 확대·이동은 계속 됩니다. */
+    const host0=$("#chart");
+    let svg0=host0.querySelector("svg");
+    if(!svg0){
+      host0.innerHTML=`<svg role="img"></svg><div class="zoombar"></div>`;
+      svg0=host0.querySelector("svg");
+    }
+    const msg0 = rawMode
+      ? "이 기간에는 개별 실거래가 없어요"
+      : "이 기간에는 시세가 없어요";
+    const sub0 = rawMode
+      ? "손가락으로 넓히거나 아래 ‘전체 보기’를 눌러 보세요"
+      : "";
+    svg0.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg0.innerHTML = `<text x="${W/2}" y="${H/2-8}" text-anchor="middle"`
+      + ` fill="#9AA3AF" font-size="15">${msg0}</text>`
+      + (sub0 ? `<text x="${W/2}" y="${H/2+16}" text-anchor="middle"`
+                + ` fill="#B6BDC7" font-size="12.5">${sub0}</text>` : "");
+    const zoomed0=(zoomA>0||zoomB<1);
+    const bar0=host0.querySelector(".zoombar");
+    if(bar0){
+      bar0.innerHTML = zoomed0
+        ? `🔍 ${months[0]} ~ ${months[months.length-1]} `
+          + `<button onclick="jumpLatest()">최신으로 ▶</button>`
+          + `<button onclick="resetZoom()">전체 보기</button>`
+        : ``;
+      bar0.className = zoomed0 ? "zoombar" : "zoombar zoomhint";
+    }
+    bindZoom(FULL_N);        // ★ 이게 있어야 손가락 확대·이동이 계속 살아 있습니다
+    return;
+  }
   let ymin=Math.min(...vals),ymax=Math.max(...vals);
   function niceStep(x){const raw=x/5,p=Math.pow(10,Math.floor(Math.log10(raw))),n=raw/p;return (n<1.5?1:n<3?2:n<7?5:10)*p;}
   const step=niceStep((ymax-ymin)||1);
