@@ -42,6 +42,10 @@
   .sitefootbar a{color:#B4763A;text-decoration:none;white-space:nowrap}
   .sitefootbar a:hover{text-decoration:underline}
   .sitefootbar nav{white-space:nowrap}
+  #returnChip{position:absolute;left:50%;transform:translateX(-50%);bottom:44px;z-index:1300;
+    background:#fff;border:1.5px solid #B4763A;color:#B4763A;border-radius:999px;
+    padding:9px 16px;font-size:13.5px;font-weight:700;font-family:inherit;
+    box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:pointer;white-space:nowrap}
   /* 링크 이름은 PC에선 길게(검색엔진이 무슨 페이지인지 알기 쉽게),
      폰에선 짧게. 긴 이름 그대로 두면 360px 폰에서 줄이 넘칩니다. */
   .sitefootbar .fs{display:none}
@@ -140,6 +144,14 @@
     border-radius:0 10px 10px 0;box-shadow:2px 0 8px rgba(0,0,0,.16);
     touch-action:none;user-select:none;-webkit-user-select:none}
   #peekGrip span{writing-mode:vertical-rl;letter-spacing:2px;font-size:11px;line-height:1}
+  /* 패널이 닫혀 있을 때만 보이는 '목록 ❯' 손잡이 (열려 있으면 숨김) */
+  #panelTab{position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:950;
+    background:#fff;border:1px solid rgba(0,0,0,.14);border-left:0;
+    border-radius:0 12px 12px 0;padding:16px 7px;cursor:pointer;
+    box-shadow:2px 0 10px rgba(0,0,0,.14);display:flex;align-items:center}
+  #panelTab span{writing-mode:vertical-rl;letter-spacing:2px;font-size:11.5px;
+    font-weight:700;color:#5B6068;line-height:1}
+  body.panel-open #panelTab{display:none}
   @media (max-width:760px){          /* 모바일: 패널이 화면 대부분 차지 */
     body.panel-open #map{left:0}
     .sitefootbar p{display:none}        /* 폰에서는 링크만 (한 줄에 안 들어감) */
@@ -345,6 +357,10 @@
 
 <!-- [peek 손잡이 · 2026-08] 📍로 지도를 볼 때만 나타남. 오른쪽으로 끌면 차트 복귀 -->
 <div id="peekGrip" title="오른쪽으로 끌면 차트로 돌아갑니다"><span>차트 ❯</span></div>
+<!-- [2026-08] 패널을 ×로 닫으면 다시 열 방법이 마커 클릭뿐이었습니다.
+     닫혀 있는 동안 왼쪽 가장자리에 이 손잡이가 항상 남아, 언제든 되열 수 있습니다.
+     되열면 닫기 전에 보던 내용(차트든 글이든)이 그대로 나옵니다. -->
+<div id="panelTab" onclick="reopenPanel()" title="목록 열기"><span>목록 ❯</span></div>
 
 <div class="legend">
   <b>저평가율 (동급 대비)</b>
@@ -806,6 +822,12 @@ async function boot(){
   setupMapSearch();       // [검색] 데이터 로딩 후 검색창 활성화
   setupFilters();         // [필터] 저평가율·평형·세대수
   openFromGotoHash();     // [2026-08] 차트 홈에서 📍로 넘어온 경우 그 아파트로 이동
+  /* [2026-08] PC 는 화면이 넓으니 처음부터 왼쪽 패널을 펼쳐 둡니다(차트 홈).
+     goto 로 들어와 이미 패널이 열렸으면 건너뜁니다. 폰은 패널이 지도를
+     다 가리므로 자동으로 열지 않습니다(손잡이로 열 수 있음). */
+  if(window.innerWidth >= 760 && !document.body.classList.contains('panel-open')){
+    reopenPanel(true);
+  }
 }
 
 /* ══ [차트 홈 → 지도 · 2026-08] ═══════════════════════════════════════════════
@@ -817,7 +839,12 @@ async function boot(){
    여기서 ① 지도를 그 아파트로 옮기고 ② 돌아갈 차트를 왼쪽에 카드로 대기시킵니다.
    ※ 반드시 boot() 끝에서 부릅니다 — BEST(아파트 목록)가 채워진 뒤여야 찾습니다. */
 function openFromGotoHash(){
-  const h = decodeURIComponent(location.hash || "");
+  let h = decodeURIComponent(location.hash || "");
+  /* [글 → 지도 · 2026-08] 글(오늘의 저평가 등)에서 온 손님인지 표시.
+     &from=today 를 정규식에 넣기 전에 떼어내야 아파트 이름에 붙지 않습니다. */
+  let fromKey = "";
+  const _fm = h.match(/&from=([a-z]+)/);
+  if(_fm){ fromKey = _fm[1]; h = h.replace(_fm[0], ""); }
   const m = h.match(/^#goto=([^|&]*)\|([^&]+)(?:&back=([^|&]*)\|(.+))?$/);
   if(!m) return;
   const rc = m[1], nm = m[2], brc = m[3] || "", bnm = m[4] || "";
@@ -834,8 +861,67 @@ function openFromGotoHash(){
   /* 돌아갈 차트를 왼쪽 카드로 준비. back 이 없으면(직접 주소를 친 경우 등)
      찾아온 그 아파트 차트를 대기시킵니다.                                     */
   const backName = bnm || nm, backRc = bnm ? brc : rc;
-  openPanel(backRc, backName);   // 차트 준비(iframe 로드) — 안에서 peek 를 풀므로
-  peekPanel();                   // 바로 다시 왼쪽으로 밀어 카드만 남깁니다
+  /* [글 → 지도 · 2026-08] 글에서 단지를 누르고 온 경우:
+       예전엔 무조건 차트 카드만 대기시켜서, 읽던 글이 사라지고
+       돌아갈 길이 없었습니다("오늘의 저평가에서 눌렀더니 글이 없어졌다").
+       · PC(화면 넓음): 그 글을 왼쪽 패널에 그대로 다시 펼칩니다
+         → 지도는 단지로 옮겨졌고, 글은 계속 읽을 수 있습니다
+       · 폰(화면 좁음): 패널이 지도를 다 가리므로, 대신 아래에
+         "돌아가기" 단추를 띄웁니다. 누르면 글이 다시 열립니다.
+     주소는 목록(허용된 페이지)에서만 고릅니다 — 밖에서 아무 주소나
+     끼워 넣어 열게 하지 않기 위해서입니다. */
+  const FROMP = {today:    {u:"./today.html",    t:"오늘의 저평가"},
+                 articles: {u:"./articles.html", t:"읽을거리"}};
+  const fp = FROMP[fromKey];
+  if(fp && window.innerWidth >= 760){
+    openPanelPage(fp.u, fp.t);
+  }else{
+    openPanel(backRc, backName);   // 차트 준비(iframe 로드) — 안에서 peek 를 풀므로
+    peekPanel();                   // 바로 다시 왼쪽으로 밀어 카드만 남깁니다
+    if(fp) showReturnChip(fp.u, fp.t);
+  }
+}
+
+/* 패널에 차트가 아닌 '페이지'(오늘의 저평가·읽을거리)를 여는 문.
+   openPanel 과 같은 방식이되, 다음 차트가 새로 실리도록 panelKey 를 비웁니다. */
+function openPanelPage(url, title){
+  const fr = document.getElementById('panelFrame');
+  fr.src = url;
+  panelKey = null;
+  document.getElementById('panelTitle').textContent = title;
+  unpeekPanel();
+  const wasOpen = document.body.classList.contains('panel-open');
+  document.body.classList.add('panel-open');
+  if(!wasOpen){ try{ history.pushState({panel:true}, ''); }catch(e){} }
+  setTimeout(()=>map.invalidateSize(), 280);
+}
+
+/* 패널 되열기 — 닫기 전에 보던 내용을 그대로 다시 보여줍니다.
+   아직 아무것도 안 열었으면(about:blank) 차트 홈(오늘의 매치)을 싣습니다.
+   silent=true 는 자동으로 열 때 쓰며, 히스토리 항목을 안 남깁니다
+   (안 그러면 페이지에 들어오자마자 뒤로가기가 한 번 먹히는 이상한 상태가 됩니다). */
+function reopenPanel(silent){
+  const fr = document.getElementById('panelFrame');
+  if(!fr.src || fr.src === 'about:blank' || /about:blank$/.test(fr.src)){
+    fr.src = './chart.html';
+    document.getElementById('panelTitle').textContent = '아파트 매치';
+  }
+  const wasOpen = document.body.classList.contains('panel-open');
+  document.body.classList.add('panel-open');
+  if(!wasOpen && !silent){ try{ history.pushState({panel:true}, ''); }catch(e){} }
+  setTimeout(()=>map.invalidateSize(), 280);
+}
+
+/* 폰에서 쓰는 "돌아가기" 알약 단추 (지도 아래쪽 가운데) */
+function showReturnChip(url, title){
+  let c = document.getElementById('returnChip');
+  if(!c){
+    c = document.createElement('button');
+    c.id = 'returnChip';
+    document.body.appendChild(c);
+  }
+  c.textContent = '‹ ' + title + ' 계속 보기';
+  c.onclick = ()=>{ c.remove(); openPanelPage(url, title); };
 }
 
 function setupFilters(){
