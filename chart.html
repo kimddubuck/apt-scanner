@@ -365,9 +365,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.19 16:43 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.19 16:52 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.19 16:43</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.19 16:52</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -746,7 +746,7 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202608191643"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
+<script>window.__BUILD_V__="202608191652"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
 <script src="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -1085,7 +1085,7 @@ function drawPills(){
     if(!sido){
       // [1단계] 시·도 칩들 (별 개수는 그 시 전체 합계)
       const groups={};
-      list.forEach(g=>{ const s=sidoOf(g.name); (groups[s]=groups[s]||{star:0,n:0}); groups[s].star+=g.starCount; groups[s].n++; });
+      list.forEach(g=>{ const s=sidoOf(g.name); (groups[s]=groups[s]||{star:0,n:0}); groups[s].star+=rStar(g); groups[s].n++; });
       Object.keys(groups).forEach(s=>{
         const b=document.createElement("button");
         b.className="pill"+(sidoOf(regionByCode(regionCode).name)===s?" on":"");
@@ -1112,7 +1112,7 @@ function drawPills(){
          예전엔 부산을 누르면 해운대구 하나만 보여서 '부산 전체 순위'를 볼 수 없었어요.
          이 칩을 누르면 그 시·도의 모든 구를 한 목록에 모아 순위를 매깁니다.
          (전국 매치 랭킹 화면에 '시·도 = 부산' 필터를 걸어주는 방식)          */
-      const sidoStar = list.filter(g=>sidoOf(g.name)===sido).reduce((s,g)=>s+g.starCount, 0);
+      const sidoStar = list.filter(g=>sidoOf(g.name)===sido).reduce((s,g)=>s+rStar(g), 0);
       const allBtn=document.createElement("button");
       allBtn.className="pill";
       allBtn.innerHTML=`⭐ ${sido} 전체<b>${sidoStar}</b>`;
@@ -1127,7 +1127,7 @@ function drawPills(){
       list.filter(g=>sidoOf(g.name)===sido).forEach(g=>{
         const b=document.createElement("button");
         b.className="pill"+(g.code===active?" on":"");
-        b.innerHTML=`${g.name.split(" ").slice(1).join(" ")||g.name}<b>${g.starCount}</b>`;  // "서울 종로구"→"종로구"
+        b.innerHTML=`${g.name.split(" ").slice(1).join(" ")||g.name}<b>${rStar(g)}</b>`;  // "서울 종로구"→"종로구"
         b.onclick=()=>{
           regionCode=g.code;
           // ── [칩↔드롭박스 동기화] 아래 필터·차트 비교지역도 이 시·구로 맞춤 ──
@@ -1157,7 +1157,7 @@ function drawPills(){
     b.className="pill"+(g.code===active?" on":"");
     // [시 전체 랭킹] 시·도 필터가 걸려 있으면 "전국 매치 랭킹" 대신 "부산 매치 랭킹"으로 표시
     const _label = (g.code==="ALL" && filters.sido) ? `${filters.sido} 매치 랭킹` : g.name;
-    b.innerHTML=`${_label}<b>${g.starCount}</b>`;
+    b.innerHTML=`${_label}<b>${rStar(g)}</b>`;
     b.onclick=()=>{ if(mode==="region") regionCode=g.code; else { tierCode=g.code; filters.pp=""; } searchKey=null; scopeUserSet=false; pickDefault(); closePick("regions"); render(); };
     box.appendChild(b);
   });
@@ -1181,7 +1181,7 @@ function drawStats(){
     const r=regionByCode(regionCode);
     $("#stats").innerHTML=`
       <div class="stat"><b>${r.unitCount}</b><span>분석 단위</span></div>
-      <div class="stat gold"><b>${r.starCount}</b><span>매치 ★</span></div>
+      <div class="stat gold"><b>${rStar(r)}</b><span>매치 ★</span></div>
       <div class="stat"><b>${r.months.length}</b><span>개월 시세</span></div>`;
   } else {
     const t=tierByCode(tierCode);
@@ -1212,6 +1212,13 @@ const RATE_KEYS=["past3","past5","past7","past10"];
        (예: 동탄퍼스트파크 → 경기 시 동급과 비교. 예전엔 '구 동급'이라 좁게 잡혔음)
      - 시 기준은 '과거 7년 하나'만 계산했으므로 연수(3·5·10년) 선택과 무관하게 7년 값 사용.
    · 그 외(구별 보기) → 기존처럼 구 기준 rate + 연수별 rates                     */
+/* [2026-08] 별 개수를 꺼내는 창구를 하나로 모읍니다.
+   지역(region)에는 siStarCount(시 기준)가 있고, 평당가별 티어에는 없습니다.
+   없으면 원래 값으로 돌아가므로 티어 화면은 그대로 동작합니다. */
+function rStar(g){
+  if(!g) return 0;
+  return (g.siStarCount!=null) ? g.siStarCount : (g.starCount||0);
+}
 function useSiRank(){
   //  [2026-08 확장] 구별 보기(지역별 매치)도 시 기준으로 통일했습니다.
   //    왜: 같은 단지가 전국 목록과 지역 목록에서 다른 %로 보여 헷갈렸습니다.
@@ -2056,11 +2063,11 @@ function updatePickLabels(){
   if(rl){
     if(mode==="region"){
       const r=regionByCode(regionCode);
-      rl.innerHTML = r ? `📍 ${r.name}<b>★${r.starCount}</b>` : "📍 지역 선택";
+      rl.innerHTML = r ? `📍 ${r.name}<b>★${rStar(r)}</b>` : "📍 지역 선택";
     } else {
       const t=tierByCode(tierCode);
       const _tp = (t && t.code==="ALL") ? "⭐" : "💰";
-      rl.innerHTML = t ? `${_tp} ${t.name}<b>★${t.starCount}</b>` : "💰 구간 선택";
+      rl.innerHTML = t ? `${_tp} ${t.name}<b>★${rStar(t)}</b>` : "💰 구간 선택";
     }
   }
   const fl=$("#filterPickLabel");
@@ -2836,7 +2843,7 @@ function goScanner(kind){
   pushHist("scanner");                 // 뒤로가기로 홈 복귀 가능하게
 }
 function setupHome(){
-  const total=DATA.regions.reduce((s,r)=>s+r.starCount,0);
+  const total=DATA.regions.reduce((s,r)=>s+rStar(r),0);
   $("#homeStarCount").textContent=total;
   // 바로가기: 시·도 전체 + 평당가 구간 (많아도 한 화면에 들어가도록 촘촘히 배치)
   const grid=$("#homeGrid"); grid.innerHTML="";
@@ -2854,7 +2861,7 @@ function setupHome(){
   DATA.regions.forEach(r=>{
     const s=r.name.split(" ")[0];
     if(!sidoMap[s]) sidoMap[s]={star:0, code:r.code};
-    sidoMap[s].star += r.starCount;
+    sidoMap[s].star += rStar(r);
   });
   // 이름이 긴 시·도는 짧게 (화면이 좁아도 한 줄에 들어가게)
   const shortName = s => s.replace("특별자치시","").replace("특별자치도","")
