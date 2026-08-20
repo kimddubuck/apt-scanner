@@ -402,9 +402,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.20 21:00 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.20 22:13 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.20 21:00</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.20 22:13</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="아파트 검색 (예: 해운대 롯데) 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -789,7 +789,7 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202608202100"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
+<script>window.__BUILD_V__="202608202213"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
 <script src="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -3066,12 +3066,24 @@ function _recCols(){
 let __recDay=true;
 function _recToday(){ return (window.__RECENT__||{}).t || ""; }
 function _fmtMMDD(t){ return t? (parseInt(t.slice(0,2))+"/"+parseInt(t.slice(2))) : ""; }
-function _recLabel(){ return __recDay? ("오늘 "+_fmtMMDD(_recToday())+" 계약") : "이번주(최근 7일)"; }
-function _rowsOf(g){
-  const C=_recCols(); const rows=g.u||[];
-  if(!__recDay) return rows;
+function _hasNd(){ return !!(window.__RECENT__||{}).hasNd; }
+function _recLabel(){
+  if(!__recDay) return "이번주(최근 7일)";
+  //  신고분(nd)이 있으면 그게 진짜 '오늘 새로 올라온 거래'입니다.
+  return _hasNd()? "오늘 새로 올라온 거래" : ("오늘 "+_fmtMMDD(_recToday())+" 계약");
+}
+/* 그 지역에서 지금 탭에 보여줄 거래 목록.
+   · 이번주 탭  → 최근 7일 계약(u)
+   · 오늘 탭    → 신고분(nd)이 있으면 그것, 없으면 계약일이 오늘인 것 */
+function _rowsOf(g, code){
+  const C=_recCols();
+  if(!__recDay) return g.u||[];
+  if(_hasNd()){
+    const nd=(window.__RECENT__||{}).nd||{};
+    return nd[code||g._code||""]||[];
+  }
   const t=_recToday();
-  return rows.filter(r=>r[C.date]===t);
+  return (g.u||[]).filter(r=>r[C.date]===t);
 }
 function _recMode(d){
   __recDay=d;
@@ -3126,12 +3138,14 @@ function _recentSido(host, R){
   const bySido={};
   for(const code in R){
     const s=(R[code].n||"").split(" ")[0];
-    bySido[s]=(bySido[s]||0)+_rowsOf(R[code]).length;
+    bySido[s]=(bySido[s]||0)+_rowsOf(R[code], code).length;
   }
   const order=Object.entries(bySido).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
   let h='<div class="rec-wrap">'+_recTabs()
     +'<div class="rec-sub">'+(__recDay
-      ? '데이터상 가장 최근 계약일의 거래입니다(신고는 계약보다 늦어, 오늘 계약이 다 보이진 않아요).'
+      ? (_hasNd()
+         ? '어제 이후 <b>새로 신고되어 자료에 올라온</b> 거래입니다. 계약일은 저마다 달라요.'
+         : '데이터상 가장 최근 계약일의 거래입니다(신고는 계약보다 늦어, 오늘 계약이 다 보이진 않아요).')
       : '최근 7일 계약입니다. 시·도 → 구 → 단지 순서로 들어가요. ⭐는 저평가 후보.')
     +'</div><div class="rec-grid">';
   if(!order.length){
@@ -3153,7 +3167,7 @@ function _recentGu(sido){
   const gus=[];
   for(const code in R){
     if((R[code].n||"").split(" ")[0]!==sido) continue;
-    const n=_rowsOf(R[code]).length;
+    const n=_rowsOf(R[code], code).length;
     if(__recDay && n===0) continue;          // '오늘' 탭에선 거래 있는 구만
     gus.push([code, R[code].n, n]);
   }
@@ -3176,7 +3190,7 @@ function _recentList(code, sido){
   const host=_recHost();
   const reg=R[code]; if(!reg){ openRecent(); return; }
   const C=_recCols();
-  const rows=_rowsOf(reg);    // 탭(오늘/이번주)에 맞게 걸러짐 · 이미 최신순
+  const rows=_rowsOf(reg, code);    // 탭(오늘/이번주)에 맞게 걸러짐 · 이미 최신순
   // 요약: 건수 · 저평가 후보 수 · 최고가
   const cand=rows.filter(r=>r[C.srate]>0).length;
   let maxV=0, maxN="";
