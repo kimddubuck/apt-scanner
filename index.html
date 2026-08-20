@@ -297,7 +297,7 @@
        돌아갈 길이 없어서 뒤로가기를 여러 번 눌러야 했습니다. -->
   <a class="logo" href="./chart.html" title="홈으로">아파트 <em>매치</em></a>
   <div class="search">
-    <input id="mapSearch" type="text" placeholder="아파트 검색 🔍" autocomplete="off">
+    <input id="mapSearch" type="text" placeholder="아파트 검색 (예: 해운대 롯데) 🔍" autocomplete="off">
     <div class="sr-box" id="mapSearchResults"></div>
   </div>
   <span class="count" id="count" style="display:none"></span>
@@ -1049,6 +1049,26 @@ function buildRanges(){
 /* ── [검색 · 2026-08] 아파트 이름 검색 → 그 위치로 지도 이동 ──
    BEST(후보 목록)에서 이름을 찾고, 고르면:
    지도 이동(줌16) + 핀 선택(패널·동급 하이라이트까지 자동) */
+/* [스마트 검색 · 2026-08] "해운대 롯데" 처럼 지역+이름을 섞어 쳐도 걸리게 합니다.
+   · 검색어를 공백/쉼표로 단어들로 쪼갭니다 (해운대 롯데 → ["해운대","롯데"])
+   · 각 단어가 '지역명 또는 아파트명' 중 어디엔가 있으면 그 단어는 통과
+   · 모든 단어가 통과해야 최종 일치 (AND) → 지역으로 좁히고 이름으로 찾습니다
+   · 지역명은 "부산 해운대구"처럼 저장돼 있어, '해운대'만 쳐도 걸립니다
+     ('구/시/군' 을 떼고도 비교해서 '해운대구'든 '해운대'든 다 맞습니다) */
+function _norm(s){ return (s||'').replace(/\s/g,'').toLowerCase(); }
+function _smartMatch(words, name, rname){
+  const hay1 = _norm(name);
+  const hay2 = _norm(rname);
+  const hay3 = hay2.replace(/(특별자치도|특별자치시|광역시|특별시|자치구|[시군구도])/g,'');
+  for(const w of words){
+    if(!(hay1.includes(w) || hay2.includes(w) || hay3.includes(w))) return false;
+  }
+  return true;
+}
+function _splitQuery(raw){
+  return raw.trim().toLowerCase().split(/[\s,]+/).map(x=>x.trim()).filter(Boolean);
+}
+
 function setupMapSearch(){
   const inp=document.getElementById('mapSearch');
   const box=document.getElementById('mapSearchResults');
@@ -1056,8 +1076,10 @@ function setupMapSearch(){
   const hide=()=>box.style.display='none';
 
   inp.addEventListener('input',()=>{
-    const q=inp.value.trim().replace(/\s/g,'').toLowerCase();
-    if(!q){ hide(); return; }
+    const _raw=inp.value;
+    const words=_splitQuery(_raw);
+    if(!words.length){ hide(); return; }
+    const q=words[words.length-1];   // 마지막 단어(대개 아파트명) — 정렬·강조에 씀
     /* [2026-08 v3] index 검색과 동급으로 재작성:
        · 같은 단지의 평형들을 묶어 "평형 N개"로 표시 (예전엔 첫 평형 하나만 나옴)
        · 매치 후보면 ⭐+저평가율, 좌표 있으면 📍(지도 이동), 없으면 📊(차트만)
@@ -1071,7 +1093,7 @@ function setupMapSearch(){
     if(Object.keys(AA).length){
       for(const id in AA){
         const a=AA[id];
-        if(!(a.name||'').replace(/\s/g,'').toLowerCase().includes(q)) continue;
+        if(!_smartMatch(words, a.name, a.rname)) continue;
         const cand=BEST[id];
         const co=COORDS_G[id];
         grp[id]={name:a.name, rname:(cand&&cand.rname)||a.rname||'',
@@ -1083,7 +1105,7 @@ function setupMapSearch(){
       const units=(DATA&&DATA.peerdata&&DATA.peerdata.units)||{};
       for(const uk in units){
         const u=units[uk];
-        if(!(u.name||'').replace(/\s/g,'').toLowerCase().includes(q)) continue;
+        if(!_smartMatch(words, u.name, u.rn||'')) continue;
         const id=u.rc+'|'+u.name;
         if(!grp[id]){
           const cand=BEST[id];

@@ -365,11 +365,11 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.20 10:32 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.20 12:02 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.20 10:32</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.20 12:02</div>
   <div class="home-search">
-    <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
+    <input id="homeSearch" type="text" placeholder="아파트 검색 (예: 해운대 롯데) 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
   </div>
   <!-- [지도 · 2026-08] 지도 화면으로 가는 버튼. ?m=1 은 "모바일이어도 지도 보여줘" 표시 -->
@@ -427,7 +427,7 @@
       <div class="sub">과거엔 같은 급이었던 단지 중, 지금 가격 차이가 있는 곳을 찾아드려요.</div>
     </div>
     <div class="search">
-      <input id="searchInput" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
+      <input id="searchInput" type="text" placeholder="아파트 검색 (예: 해운대 롯데) 🔍" autocomplete="off">
       <div class="sresults" id="searchResults"></div>
     </div>
   </div>
@@ -746,7 +746,7 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202608201032"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
+<script>window.__BUILD_V__="202608201202"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
 <script src="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -2746,10 +2746,18 @@ function render(){
 }
 // 검색: 질의어 포함 → 관련도 순 정렬(이름이 질의어로 '시작'하면 우선, 짧은 이름 우선) → 상위 60개
 function searchHits(idx, rawInput){
-  const q=rawInput.trim().replace(/\s/g,"").toLowerCase();
-  if(!q) return [];
-  const norm=s=>s.replace(/\s/g,"").toLowerCase();
-  const matched=idx.filter(x=>norm(x.name).includes(q));
+  const words=rawInput.trim().toLowerCase().split(/[\s,]+/).filter(Boolean);
+  if(!words.length) return [];
+  const q=words[words.length-1];              // 마지막 단어(대개 아파트명) — 정렬용
+  const norm=s=>(s||"").replace(/\s/g,"").toLowerCase();
+  //  [스마트 검색] "해운대 롯데"처럼 지역+이름을 섞어 쳐도 찾습니다.
+  //  각 단어가 이름 또는 지역명(구/시 떼고도)에 있으면 통과, 모두 통과해야 일치.
+  const smatch=x=>{
+    const h1=norm(x.name), h2=norm(x.regionName);
+    const h3=h2.replace(/(특별자치도|특별자치시|광역시|특별시|자치구|[시군구도])/g,"");
+    return words.every(w=>h1.includes(w)||h2.includes(w)||h3.includes(w));
+  };
+  const matched=idx.filter(smatch);
   // 같은 아파트(이름+지역)로 묶어 한 줄만. 대표 평형 = 33평(30평대)에 가장 가까운 것
   const groups={};
   matched.forEach(x=>{ const gk=x.name+"|"+(x.regionName||""); (groups[gk]=groups[gk]||[]).push(x); });
