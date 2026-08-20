@@ -402,9 +402,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.20 22:13 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.20 22:39 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.20 22:13</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.20 22:39</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="아파트 검색 (예: 해운대 롯데) 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -789,7 +789,7 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202608202213"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
+<script>window.__BUILD_V__="202608202239"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
 <script src="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -3091,8 +3091,10 @@ function _recMode(d){
 }
 function _recTabs(){
   return '<div class="rec-tabs">'
-    +'<button class="'+(__recDay?"on":"")+'" onclick="_recMode(true)">오늘 '
-    +_fmtMMDD(_recToday())+'</button>'
+    //  신고분 방식이면 날짜를 안 붙입니다 — 그 목록의 계약일은 제각각이라
+    //  특정 날짜를 붙이면 "8/19 계약만 모은 것"처럼 오해를 삽니다.
+    +'<button class="'+(__recDay?"on":"")+'" onclick="_recMode(true)">'
+    +(_hasNd()? "새 신고" : ("오늘 "+_fmtMMDD(_recToday())))+'</button>'
     +'<button class="'+(!__recDay?"on":"")+'" onclick="_recMode(false)">이번주</button></div>';
 }
 
@@ -3144,7 +3146,8 @@ function _recentSido(host, R){
   let h='<div class="rec-wrap">'+_recTabs()
     +'<div class="rec-sub">'+(__recDay
       ? (_hasNd()
-         ? '어제 이후 <b>새로 신고되어 자료에 올라온</b> 거래입니다. 계약일은 저마다 달라요.'
+         ? '지난 갱신 이후 <b>새로 신고되어 자료에 올라온</b> 거래입니다. '
+           +'계약일은 저마다 달라요(신고는 계약 뒤 최대 30일 안에 하면 됩니다).'
          : '데이터상 가장 최근 계약일의 거래입니다(신고는 계약보다 늦어, 오늘 계약이 다 보이진 않아요).')
       : '최근 7일 계약입니다. 시·도 → 구 → 단지 순서로 들어가요. ⭐는 저평가 후보.')
     +'</div><div class="rec-grid">';
