@@ -268,6 +268,26 @@
   .qcard span{font-size:12px;color:var(--soft)}
   /* 위 두 장은 <a> 라서 button 기본 모양이 안 먹습니다. 같은 모양으로 맞춥니다. */
   a.qcard{text-decoration:none;display:flex;flex-direction:column;justify-content:center}
+  /* 실거래 목록 */
+  .rec-wrap{padding:4px 2px}
+  .rec-head{font-size:16px;font-weight:800;color:#1F2328;margin:2px 0 4px}
+  .rec-sub{font-size:12.5px;color:#6B7076;line-height:1.6;margin-bottom:12px}
+  .rec-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .rec-btn{background:#F0F1F4;border:0;border-radius:10px;padding:13px 12px;
+    font-family:inherit;font-size:14px;font-weight:700;color:#1F2328;cursor:pointer;
+    text-align:left;display:flex;justify-content:space-between;align-items:center}
+  .rec-btn:active{background:#E4E6EB}
+  .rec-btn em{font-style:normal;color:#B4763A;font-size:12.5px;font-weight:700}
+  .rec-back{background:none;border:0;color:#6B7076;font-size:13px;font-weight:600;
+    cursor:pointer;padding:2px 0 10px;font-family:inherit}
+  .rec-summary{font-size:13px;color:#5B6068;margin:2px 0 12px;line-height:1.5}
+  .rec-list{display:flex;flex-direction:column}
+  .rec-row{padding:11px 4px;border-bottom:1px solid #EEE;cursor:pointer}
+  .rec-row:active{background:#FBF7F1}
+  .rec-name{font-size:14.5px;font-weight:700;color:#1F2328}
+  .rec-name em{font-style:normal;color:#8A9099;font-size:12.5px;font-weight:500;margin-left:4px}
+  .rec-star{color:#B4763A;font-size:12.5px;font-weight:700;margin-left:6px}
+  .rec-meta{font-size:13px;color:#6B7076;margin-top:3px}
   .qcard.big span{color:#B9C6D8}
   .qcard.big .qnum{font-size:30px;font-weight:800;color:#F1C97A;line-height:1.1}
   /* [2026-08] 매치 카드 소제목 — '동급 대비 가격 매력 단지' 바로 위에 붙는 금색 라벨 */
@@ -365,9 +385,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.20 12:02 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.20 16:41 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.20 12:02</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.20 16:41</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="아파트 검색 (예: 해운대 롯데) 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -396,6 +416,9 @@
     <a class="qcard" href="https://아파트매치.com//articles.html">
       <span class="qi">📖</span><b>읽을거리</b><span>사용법 · 원리 · 업데이트</span>
     </a>
+    <button class="qcard" onclick="openRecent()">
+      <span class="qi">🔥</span><b>실거래</b><span>최근 일주일 거래</span>
+    </button>
   </div>
   <div class="home-sec">바로가기</div>
   <div class="igrid" id="homeGrid"></div>
@@ -746,7 +769,7 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202608201202"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
+<script>window.__BUILD_V__="202608201641"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
 <script src="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -803,6 +826,15 @@ async function loadAllListOnce(){
   if(window.__ALLLIST__) return;
   await new Promise(ok=>{ const s=document.createElement("script");
     s.src=DATA_BASE+"all_list.js"; s.onload=ok; s.onerror=ok; document.head.appendChild(s); });
+}
+/* 실거래 목록(recent.js)도 필요할 때 한 번만 받습니다. */
+let __recTried=false;
+async function loadRecentOnce(){
+  if(__recTried) return;
+  __recTried=true;
+  if(window.__RECENT__) return;
+  await new Promise(ok=>{ const s=document.createElement("script");
+    s.src=DATA_BASE+"recent.js"; s.onload=ok; s.onerror=ok; document.head.appendChild(s); });
 }
 /* ══ [진짜 실거래가로 비교하기 · 2026-08] ═══════════════════════════════════
    왜 만들었나: 차트 선은 '월마다 상위 25%'로 요약한 값입니다. 요약이 실제 거래를
@@ -2798,6 +2830,132 @@ function setupSearch(){
 }
 // ── 홈 ↔ 스캐너 화면 전환 ──
 function goHome(){ $("#home").classList.add("on"); $("#scanner").classList.remove("on"); window.scrollTo(0,0); }
+
+/* ══ [실거래 목록 · 2026-08] 최근 7일 계약을 시·도 → 구 → 목록으로 ══════════
+   데이터: recent.js (window.__RECENT__). 저평가 후보면 ⭐+% 를 함께 보여줍니다.
+   아파트를 누르면 기존 검색 흐름(pickAptByName)으로 그 단지 차트를 엽니다. */
+async function openRecent(){
+  $("#home").classList.remove("on");
+  $("#scanner").classList.add("on");
+  const host=$("#chart");
+  host.innerHTML='<div style="padding:34px;text-align:center;color:#9AA3AF">불러오는 중…</div>';
+  // 통계·필터 등 스캐너의 다른 조각은 숨기고 실거래만 보이게
+  ["stats","topbar","home-sec"].forEach(()=>{});
+  await loadRecentOnce();
+  const R=(window.__RECENT__||{}).r||{};
+  if(!Object.keys(R).length){
+    host.innerHTML='<div style="padding:34px;text-align:center;color:#9AA3AF">'
+      +'실거래 목록을 불러오지 못했어요.</div>'; return;
+  }
+  pushHist("recent");
+  _recentSido(host, R);
+  scrollToChart();
+}
+
+/* 실거래 목록에서 아파트를 눌렀을 때. 검색 클릭과 같은 방식으로 그 단지를 엽니다.
+   밴드 안 단지면 검색 색인(search)의 키로, 아니면 all_list 기반으로 엽니다. */
+function pickAptByName(code, name, py){
+  // 1) 검색 색인에서 같은 지역·이름·평형 찾기 (밴드 안 단지)
+  const idx=(window.__APTDATA__&&window.__APTDATA__.search)||DATA.search||[];
+  let hit=idx.find(x=>x.rc===code && x.name===name
+                      && Math.abs((x.pyeong||0)-py)<=1);
+  if(hit){
+    searchKey=hit.key; mode="region"; scope="si"; highlightIds=[];
+    const _u=DATA.peerdata&&DATA.peerdata.units[hit.key];
+    if(_u&&_u.rc&&regionByCode(_u.rc)){regionCode=_u.rc;}
+    syncSido();
+    const si=$("#searchInput"); if(si) si.value=name;
+    render(); scrollToChart(); return;
+  }
+  // 2) 밴드 밖(예: 1000만 미만) — all_list 로 키를 만들어 엽니다
+  const key=`${code}|${name}|${py}`;
+  searchKey=key; mode="region"; scope="si"; highlightIds=[];
+  if(regionByCode(code)) regionCode=code;
+  syncSido();
+  const si2=$("#searchInput"); if(si2) si2.value=name;
+  render(); scrollToChart();
+}
+
+const _RECC={};  // recent 컬럼 인덱스 캐시
+function _recCols(){
+  if(_RECC.ready) return _RECC;
+  const cols=(window.__RECENT__||{}).cols||["name","py","val","fl","date","hh","by","srate"];
+  cols.forEach((c,i)=>_RECC[c]=i);
+  _RECC.ready=true; return _RECC;
+}
+
+/* 1단계: 시·도 버튼 */
+function _recentSido(host, R){
+  const bySido={};
+  for(const code in R){
+    const s=(R[code].n||"").split(" ")[0];
+    bySido[s]=(bySido[s]||0)+R[code].u.length;
+  }
+  const order=Object.entries(bySido).sort((a,b)=>b[1]-a[1]);
+  let h='<div class="rec-wrap"><div class="rec-head">🔥 최근 일주일 실거래</div>'
+    +'<div class="rec-sub">시·도를 고르면 구별로, 구를 고르면 단지별 최근 거래를 봅니다. '
+    +'⭐ 는 저평가 후보예요.</div><div class="rec-grid">';
+  for(const [s,n] of order){
+    h+=`<button class="rec-btn" onclick="_recentGu('${s.replace(/'/g,"")}')">`
+      +`${s}<em>${n}건</em></button>`;
+  }
+  h+='</div></div>';
+  host.innerHTML=h;
+}
+
+/* 2단계: 그 시·도의 구 버튼 */
+function _recentGu(sido){
+  const R=(window.__RECENT__||{}).r||{};
+  const host=$("#chart");
+  const gus=[];
+  for(const code in R){
+    if((R[code].n||"").split(" ")[0]===sido) gus.push([code, R[code].n, R[code].u.length]);
+  }
+  gus.sort((a,b)=>b[2]-a[2]);
+  let h='<div class="rec-wrap">'
+    +`<button class="rec-back" onclick="openRecent()">‹ 시·도 목록</button>`
+    +`<div class="rec-head">${sido} 최근 일주일</div><div class="rec-grid">`;
+  for(const [code,name,n] of gus){
+    const gu=name.split(" ").slice(1).join(" ")||name;
+    h+=`<button class="rec-btn" onclick="_recentList('${code}','${sido.replace(/'/g,"")}')">`
+      +`${gu}<em>${n}건</em></button>`;
+  }
+  h+='</div></div>';
+  host.innerHTML=h;
+}
+
+/* 3단계: 그 구의 거래 목록 */
+function _recentList(code, sido){
+  const R=(window.__RECENT__||{}).r||{};
+  const host=$("#chart");
+  const reg=R[code]; if(!reg){ openRecent(); return; }
+  const C=_recCols();
+  const rows=reg.u.slice();   // 이미 최신순
+  // 요약: 건수 · 저평가 후보 수 · 최고가
+  const cand=rows.filter(r=>r[C.srate]>0).length;
+  let maxV=0, maxN="";
+  rows.forEach(r=>{ if(r[C.val]>maxV){ maxV=r[C.val]; maxN=r[C.name]; }});
+  const gu=reg.n.split(" ").slice(1).join(" ")||reg.n;
+  let h='<div class="rec-wrap">'
+    +`<button class="rec-back" onclick="_recentGu('${sido.replace(/'/g,"")}')">‹ ${sido} 구 목록</button>`
+    +`<div class="rec-head">${reg.n}</div>`
+    +`<div class="rec-summary">${rows.length}건`
+    +(cand?` · <b style="color:#B4763A">저평가 후보 ${cand}곳</b>`:``)
+    +(maxN?` · 최고가 ${maxN} ${(maxV/10).toFixed(1)}억`:``)+`</div>`
+    +'<div class="rec-list">';
+  for(const r of rows){
+    const nm=r[C.name], py=r[C.py], val=(r[C.val]/10).toFixed(1), fl=r[C.fl];
+    const d=r[C.date], sr=r[C.srate];
+    const dtxt=d? `${parseInt(d.slice(0,2))}/${parseInt(d.slice(2))}` : "";
+    const star=sr>0? `<span class="rec-star">⭐${sr}%</span>` : "";
+    h+=`<div class="rec-row" onclick="pickAptByName('${code}','${nm.replace(/'/g,"\\'")}',${py})">`
+      +`<div class="rec-name">${nm} <em>${py}평</em>${star}</div>`
+      +`<div class="rec-meta">${val}억 · ${fl?fl+'층 · ':''}${dtxt} 계약</div></div>`;
+  }
+  h+='</div></div>';
+  host.innerHTML=h;
+  scrollToChart();
+}
 // ── [뒤로가기 지원] 브라우저·모바일 뒤로가기로 상세 → ⓘ모달 → 스캐너 → 홈 순으로 닫기 ──
 //    (예전엔 스캐너에서 뒤로가기 누르면 사이트가 통째로 나가버렸음)
 function pushHist(v){ try{ history.pushState({v:v}, ""); }catch(e){} }
@@ -2806,7 +2964,7 @@ window.addEventListener("popstate", function(){
   const detail=$("#modal"), info=$("#infoModal");
   if(_isOpen(detail)){ closeDetail(); return; }                       // 상세부터
   if(_isOpen(info)){ closeInfo(); return; }                           // 그다음 ⓘ 모달
-  if($("#scanner").classList.contains("on")){ goHome(); return; }     // 스캐너면 홈으로
+  if($("#scanner").classList.contains("on")){ goHome(); return; }     // 스캐너·실거래면 홈으로
 });
 /* [검색 개선] 검색으로 아파트를 고르면 차트가 바로 보이게 스크롤.
    - 모바일(좁은 화면): 지역칩·통계를 건너뛰고 차트 카드로 이동
