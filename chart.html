@@ -299,6 +299,12 @@
     padding:12px 12px 9px;margin:4px 0 8px}
   .rec-volstat{font-size:13px;color:#3D4249;margin-top:8px}
   .rec-note{font-size:11.5px;color:#9AA3AF;margin-top:4px;line-height:1.5}
+  .rec-tabs{display:flex;gap:8px;margin:2px 0 12px}
+  .rec-tabs button{flex:1;border:1.5px solid #E0DFDA;background:#fff;border-radius:999px;
+    padding:9px 0;font-family:inherit;font-size:13.5px;font-weight:700;color:#6B7076;cursor:pointer}
+  .rec-tabs button.on{background:#1F2328;border-color:#1F2328;color:#fff}
+  .rec-mode{font-size:12px;color:#8A9099;font-weight:500;margin-left:6px}
+  .rec-volhead{font-size:12.5px;font-weight:700;color:#3D4249;margin-bottom:6px}
   .qcard.big span{color:#B9C6D8}
   .qcard.big .qnum{font-size:30px;font-weight:800;color:#F1C97A;line-height:1.1}
   /* [2026-08] 매치 카드 소제목 — '동급 대비 가격 매력 단지' 바로 위에 붙는 금색 라벨 */
@@ -396,9 +402,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.20 19:20 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.20 21:00 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.20 19:20</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.20 21:00</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="아파트 검색 (예: 해운대 롯데) 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -428,7 +434,7 @@
       <span class="qi">📖</span><b>읽을거리</b><span>사용법 · 원리 · 업데이트</span>
     </a>
     <button class="qcard" onclick="openRecent()">
-      <span class="qi">🔥</span><b>오늘의 실거래</b><span>최근 일주일 계약</span>
+      <span class="qi">🔥</span><b>오늘의 실거래</b><span>오늘 · 이번주 계약</span>
     </button>
     <button class="qcard" onclick="openVolume()">
       <span class="qi">📊</span><b>월별 거래량</b><span>10년 추이 · 평균 대비</span>
@@ -783,7 +789,7 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202608201920"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
+<script>window.__BUILD_V__="202608202100"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
 <script src="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -3055,20 +3061,86 @@ function _recCols(){
   _RECC.ready=true; return _RECC;
 }
 
+/* '오늘'(가장 최근 계약일) ↔ '이번주'(최근 7일) 두 탭.
+   신고일 자료가 없어 '오늘'은 데이터상 가장 최근 계약일입니다(보통 어제). */
+let __recDay=true;
+function _recToday(){ return (window.__RECENT__||{}).t || ""; }
+function _fmtMMDD(t){ return t? (parseInt(t.slice(0,2))+"/"+parseInt(t.slice(2))) : ""; }
+function _recLabel(){ return __recDay? ("오늘 "+_fmtMMDD(_recToday())+" 계약") : "이번주(최근 7일)"; }
+function _rowsOf(g){
+  const C=_recCols(); const rows=g.u||[];
+  if(!__recDay) return rows;
+  const t=_recToday();
+  return rows.filter(r=>r[C.date]===t);
+}
+function _recMode(d){
+  __recDay=d;
+  _recentSido(_recHost(), (window.__RECENT__||{}).r||{});
+}
+function _recTabs(){
+  return '<div class="rec-tabs">'
+    +'<button class="'+(__recDay?"on":"")+'" onclick="_recMode(true)">오늘 '
+    +_fmtMMDD(_recToday())+'</button>'
+    +'<button class="'+(!__recDay?"on":"")+'" onclick="_recMode(false)">이번주</button></div>';
+}
+
+/* 주별 거래량 차트(최근 26주). 마지막 막대(이번 주)는 아직 다 안 끝나 옅게. */
+function _wkSvg(wc, refymd){
+  if(!wc || !wc.length) return "";
+  const W=640, H=140, padL=8, padB=20, padT=14;
+  const n=wc.length, bw=(W-padL-6)/n;
+  const mx=Math.max.apply(null, wc)||1;
+  const avg=wc.reduce((a,b)=>a+b,0)/n;
+  let bars="";
+  wc.forEach((c,i)=>{
+    const x=padL+i*bw, h=(H-padB-padT)*c/mx;
+    bars+='<rect x="'+x.toFixed(1)+'" y="'+(H-padB-h).toFixed(1)
+      +'" width="'+Math.max(bw-1,1).toFixed(1)+'" height="'+h.toFixed(1)
+      +'" fill="'+(i>=n-1?"#CFC6E4":"#7A6DB0")+'"/>';
+  });
+  let xl="";
+  if(refymd && refymd.length===8){
+    const base=new Date(+refymd.slice(0,4), +refymd.slice(4,6)-1, +refymd.slice(6));
+    for(let i=0;i<n;i+=4){
+      const d=new Date(base); d.setDate(d.getDate()-(n-1-i)*7);
+      xl+='<text x="'+(padL+i*bw).toFixed(1)+'" y="'+(H-5)
+        +'" font-size="10" fill="#8A9099">'+(d.getMonth()+1)+"/"+d.getDate()+'</text>';
+    }
+  }
+  const ay=H-padB-(H-padB-padT)*avg/mx;
+  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block">'+bars
+    +'<line x1="'+padL+'" y1="'+ay.toFixed(1)+'" x2="'+(W-4)+'" y2="'+ay.toFixed(1)
+    +'" stroke="#5B6068" stroke-dasharray="4 3" stroke-width="1.1"/>'
+    +'<text x="'+(padL+2)+'" y="'+(ay-4).toFixed(1)+'" font-size="10.5" fill="#5B6068">26주 평균 '
+    +avg.toFixed(0)+'건/주</text>'+xl+'</svg>';
+}
+function _wkBlock(g){
+  if(!g.wc || !g.wc.length) return "";
+  return '<div class="rec-vol"><div class="rec-volhead">주별 거래량 (최근 26주)</div>'
+    +_wkSvg(g.wc, (window.__RECENT__||{}).ty||"")
+    +'<div class="rec-note">보라 막대=주별 계약 건수 · 옅은 막대(이번 주)는 아직 진행 중이에요</div></div>';
+}
+
 /* 1단계: 시·도 버튼 */
 function _recentSido(host, R){
   const bySido={};
   for(const code in R){
     const s=(R[code].n||"").split(" ")[0];
-    bySido[s]=(bySido[s]||0)+R[code].u.length;
+    bySido[s]=(bySido[s]||0)+_rowsOf(R[code]).length;
   }
-  const order=Object.entries(bySido).sort((a,b)=>b[1]-a[1]);
-  let h='<div class="rec-wrap"><div class="rec-head">🔥 최근 일주일 실거래</div>'
-    +'<div class="rec-sub">시·도를 고르면 구별로, 구를 고르면 단지별 최근 거래를 봅니다. '
-    +'⭐ 는 저평가 후보예요.</div><div class="rec-grid">';
+  const order=Object.entries(bySido).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
+  let h='<div class="rec-wrap">'+_recTabs()
+    +'<div class="rec-sub">'+(__recDay
+      ? '데이터상 가장 최근 계약일의 거래입니다(신고는 계약보다 늦어, 오늘 계약이 다 보이진 않아요).'
+      : '최근 7일 계약입니다. 시·도 → 구 → 단지 순서로 들어가요. ⭐는 저평가 후보.')
+    +'</div><div class="rec-grid">';
+  if(!order.length){
+    h+='</div><div class="rec-sub" style="margin-top:8px">아직 신고된 거래가 없어요. 이번주 탭을 눌러보세요.</div></div>';
+    host.innerHTML=h; return;
+  }
   for(const [s,n] of order){
-    h+=`<button class="rec-btn" onclick="_recentGu('${s.replace(/'/g,"")}')">`
-      +`${s}<em>${n}건</em></button>`;
+    h+='<button class="rec-btn" onclick="_recentGu(\''+s.replace(/'/g,"")+'\')">'
+      +s+'<em>'+n+'건</em></button>';
   }
   h+='</div></div>';
   host.innerHTML=h;
@@ -3080,12 +3152,15 @@ function _recentGu(sido){
   const host=_recHost();
   const gus=[];
   for(const code in R){
-    if((R[code].n||"").split(" ")[0]===sido) gus.push([code, R[code].n, R[code].u.length]);
+    if((R[code].n||"").split(" ")[0]!==sido) continue;
+    const n=_rowsOf(R[code]).length;
+    if(__recDay && n===0) continue;          // '오늘' 탭에선 거래 있는 구만
+    gus.push([code, R[code].n, n]);
   }
   gus.sort((a,b)=>b[2]-a[2]);
   let h='<div class="rec-wrap">'
     +`<button class="rec-back" onclick="openRecent()">‹ 시·도 목록</button>`
-    +`<div class="rec-head">${sido} 최근 일주일</div><div class="rec-grid">`;
+    +`<div class="rec-head">${sido} · ${_recLabel()}</div><div class="rec-grid">`;
   for(const [code,name,n] of gus){
     const gu=name.split(" ").slice(1).join(" ")||name;
     h+=`<button class="rec-btn" onclick="_recentList('${code}','${sido.replace(/'/g,"")}')">`
@@ -3101,7 +3176,7 @@ function _recentList(code, sido){
   const host=_recHost();
   const reg=R[code]; if(!reg){ openRecent(); return; }
   const C=_recCols();
-  const rows=reg.u.slice();   // 이미 최신순
+  const rows=_rowsOf(reg);    // 탭(오늘/이번주)에 맞게 걸러짐 · 이미 최신순
   // 요약: 건수 · 저평가 후보 수 · 최고가
   const cand=rows.filter(r=>r[C.srate]>0).length;
   let maxV=0, maxN="";
@@ -3109,12 +3184,18 @@ function _recentList(code, sido){
   const gu=reg.n.split(" ").slice(1).join(" ")||reg.n;
   let h='<div class="rec-wrap">'
     +`<button class="rec-back" onclick="_recentGu('${sido.replace(/'/g,"")}')">‹ ${sido} 구 목록</button>`
-    +`<div class="rec-head">${reg.n}</div>`
+    +`<div class="rec-head">${reg.n} <span class="rec-mode">${_recLabel()}</span></div>`
     +`<div class="rec-summary">${rows.length}건`
     +(cand?` · <b style="color:#B4763A">저평가 후보 ${cand}곳</b>`:``)
     +(maxN?` · 최고가 ${maxN} ${(maxV/10).toFixed(1)}억`:``)+`</div>`
+    +_wkBlock(reg)
     +_volBlock(reg, false)
     +'<div class="rec-list">';
+  if(!rows.length){
+    h+='<div class="rec-sub" style="padding:14px 4px">'+
+      (__recDay? '오늘 계약으로 신고된 거래가 아직 없어요. 이번주 탭에서 볼 수 있어요.'
+               : '최근 7일 계약이 없어요.')+'</div>';
+  }
   for(const r of rows){
     const nm=r[C.name], py=r[C.py], val=(r[C.val]/10).toFixed(1), fl=r[C.fl];
     const d=r[C.date], sr=r[C.srate];
