@@ -365,9 +365,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.20 09:50 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.20 10:23 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.20 09:50</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.20 10:23</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="우리 아파트의 동급 아파트는? 검색 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -746,7 +746,7 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202608200950"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
+<script>window.__BUILD_V__="202608201023"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
 <script src="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -2953,7 +2953,28 @@ async function openFromHash(){
   render(); scrollToChart();
   return true;
 }
-if(DATA.regions && DATA.regions.length){ pickDefault(); render(); setupSearch(); setupHome(); openFromHash(); }
+if(DATA.regions && DATA.regions.length){
+  pickDefault(); render(); setupSearch(); setupHome();
+  //  [2026-08 겹침 수정] 이 페이지가 지도(index)의 왼쪽 패널(iframe) 안에 있고,
+  //  아직 아무 단지도 안 골랐으면(#u= 해시 없음), 홈 화면(헤더·검색·카드)을 그리지
+  //  않습니다. 그리면 index 의 헤더·검색·푸터와 겹쳐 화면이 두 벌로 보입니다.
+  //  대신 "왼쪽에서 단지를 고르거나 지도에서 누르세요" 안내만 보여 줍니다.
+  var _inPanel = false;
+  try{ _inPanel = (window.self !== window.top); }catch(e){ _inPanel = true; }
+  var _hasU = /[#&]u=/.test(location.hash);
+  if(_inPanel && !_hasU){
+    //  패널 안 + 아직 단지 안 고름: 홈(헤더·카드)은 감추고 차트 화면(검색창 포함)만
+    //  띄웁니다. 차트 자리에는 안내를 넣어, 검색하거나 지도에서 누르면 그래프가 뜹니다.
+    document.getElementById("home").classList.remove("on");
+    document.getElementById("scanner").classList.add("on");
+    var _ch = document.getElementById("chart");
+    if(_ch){ _ch.innerHTML = '<div style="padding:34px 20px;text-align:center;'
+      + 'color:#6B7076;line-height:1.85;font-size:14px">지도에서 아파트를 누르거나<br>'
+      + '위 검색창에 단지 이름을 넣으면<br>여기에 시세 그래프가 나옵니다.</div>'; }
+  }else{
+    openFromHash();
+  }
+}
 else { $("#list").innerHTML="<p>표시할 데이터가 없어요. collect_all.py 로 먼저 모으세요.</p>"; }
 window.addEventListener("hashchange", openFromHash);
 /* ══ [지도 카드 · 2026-08] 오른쪽 얇은 카드를 왼쪽으로 끌면(또는 톡 누르면) 지도로 ══
