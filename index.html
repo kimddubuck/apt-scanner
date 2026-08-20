@@ -822,6 +822,16 @@ async function boot(){
   setupMapSearch();       // [검색] 데이터 로딩 후 검색창 활성화
   setupFilters();         // [필터] 저평가율·평형·세대수
   openFromGotoHash();     // [2026-08] 차트 홈에서 📍로 넘어온 경우 그 아파트로 이동
+  /* [2026-08 버그수정] today.html(패널 안)에서 다른 단지를 또 누르면 부모 창의
+     해시만 바뀌고 boot 은 다시 안 돕니다. 그래서 두 번째부터는 지도가 안 움직였습니다.
+     해시가 바뀔 때마다 openFromGotoHash 를 다시 부르게 연결합니다.
+     (같은 주소를 또 누른 경우엔 hashchange 가 안 뜨므로, today 쪽에서도 보완합니다) */
+  if(!window.__gotoBound){
+    window.__gotoBound = true;
+    window.addEventListener('hashchange', ()=>{
+      if(/[#&]goto=/.test(location.hash)) openFromGotoHash();
+    });
+  }
   /* [2026-08] PC 는 화면이 넓으니 처음부터 왼쪽 패널을 펼쳐 둡니다(차트 홈).
      goto 로 들어와 이미 패널이 열렸으면 건너뜁니다. 폰은 패널이 지도를
      다 가리므로 자동으로 열지 않습니다(손잡이로 열 수 있음). */
@@ -838,6 +848,21 @@ async function boot(){
        index.html?m=1#goto=지역코드|찾아갈아파트&back=지역코드|돌아갈차트
    여기서 ① 지도를 그 아파트로 옮기고 ② 돌아갈 차트를 왼쪽에 카드로 대기시킵니다.
    ※ 반드시 boot() 끝에서 부릅니다 — BEST(아파트 목록)가 채워진 뒤여야 찾습니다. */
+/* [글 → 지도 · 2026-08] 왼쪽 패널의 글(today/articles)에서 단지 이름을 누르면
+   이 함수가 불립니다. 지도만 그 단지로 옮기고, 왼쪽 글은 건드리지 않습니다.
+   그래서 글을 계속 읽으면서 지도의 여러 단지를 눌러 볼 수 있습니다. */
+window.gotoAptFromPanel = function(rc, name){
+  const hit = findAptPos(rc, name);
+  if(!hit){ toastMsg(name + " 은(는) 지도 위치 정보가 없어요"); return; }
+  map.setView([hit.lat, hit.lon], 16, {animate:true});
+  try{
+    const ring = L.circleMarker([hit.lat, hit.lon], {
+      radius:26, color:"#7A6DB0", weight:3, opacity:.95,
+      fillColor:"#7A6DB0", fillOpacity:.12 }).addTo(map);
+    setTimeout(()=>{ try{ map.removeLayer(ring); }catch(e){} }, 1600);
+  }catch(e){}
+};
+
 function openFromGotoHash(){
   let h = decodeURIComponent(location.hash || "");
   /* [글 → 지도 · 2026-08] 글(오늘의 저평가 등)에서 온 손님인지 표시.
@@ -874,6 +899,9 @@ function openFromGotoHash(){
                  articles: {u:"./articles.html", t:"읽을거리"}};
   const fp = FROMP[fromKey];
   if(fp && window.innerWidth >= 760){
+    //  PC: 글을 왼쪽 패널에 펼칩니다. 이 뒤로 그 글에서 단지를 누르면
+    //  글이 패널(iframe) 안에 있으므로 _goApt → gotoAptFromPanel 로 흘러,
+    //  지도만 옮겨지고 글은 그대로 남습니다(두 번째 클릭부터 지도 안 움직이던 버그 해결).
     openPanelPage(fp.u, fp.t);
   }else{
     openPanel(backRc, backName);   // 차트 준비(iframe 로드) — 안에서 peek 를 풀므로

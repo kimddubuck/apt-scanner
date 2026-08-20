@@ -29,7 +29,7 @@
 <main>
 <h1>오늘의 매치는 어떻게 뽑나요</h1>
 <p class="lead">동급 무리 중앙값보다 10% 이상 낮고, 최근 6개월 실거래가 3건 이상인 단지만 오늘의 매치에 올립니다.</p>
-<p class="ameta">2026-08-22</p><h2>두 가지 조건뿐입니다</h2>
+<p class="ameta">2026-08-19</p><h2>두 가지 조건뿐입니다</h2>
 <ol><li>동급 무리 <strong>중앙값보다 10% 이상 낮다</strong></li><li>최근 6개월 <strong>실거래가 3건 이상</strong>이다</li></ol>
 <p>앞의 것은 "뒤처졌다"는 뜻이고, 뒤의 것은 "그 숫자를 믿을 수 있다"는 뜻입니다.</p>
 <h2>현재가는 어떻게 정하나요</h2>
@@ -69,6 +69,29 @@
 <p>같은 구 안에서만 보면 그 구 자체가 통째로 싼 동네일 때<br>아무것도 안 보입니다. 시 전체로 넓히면 그런 지역이 드러납니다.</p>
 <p>그래서 오늘의 매치·지역별 매치·오늘의 저평가 페이지가<br>모두 같은 잣대를 씁니다. <strong>한 단지가 어디서 봐도 같은 숫자</strong>로 나옵니다.</p>
 </main>
+<script>
+/* [2026-08] 이 페이지가 지도의 왼쪽 패널(iframe) 안에서 열렸을 때,
+   단지 링크를 누르면 부모 창(지도)에게 직접 "이 단지로 가라"고 넘깁니다.
+   그냥 링크로 두면 두 번째 단지를 누를 때 부모 해시만 바뀌고 지도가 안 움직이거나,
+   같은 단지를 또 누르면 아무 일도 안 일어났습니다(사용자가 겪은 버그).
+   부모의 openFromGotoHash 를 직접 불러 매번 확실히 이동시킵니다. */
+(function(){
+  if(window.top === window.self) return;   // 패널 안이 아니면(직접 연 페이지) 그대로 둠
+  document.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a[href*="#goto="]');
+    if(!a) return;
+    var hash = a.href.slice(a.href.indexOf('#'));
+    try{
+      var top = window.top;
+      e.preventDefault();
+      top.location.hash = hash;                        // 부모 주소를 바꾸고
+      if(typeof top.openFromGotoHash === 'function'){   // 직접 호출로 확실히 이동
+        top.openFromGotoHash();
+      }
+    }catch(err){ /* 교차출처 등으로 막히면 기본 링크 동작에 맡깁니다 */ }
+  });
+})();
+</script>
 <footer>
 <div><a href="https://아파트매치.com/" target="_top">홈</a><a href="https://아파트매치.com/today.html">오늘의 저평가</a><a href="https://아파트매치.com/articles.html">읽을거리</a><a href="https://아파트매치.com/about.html">서비스 소개</a><a href="https://아파트매치.com/privacy.html">개인정보처리방침</a><a href="https://아파트매치.com/contact.html">문의하기</a></div>
 <p>문의: <a href="mailto:insk1811@kakao.com">insk1811@kakao.com</a><br>

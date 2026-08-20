@@ -29,7 +29,7 @@
 <main>
 <h1>지역별 저평가 순위는 어떻게 매기나요</h1>
 <p class="lead">그 구 안의 후보만 모아 보여 주되, 비교는 같은 시 전체를 기준으로 합니다.</p>
-<p class="ameta">2026-08-23</p><h2>두 가지가 다릅니다</h2>
+<p class="ameta">2026-08-19</p><h2>두 가지가 다릅니다</h2>
 <p>지역별 순위를 이해하려면 <strong>담는 것</strong>과 <strong>재는 것</strong>을 나눠서 봐야 합니다.</p>
 <table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>담는 것</strong></td><td>그 구에 있는 후보만</td></tr><tr><td><strong>재는 것</strong></td><td>같은 시 전체와 비교한 값</td></tr></tbody></table>
 <p>"부산 해운대구"를 고르면 해운대구 단지들만 목록에 나오지만,<br>각 단지의 퍼센트는 <strong>부산 전체</strong>와 견준 값입니다.</p>
@@ -64,6 +64,29 @@
 <p>별 개수까지 같은 잣대로 셉니다. 홈에 428, 목록에 414처럼 어긋나는 일이 없습니다.</p>
 <p>딱 하나 예외가 있습니다. <strong>'현재 기준'을 고르면</strong> 저평가 줄 세우기를 하지 않습니다.<br>그건 "지금 함께 움직이고 있는지"를 보는 기준이라 순위를 매기는 화면이 아닙니다.</p>
 </main>
+<script>
+/* [2026-08] 이 페이지가 지도의 왼쪽 패널(iframe) 안에서 열렸을 때,
+   단지 링크를 누르면 부모 창(지도)에게 직접 "이 단지로 가라"고 넘깁니다.
+   그냥 링크로 두면 두 번째 단지를 누를 때 부모 해시만 바뀌고 지도가 안 움직이거나,
+   같은 단지를 또 누르면 아무 일도 안 일어났습니다(사용자가 겪은 버그).
+   부모의 openFromGotoHash 를 직접 불러 매번 확실히 이동시킵니다. */
+(function(){
+  if(window.top === window.self) return;   // 패널 안이 아니면(직접 연 페이지) 그대로 둠
+  document.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a[href*="#goto="]');
+    if(!a) return;
+    var hash = a.href.slice(a.href.indexOf('#'));
+    try{
+      var top = window.top;
+      e.preventDefault();
+      top.location.hash = hash;                        // 부모 주소를 바꾸고
+      if(typeof top.openFromGotoHash === 'function'){   // 직접 호출로 확실히 이동
+        top.openFromGotoHash();
+      }
+    }catch(err){ /* 교차출처 등으로 막히면 기본 링크 동작에 맡깁니다 */ }
+  });
+})();
+</script>
 <footer>
 <div><a href="https://아파트매치.com/" target="_top">홈</a><a href="https://아파트매치.com/today.html">오늘의 저평가</a><a href="https://아파트매치.com/articles.html">읽을거리</a><a href="https://아파트매치.com/about.html">서비스 소개</a><a href="https://아파트매치.com/privacy.html">개인정보처리방침</a><a href="https://아파트매치.com/contact.html">문의하기</a></div>
 <p>문의: <a href="mailto:insk1811@kakao.com">insk1811@kakao.com</a><br>
