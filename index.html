@@ -513,11 +513,12 @@ async function boot(){
       const rn=AL[rc].n||'';
       for(const u of (AL[rc].u||[])){
         const nm=u[0], py=u[1], nowV=u[2]||0, hh=u[3]||0, by=u[4]||0,
-              lastV=u[5]||0, lastM=u[6]||'';
+              lastV=u[5]||0, lastM=u[6]||'',
+              dong=u[7]||'';        // [2026-08] 법정동 — "우동 롯데" 검색·표시용
         const id=rc+'|'+nm;
         let a=ALLAPT[id];
         if(!a) a=ALLAPT[id]={name:nm, rc:rc, rname:rn, pys:[], byPy:{},
-                             now:0, lastV:0, lastM:'', hh:hh, by:by};
+                             now:0, lastV:0, lastM:'', hh:hh, by:by, dong:dong};
         if(py && a.pys.indexOf(py)<0) a.pys.push(py);
         /* [2026-08] 평형별 가격을 반드시 남깁니다.
            예전엔 `if(nowV>a.now) a.now=nowV` 로 **가장 비싼 평형 하나만** 남겼습니다.
@@ -1112,6 +1113,8 @@ function setupMapSearch(){
         grp[id]={name:a.name, rname:(cand&&cand.rname)||a.rname||'',
                  pys:new Set(a.pys), rate:(cand?cand.rate:null),
                  key:(cand&&!cand.plain)?cand.key:null, rcode:a.rc,
+                 //  [2026-08] 검색 결과에 보여 줄 동·세대수·연식
+                 dong:a.dong||'', hh:a.hh||0, by:a.by||0,
                  hasCoord:!!(co||(cand&&cand.lat)), coordKey:id};
       }
     } else {
@@ -1126,6 +1129,7 @@ function setupMapSearch(){
           grp[id]={name:u.name, rname:(cand?cand.rname:(u.rn||'')),
                    pys:new Set(), rate:cand?cand.rate:null,
                    key:cand?cand.key:null, rcode:u.rc,
+                   dong:u.dong||'', hh:u.hh||0, by:u.by||0,
                    hasCoord:!!(co||cand&&cand.lat), coordKey:id};
         }
         if(u.pyeong) grp[id].pys.add(u.pyeong);
@@ -1144,7 +1148,12 @@ function setupMapSearch(){
     box.innerHTML=hits.map(h=>{
       const star = h.rate!=null ? ` · ⭐매치 ${(h.rate>=0?'+':'')+h.rate.toFixed(0)}%` : '';
       const mark = h.hasCoord ? '📍' : '📊';
-      return `<div class="sr">${mark} <b>${h.name}</b><span>${h.rname} · 평형 ${h.pys.size}개${star}</span></div>`;
+      /* [2026-08] 동·세대수·연식을 함께 보여 줍니다.
+         같은 이름 단지(롯데·현대 등)를 구분하는 데 이게 가장 도움이 됩니다. */
+      const _bits=[h.rname + (h.dong? ' '+h.dong : ''), '평형 '+h.pys.size+'개'];
+      if(h.hh>0) _bits.push(h.hh.toLocaleString()+'세대');
+      if(h.by>0) _bits.push(h.by+'년 ('+(new Date().getFullYear()-h.by+1)+'년차)');
+      return `<div class="sr">${mark} <b>${h.name}</b><span>${_bits.join(' · ')}${star}</span></div>`;
     }).join('');
     box.querySelectorAll('.sr').forEach((el,i)=>{
       el.onclick=()=>{
