@@ -1056,14 +1056,27 @@ function buildRanges(){
    · 지역명은 "부산 해운대구"처럼 저장돼 있어, '해운대'만 쳐도 걸립니다
      ('구/시/군' 을 떼고도 비교해서 '해운대구'든 '해운대'든 다 맞습니다) */
 function _norm(s){ return (s||'').replace(/\s/g,'').toLowerCase(); }
-function _smartMatch(words, name, rname){
+function _smartMatch(words, name, rname, dong){
   const hay1 = _norm(name);
   const hay2 = _norm(rname);
   const hay3 = hay2.replace(/(특별자치도|특별자치시|광역시|특별시|자치구|[시군구도])/g,'');
+  const hayd = _norm(dong);
+  //  ① 단어별로 나눠 맞추기: "해운대 롯데" → 지역=해운대 + 이름=롯데
+  let all = true;
   for(const w of words){
-    if(!(hay1.includes(w) || hay2.includes(w) || hay3.includes(w))) return false;
+    if(!(hay1.includes(w) || hay2.includes(w) || hay3.includes(w) || hayd.includes(w))){
+      all = false; break;
+    }
   }
-  return true;
+  if(all) return true;
+  //  ② 붙여 친 경우: "해운대롯데" → 지역+이름을 이어 붙여 그 안에 있는지 봅니다
+  const joined = words.join('');
+  //  "부산롯데"처럼 시·도만 붙여 친 경우도 잡습니다
+  const sido = _norm((rname||'').split(' ')[0])
+               .replace(/(특별자치도|특별자치시|광역시|특별시)/g,'');
+  return (hay3+hay1).includes(joined) || (hay2+hay1).includes(joined)
+      || (hayd+hay1).includes(joined) || hay1.includes(joined)
+      || (sido+hay1).includes(joined);
 }
 function _splitQuery(raw){
   return raw.trim().toLowerCase().split(/[\s,]+/).map(x=>x.trim()).filter(Boolean);
@@ -1093,7 +1106,7 @@ function setupMapSearch(){
     if(Object.keys(AA).length){
       for(const id in AA){
         const a=AA[id];
-        if(!_smartMatch(words, a.name, a.rname)) continue;
+        if(!_smartMatch(words, a.name, a.rname, a.dong)) continue;
         const cand=BEST[id];
         const co=COORDS_G[id];
         grp[id]={name:a.name, rname:(cand&&cand.rname)||a.rname||'',
@@ -1105,7 +1118,7 @@ function setupMapSearch(){
       const units=(DATA&&DATA.peerdata&&DATA.peerdata.units)||{};
       for(const uk in units){
         const u=units[uk];
-        if(!_smartMatch(words, u.name, u.rn||'')) continue;
+        if(!_smartMatch(words, u.name, u.rn||'', u.dong)) continue;
         const id=u.rc+'|'+u.name;
         if(!grp[id]){
           const cand=BEST[id];

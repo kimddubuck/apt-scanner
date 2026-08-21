@@ -402,9 +402,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.21 13:58 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.21 15:20 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.21 13:58</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.21 15:20</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="아파트 검색 (예: 해운대 롯데) 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -789,7 +789,7 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202608211358"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
+<script>window.__BUILD_V__="202608211520"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
 <script src="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -2800,6 +2800,26 @@ function render(){
   }
 }
 // 검색: 질의어 포함 → 관련도 순 정렬(이름이 질의어로 '시작'하면 우선, 짧은 이름 우선) → 상위 60개
+/* 검색 결과 한 줄에 붙일 설명.
+   네이버 부동산처럼 '어느 동인지·몇 세대인지·몇 년차인지'를 함께 보여 줍니다.
+   같은 이름 단지(롯데·현대 등)를 구분하는 데 이게 가장 도움이 됩니다. */
+function _srMeta(x){
+  const bits=[];
+  //  지역 + 동  (예: "부산 해운대구 우동")
+  bits.push(x.regionName + (x.dong? " "+x.dong : ""));
+  //  평형
+  bits.push(x.nPy>1 ? ("평형 "+x.nPy+"개") : (x.pyeong+"평"));
+  //  세대수 (있을 때만)
+  if(x.hh>0) bits.push(x.hh.toLocaleString()+"세대");
+  //  연식 (있을 때만) — 올해 기준 N년차
+  if(x.by>0){
+    const yr=new Date().getFullYear()-x.by+1;
+    bits.push(x.by+"년 ("+yr+"년차)");
+  }
+  if(x.isCand) bits.push("⭐매치");
+  return bits.join(" · ");
+}
+
 function searchHits(idx, rawInput){
   const words=rawInput.trim().toLowerCase().split(/[\s,]+/).filter(Boolean);
   if(!words.length) return [];
@@ -2807,10 +2827,19 @@ function searchHits(idx, rawInput){
   const norm=s=>(s||"").replace(/\s/g,"").toLowerCase();
   //  [스마트 검색] "해운대 롯데"처럼 지역+이름을 섞어 쳐도 찾습니다.
   //  각 단어가 이름 또는 지역명(구/시 떼고도)에 있으면 통과, 모두 통과해야 일치.
+  const joined=words.join("");     // "해운대 롯데" → "해운대롯데" (붙여 친 경우 대비)
   const smatch=x=>{
-    const h1=norm(x.name), h2=norm(x.regionName);
+    const h1=norm(x.name), h2=norm(x.regionName), hd=norm(x.dong);
     const h3=h2.replace(/(특별자치도|특별자치시|광역시|특별시|자치구|[시군구도])/g,"");
-    return words.every(w=>h1.includes(w)||h2.includes(w)||h3.includes(w));
+    //  ① 단어별로 나눠 맞추기 ("해운대 롯데" → 지역+이름)  · 동(우동)도 봅니다
+    if(words.every(w=>h1.includes(w)||h2.includes(w)||h3.includes(w)||hd.includes(w))) return true;
+    //  ② 붙여 친 경우 ("해운대롯데") — 지역+이름을 이어 붙여 그 안에 있는지
+    //  "부산롯데"처럼 시·도만 붙여 친 경우도 잡습니다(h2 의 앞부분 = 시·도).
+    const sido = norm((x.regionName||"").split(" ")[0])
+                 .replace(/(특별자치도|특별자치시|광역시|특별시)/g,"");
+    return (h3+h1).includes(joined) || (h2+h1).includes(joined)
+        || (hd+h1).includes(joined) || h1.includes(joined)
+        || (sido+h1).includes(joined);
   };
   const matched=idx.filter(smatch);
   // 같은 아파트(이름+지역)로 묶어 한 줄만. 대표 평형 = 33평(30평대)에 가장 가까운 것
@@ -2841,7 +2870,7 @@ function setupSearch(){
       box.innerHTML='<div class="empty">검색 결과 없음. (밴드 안 단지만 검색돼요)</div>';
       box.style.display="block"; return;
     }
-    box.innerHTML=hits.map(x=>`<div class="sr"><b>${x.name}</b> <span>${x.regionName}${x.nPy>1?" · 평형 "+x.nPy+"개":" · "+x.pyeong+"평"}${x.isCand?" · ⭐매치":""}</span></div>`).join("");
+    box.innerHTML=hits.map(x=>`<div class="sr"><b>${x.name}</b> <span>${_srMeta(x)}</span></div>`).join("");
     box.querySelectorAll(".sr").forEach((el,i)=>{ el.onclick=()=>{
       const x=hits[i]; searchKey=x.key; mode="region"; scope="si"; highlightIds=[];
       const _u=DATA.peerdata&&DATA.peerdata.units[x.key]; if(_u&&_u.rc&&regionByCode(_u.rc)){regionCode=_u.rc;} syncSido();
@@ -3327,7 +3356,7 @@ function setupHome(){
     const q=inp.value.trim().replace(/\s/g,"").toLowerCase();
     if(!q){ hide(); return; }
     const hits=searchHits(idx, inp.value);
-    box.innerHTML=hits.length?hits.map(x=>`<div class="sr"><b>${x.name}</b> <span>${x.regionName}${x.nPy>1?" · 평형 "+x.nPy+"개":" · "+x.pyeong+"평"}${x.isCand?" · ⭐매치":""}</span></div>`).join("")
+    box.innerHTML=hits.length?hits.map(x=>`<div class="sr"><b>${x.name}</b> <span>${_srMeta(x)}</span></div>`).join("")
       :'<div class="empty">검색 결과 없음. (밴드 안 단지만 검색돼요)</div>';
     box.querySelectorAll(".sr").forEach((el,i)=>{ el.onclick=()=>{
       const x=hits[i];
