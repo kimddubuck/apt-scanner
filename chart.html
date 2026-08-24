@@ -299,6 +299,13 @@
     padding:12px 12px 9px;margin:4px 0 8px}
   .rec-volstat{font-size:13px;color:#3D4249;margin-top:8px}
   .rec-note{font-size:11.5px;color:#9AA3AF;margin-top:4px;line-height:1.5}
+  .hot-rank{display:inline-block;min-width:20px;color:#B4763A;font-weight:800;
+    font-size:13px;margin-right:2px}
+  .hot-key{float:right;color:#B4763A;font-weight:800;font-size:14px}
+  .hot-c6{color:#8A9099;font-size:12px}
+  /* 동급 목록의 회전율 딱지 — 같은 급에서 어디가 더 활발한지 */
+  .lg-turn{font-size:11.5px;color:#6B7076;background:#F2F0EA;
+    border-radius:6px;padding:1px 5px;margin-left:3px;white-space:nowrap}
   .rec-tabs{display:flex;gap:8px;margin:2px 0 12px}
   .rec-tabs button{flex:1;border:1.5px solid #E0DFDA;background:#fff;border-radius:999px;
     padding:9px 0;font-family:inherit;font-size:13.5px;font-weight:700;color:#6B7076;cursor:pointer}
@@ -402,9 +409,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.24 09:55 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.24 22:01 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.24 09:55</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.24 22:01</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="아파트 검색 (예: 해운대 롯데) 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -438,6 +445,9 @@
     </button>
     <button class="qcard" onclick="openVolume()">
       <span class="qi">📊</span><b>월별 거래량</b><span>10년 추이 · 평균 대비</span>
+    </button>
+    <button class="qcard" onclick="openHot()">
+      <span class="qi">🏆</span><b>인기 아파트</b><span>1년 거래량 · 회전율</span>
     </button>
   </div>
   <div class="home-sec">바로가기</div>
@@ -789,7 +799,7 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202608240955"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
+<script>window.__BUILD_V__="202608242201"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
 <script src="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -971,6 +981,9 @@ async function ensureRegionSise(rc){
   if(window.__SISE__[rc]) return window.__SISE__[rc]==="ok";
   window.__SISE__[rc] = "loading";
   await loadAllListOnce();
+  //  [동급 회전율] 범례에 회전율을 붙이려면 recent.js 가 있어야 합니다.
+  //  차트를 여는 이 시점에 함께 받아 둡니다(이미 받았으면 그냥 넘어갑니다).
+  await loadRecentOnce();
   let js = null;
   try{ const res = await fetch(DATA_BASE+"sise/"+rc+".json"); if(res.ok) js = await res.json(); }
   catch(e){}
@@ -1816,6 +1829,29 @@ function bindZoom(fullN){
     applyZoom(e.deltaY<0 ? 0.8 : 1.25, cx);
   },{passive:false});
 }
+/* [동급 회전율 · 2026-08] 그 단지의 회전율을 recent.js 에서 찾아 옵니다.
+   같은 급 단지들 중 어디가 더 활발히 거래되는지 한눈에 보라는 뜻입니다.
+   · recent.js 를 아직 안 받았으면 조용히 빈 문자열을 돌려줍니다(화면은 그대로).
+   · 평형은 ±1평까지 같은 단지로 봅니다(반올림 오차 흡수). */
+function _turnOf(rc, name, py){
+  const R=(window.__RECENT__||{}).r||{};
+  const g=R[rc]; if(!g || !g.hot) return null;
+  const C=_hotCols();
+  for(const r of g.hot){
+    if(r[C.name]!==name) continue;
+    if(Math.abs((r[C.py]||0)-py)>1) continue;
+    return {turn:r[C.turn]||0, cnt:r[C.cnt]||0, hh:r[C.hh]||0, c6:r[C.c6]||0};
+  }
+  return null;
+}
+/* 범례에 붙일 회전율 딱지. 회전율을 모르면 아무것도 안 붙입니다. */
+function _turnBadge(u){
+  const t=_turnOf(u.rc || regionCode, u.name, u.pyeong);
+  if(!t || !t.turn) return "";
+  return ' <span class="lg-turn" title="최근 1년 '+t.cnt+'건 ÷ '+
+    t.hh.toLocaleString()+'세대">🔄'+t.turn+'%</span>';
+}
+
 function drawLegend(units, ids, mainId, colors){
   legendUnits = units;            // [상세보기용] 지금 범례에 그린 단지들을 기억해 둠
   const box=$("#legend"); box.innerHTML="";
@@ -1843,7 +1879,7 @@ function drawLegend(units, ids, mainId, colors){
     };
     const rn = u.rn ? "·"+u.rn.replace(/^(서울|부산|대구|인천|광주|대전|울산|경기|경남|경북|충남|충북|전남|전북|강원|제주)\s*/,"$1 ").split(" ").slice(-1)[0] : "";
     el.innerHTML=`<span class="swatch" style="background:${colors[id]};height:${isMain?4:3}px"></span>
-      <span class="lgtxt">${u.name}(${u.pyeong}평${scope!=="gu"&&u.rn?"·"+u.rn:""})</span> <span class="val">${fmtEok(nowShown(id,u.prices))}</span>`
+      <span class="lgtxt">${u.name}(${u.pyeong}평${scope!=="gu"&&u.rn?"·"+u.rn:""})</span> <span class="val">${fmtEok(nowShown(id,u.prices))}</span>${_turnBadge(u)}`
       /* [지도 이동 · 2026-08] 동급 이름 옆 📍를 누르면 지도가 그 아파트로 갑니다.
          차트는 지도(index.html) 안의 iframe 이라, 부모 창에 알려주는 방식으로 합니다.
          stopPropagation 이 없으면 범례 클릭(선 강조)까지 같이 일어납니다. */
@@ -2930,6 +2966,140 @@ async function openVolume(){
   }
   pushHist("recent");
   _volSido(host, R);
+}
+
+/* ══ [인기 아파트 · 2026-08] 1년 거래량·회전율 ═══════════════════════
+   거래 건수만 보면 큰 단지가 무조건 이깁니다(세대가 많으니 당연).
+   그래서 '회전율(거래÷세대수)'을 함께 보여 주고, 두 기준으로 정렬할 수 있게 합니다.
+     · 거래 많은 순  = 그 동네에서 실제로 많이 팔린 단지
+     · 회전율 높은 순 = 규모 대비 손바뀜이 활발한 단지 (= 인기)  */
+let __hotBy = "cnt";        // "cnt"(거래수) 또는 "turn"(회전율)
+/* 홈 목록은 20~30평대(20~39평)만 봅니다.
+   저평가 판정도 23~40평만 하므로 기준이 어긋나지 않고,
+   대형·초소형은 성격이 달라 섞으면 순위가 헷갈립니다. */
+const HOT_PY_MIN = 20, HOT_PY_MAX = 39;
+function _hotPick(g, C){
+  return (g.hot||[]).filter(function(r){
+    const py = r[C.py] || 0;
+    return py >= HOT_PY_MIN && py <= HOT_PY_MAX;
+  });
+}
+function _hotCols(){
+  const c=(window.__RECENT__||{}).hotcols
+        ||["name","cnt","hh","turn","py","val","by","dong"];
+  const o={}; c.forEach((k,i)=>o[k]=i); return o;
+}
+async function openHot(){
+  const host=_recHost("🏆 인기 아파트");
+  host.innerHTML='<div style="padding:34px;text-align:center;color:#9AA3AF">불러오는 중…</div>';
+  await loadRecentOnce();
+  const R=(window.__RECENT__||{}).r||{};
+  if(!Object.keys(R).length){
+    host.innerHTML='<div style="padding:34px;text-align:center;color:#9AA3AF">'
+      +'자료를 불러오지 못했어요.</div>'; pushHist("recent"); return;
+  }
+  pushHist("recent");
+  _hotSido(host, R);
+}
+/* 정렬 기준 탭 */
+function _hotTabs(){
+  return '<div class="rec-tabs">'
+    +'<button class="'+(__hotBy==="cnt"?"on":"")+'" onclick="_hotMode(\'cnt\')">거래 많은 순</button>'
+    +'<button class="'+(__hotBy==="turn"?"on":"")+'" onclick="_hotMode(\'turn\')">회전율 순</button>'
+    +'</div>';
+}
+function _hotMode(m){
+  __hotBy=m;
+  if(__hotWhere) _hotList(__hotWhere[0], __hotWhere[1]);
+  else openHot();
+}
+let __hotWhere=null;         // [지역코드, 시·도] — 탭을 눌러도 보던 구를 유지
+/* 1단계: 시·도 */
+function _hotSido(host, R){
+  __hotWhere=null;
+  const by={};
+  for(const code in R){
+    const s=(R[code].n||"").split(" ")[0];
+    by[s]=(by[s]||0)+_hotPick(R[code], _hotCols()).length;
+  }
+  const order=Object.entries(by).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
+  let h='<div class="rec-wrap">'
+    +'<div class="rec-sub">최근 1년 실거래 기준 · 20~30평대 · 거래 3건 이상인 단지만 셉니다. '
+    +'<b>회전율</b>은 1년 거래 건수를 세대수로 나눈 값이라, 규모가 달라도 견줄 수 있어요.</div>'
+    +'<div class="rec-grid">';
+  for(const [s,n] of order){
+    h+='<button class="rec-btn" onclick="_hotGu(\''+s+'\')">'+s+'<em>'+n+'곳</em></button>';
+  }
+  h+='</div></div>';
+  host.innerHTML=h;
+}
+/* 2단계: 구 */
+function _hotGu(sido){
+  const R=(window.__RECENT__||{}).r||{};
+  const host=_recHost();
+  __hotWhere=null;
+  const gus=[];
+  for(const code in R){
+    const g=R[code];
+    if((g.n||"").split(" ")[0]!==sido) continue;
+    const n=_hotPick(g, _hotCols()).length;
+    if(n) gus.push([code, g.n, n]);
+  }
+  gus.sort((a,b)=>b[2]-a[2]);
+  let h='<div class="rec-wrap">'
+    +'<button class="rec-back" onclick="openHot()">‹ 시·도 목록</button>'
+    +'<div class="rec-head">'+sido+'</div><div class="rec-grid">';
+  for(const [code,name,n] of gus){
+    const gu=name.split(" ").slice(1).join(" ")||name;
+    h+='<button class="rec-btn" onclick="_hotList(\''+code+'\',\''+sido+'\')">'
+      +gu+'<em>'+n+'곳</em></button>';
+  }
+  h+='</div></div>';
+  host.innerHTML=h;
+}
+/* 3단계: 단지 목록 */
+function _hotList(code, sido){
+  const R=(window.__RECENT__||{}).r||{};
+  const host=_recHost();
+  const reg=R[code]; if(!reg){ openHot(); return; }
+  __hotWhere=[code, sido];
+  const C=_hotCols();
+  let rows=_hotPick(reg, C);
+  //  회전율 순일 때는 세대수를 아는 단지만 (모르면 회전율이 0이라 맨 뒤로 몰림)
+  if(__hotBy==="turn") rows=rows.filter(r=>r[C.turn]>0);
+  rows.sort((a,b)=> b[C[__hotBy]] - a[C[__hotBy]]);
+  const gu=reg.n;
+  let h='<div class="rec-wrap">'
+    +'<button class="rec-back" onclick="_hotGu(\''+sido+'\')">‹ '+sido+'</button>'
+    +'<div class="rec-head">'+gu+'</div>'+_hotTabs();
+  if(!rows.length){
+    h+='<div class="rec-sub">보여 줄 단지가 없어요. '
+      +(__hotBy==="turn"?"세대수를 아는 단지가 아직 없습니다.":"")+'</div></div>';
+    host.innerHTML=h; return;
+  }
+  h+='<div class="rec-sub">'+(__hotBy==="cnt"
+      ? "최근 1년 동안 실제로 많이 팔린 순서입니다."
+      : "세대수 대비 손바뀜이 활발한 순서입니다(작은 단지가 유리하지 않게 나눈 값)." )
+    +'</div><div class="rec-list">';
+  let rank=0;
+  for(const r of rows){
+    rank++;
+    const nm=r[C.name], cnt=r[C.cnt], hh=r[C.hh], turn=r[C.turn];
+    const py=r[C.py], val=(r[C.val]/10).toFixed(1), by=r[C.by], dong=r[C.dong]||"";
+    const yr=by>0? (new Date().getFullYear()-by+1)+"년차" : "";
+    h+='<div class="rec-row" onclick="pickAptByName(\''+code+'\',\''
+      +nm.replace(/'/g,"\\'")+'\','+py+')">'
+      +'<div class="rec-name"><span class="hot-rank">'+rank+'</span>'+nm
+      +' <em>'+py+'평</em>'
+      +'<span class="hot-key">'+(__hotBy==="cnt"
+          ? cnt+"건"
+          : turn+"%")+'</span></div>'
+      +'<div class="rec-meta">'+(dong? dong+" · ":"")
+      +'1년 '+cnt+'건'+(hh>0? ' · '+hh.toLocaleString()+'세대 · 회전율 '+turn+'%' : ' · 세대수 미상')
+      +(yr? ' · '+yr : '')+' · '+val+'억</div></div>';
+  }
+  h+='</div></div>';
+  host.innerHTML=h;
 }
 
 /* v0(시작달)+vc(건수)로 달 이름들을 되만듭니다 */
