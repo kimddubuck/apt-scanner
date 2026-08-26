@@ -143,7 +143,11 @@
                   padding:4px 10px;font-size:11px;cursor:pointer;font-weight:600}
   .zoombar button:hover{border-color:#CBD3DD}
   /* ── [한 줄 고정] 범례도 항목마다 한 줄: 긴 이름은 …으로, 가격은 안 잘리게 ── */
-  .legend .it{display:flex;align-items:center;gap:6px;max-width:100%;min-width:0;white-space:nowrap}
+  /* ── [두 줄 · 2026-08] 범례를 두 줄로: 윗줄=이름·평·지역·가격·회전율, 아랫줄=동·세대·연식.
+     예전엔 한 줄에 다 넣어 폰에서 이름이 …으로 잘렸습니다. 상세정보를 아랫줄로 내립니다. ── */
+  .legend .it{display:flex;flex-direction:column;align-items:flex-start;gap:1px;max-width:100%;min-width:0}
+  .legend .it .lg-top{display:flex;align-items:center;gap:6px;max-width:100%;min-width:0;white-space:nowrap}
+  .legend .it .lg-sub{font-size:11.5px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;padding-left:22px;opacity:.9}
   /* ── [줄넘김 방지] 긴 단지명은 다음 줄로 넘기지 않고 …으로 줄임. 가격은 항상 보이게 ── */
   .legend .it .lgtxt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
   .legend .it .val{flex-shrink:0}
@@ -416,9 +420,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.26 14:32 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.26 15:09 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.26 14:32</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.26 15:09</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="아파트 검색 (예: 해운대 롯데) 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -806,7 +810,7 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202608261432"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
+<script>window.__BUILD_V__="202608261509"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
 <script src="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -1018,7 +1022,7 @@ async function ensureRegionSise(rc){
   const AL = ((window.__ALLLIST__||{}).r||{})[rc] || {};
   const rn = AL.n || (pd.rmap||{})[rc] || "";
   const meta = {};
-  for(const u of (AL.u||[])) meta[u[0]+"|"+u[1]] = {now:u[2], hh:u[3], by:u[4], lastV:u[5]};
+  for(const u of (AL.u||[])) meta[u[0]+"|"+u[1]] = {now:u[2], hh:u[3], by:u[4], lastV:u[5], dong:u[7]||""};
   let added = 0;
   pd.now = pd.now || {};
   for(const uid in js.s){
@@ -1035,7 +1039,7 @@ async function ensureRegionSise(rc){
     const py = area ? Math.round((area/_JEONYONG)/_PYEONG) : 0;
     const nm = String(uid).split("|")[0];
     const mt = meta[nm+"|"+py] || {};
-    pd.units[gkey] = {name:nm, pyeong:py, rc:rc, rn:rn, by:mt.by||0, hh:mt.hh||0};
+    pd.units[gkey] = {name:nm, pyeong:py, rc:rc, rn:rn, by:mt.by||0, hh:mt.hh||0, dong:mt.dong||""};
     /* 현재가는 빌더가 증여를 걸러 계산한 값을 씁니다(없으면 마지막 거래가). */
     const nowv = mt.now || mt.lastV || 0;
     if(nowv) pd.now[gkey] = nowv;
@@ -1855,6 +1859,22 @@ function _turnBadge(u){
     + hh.toLocaleString() + '세대 (연 환산)">🔄' + turn + '%</span>';
 }
 
+/* [두 줄 범례 아랫줄 · 2026-08] 동·세대수·연식을 " · "로 잇습니다.
+   있는 것만 넣고, 셋 다 없으면 빈 문자열 → 아랫줄이 안 생깁니다. */
+function _lgSub(u){
+  const bits=[];
+  if(u.dong) bits.push(u.dong);
+  const hh=+(u.hh||0); if(hh>0) bits.push(hh.toLocaleString()+"세대");
+  const by=+(u.by||0);
+  if(by>0){
+    const y=(typeof NOW_YEAR!=="undefined"&&NOW_YEAR)?NOW_YEAR:new Date().getFullYear();
+    const age=y-by; if(age>=0) bits.push(age+"년차");
+  }
+  if(!bits.length) return "";
+  const safe=bits.join(" · ").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  return `<span class="lg-sub">${safe}</span>`;
+}
+
 function drawLegend(units, ids, mainId, colors){
   legendUnits = units;            // [상세보기용] 지금 범례에 그린 단지들을 기억해 둠
   const box=$("#legend"); box.innerHTML="";
@@ -1881,12 +1901,14 @@ function drawLegend(units, ids, mainId, colors){
       render();
     };
     const rn = u.rn ? "·"+u.rn.replace(/^(서울|부산|대구|인천|광주|대전|울산|경기|경남|경북|충남|충북|전남|전북|강원|제주)\s*/,"$1 ").split(" ").slice(-1)[0] : "";
-    el.innerHTML=`<span class="swatch" style="background:${colors[id]};height:${isMain?4:3}px"></span>
+    el.innerHTML=`<span class="lg-top"><span class="swatch" style="background:${colors[id]};height:${isMain?4:3}px"></span>
       <span class="lgtxt">${u.name}(${u.pyeong}평${scope!=="gu"&&u.rn?"·"+u.rn:""})</span> <span class="val">${fmtEok(nowShown(id,u.prices))}</span>${_turnBadge(u)}`
       /* [지도 이동 · 2026-08] 동급 이름 옆 📍를 누르면 지도가 그 아파트로 갑니다.
          차트는 지도(index.html) 안의 iframe 이라, 부모 창에 알려주는 방식으로 합니다.
          stopPropagation 이 없으면 범례 클릭(선 강조)까지 같이 일어납니다. */
-      + `<i class="lg-go" title="지도에서 이 아파트로 이동">📍</i>`;
+      + `<i class="lg-go" title="지도에서 이 아파트로 이동">📍</i></span>`
+      /* [두 줄 · 2026-08] 아랫줄: 동·세대수·연식. 있는 것만, 셋 다 없으면 아랫줄 안 만듦 */
+      + _lgSub(u);
     /* [지도 이동 · 2026-08 위치 수정] 📍 핸들러는 **innerHTML 을 넣은 뒤**에 붙여야 합니다.
        예전엔 el.innerHTML 보다 앞에서 querySelector 를 해서 null 이 나왔고,
        그래서 핸들러가 아예 붙지 않았습니다(눌러도 아무 일도 없었던 이유). */
