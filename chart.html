@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- [패널 표시 · 2026-08-30] 이 페이지가 지도(index.html)의 왼쪽 창(iframe) 안인지를
+     '그림이 그려지기 전에' 표시해 둡니다. 아래 CSS 가 이 표시를 보고, index 와 겹치는
+     제목줄·검색창·'지도로 보기' 버튼을 처음부터 감춥니다.
+     ※ 반드시 <head> 에서 — 나중에 자바스크립트로 감추면 한 번 보였다 사라져 깜빡입니다. -->
+<script>try{ if(window.self!==window.top) document.documentElement.classList.add("in-panel"); }
+        catch(e){ document.documentElement.classList.add("in-panel"); }</script>
 <title>아파트매치 | 국토교통부 실거래가 기반 동급 단지 비교 분석</title>
 <meta name="description" content="국토교통부 아파트 실거래가 공공데이터를 기반으로, 과거에 가격이 함께 움직였던 '동급 아파트'를 찾아 지금 혼자 뒤처진 저평가 후보 단지를 보여주는 무료 분석 서비스입니다. 매일 자동 갱신되며, 전국 시·도별, 평당가 구간별로 최근 10년치 월별 시세 흐름을 차트로 비교할 수 있습니다.">
 <meta name="keywords" content="아파트 실거래가, 저평가 아파트, 부동산 분석, 동급 단지 비교, 평당가, 국토교통부 실거래가, 아파트 시세, 부동산 스캐너, 아파트 가격 비교">
@@ -247,6 +253,13 @@
   #scanner{display:none}
   #scanner.on{display:block}
   .home-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  /* [패널 안 중복 제거 · 2026-08-30] 지도(index.html) 의 왼쪽 창으로 열렸을 때만.
+     index 위쪽에 이미 '아파트 매치' 제목과 검색창이 있어서 그대로 두면 두 벌로 보이고,
+     '지도로 보기' 는 이미 지도 안이라 뜻이 없습니다. 이 셋만 감춥니다.
+     (오늘의 매치 카드·바로가기·설명은 그대로 — 그게 패널의 첫 화면입니다) */
+  html.in-panel #home > .home-top,
+  html.in-panel #home > .home-search,
+  html.in-panel #home > .map-go{display:none}
   .home-logo{font-size:24px;font-weight:800;letter-spacing:-.02em}
   .home-logo em{color:var(--gold);font-style:normal}
   /* [버전 배지] 홈 오른쪽 상단, 빌드 날짜 자동 표시 */
@@ -420,9 +433,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.26 17:21 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.08.30 09:32 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.26 17:21</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.08.30 09:32</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="아파트 검색 (예: 해운대 롯데) 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -810,7 +823,7 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202608261721"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
+<script>window.__BUILD_V__="202608300932"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
 <script src="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -3599,6 +3612,22 @@ function setupHome(){
   });
   document.addEventListener("click",e=>{ if(!e.target.closest(".home-search")) hide(); });
 }
+/* ══ [홈 복귀 · 2026-08-30] 해시에서 #u= 가 사라지면 화면도 홈으로 되돌립니다 ═══
+   왜 필요한가: 지도(index)가 왼쪽 패널을 홈으로 되돌릴 때, iframe 주소를
+       './chart.html#u=26350|센텀롯데캐슬2차'  →  './chart.html'
+   로 바꿉니다. 그런데 이 둘은 '#' 뒤만 다른 주소라, 브라우저는 문서를 다시 읽지
+   않고 '같은 문서 안에서 앵커만 이동'으로 처리합니다.
+   예전 openFromHash 는 #u= 가 없으면 첫 줄에서 그냥 return 해서,
+   주소만 홈으로 바뀌고 화면은 옛 단지 차트가 그대로 남았습니다
+   (= "홈이 잠깐 떴다가 이전에 보던 단지로 바뀐다"의 진짜 원인.
+     주소는 멀쩡해 보이는데 화면만 옛것이라 찾기 어려웠습니다).
+   이제 주소가 홈으로 바뀌면 화면도 따라갑니다:
+     · 단독 페이지(폰)    → goHome() 으로 홈 카드 화면
+     · 지도 안의 창(패널) → 홈 카드는 index 의 헤더·검색과 겹치므로 안내문만
+       (첫 로딩 때 쓰는 화면과 똑같이 맞춰, 두 곳이 어긋나지 않게 합니다)      */
+function inPanelNow(){
+  try{ return window.self !== window.top; }catch(e){ return true; }
+}
 /* [지도 연동 · 2026-08] URL 해시로 특정 단지 바로 열기.
    지도(map.html)에서 "상세 보기"를 누르면 index.html#u=지역코드|단지명 으로 옵니다.
    그 단지의 밴드 키를 찾아 검색으로 연 것과 똑같이 보여줍니다(시 동급 기준).
@@ -3606,7 +3635,9 @@ function setupHome(){
 async function openFromHash(){
   const h = decodeURIComponent(location.hash||"");
   const m = h.match(/^#u=([^|]+)\|(.+)$/);
-  if(!m) return false;
+  /* [2026-08-30] 예전엔 여기서 그냥 `return false` 였습니다 → 위 주석 참고.
+     이제 홈으로 되돌립니다. 패널이든 단독 페이지든 첫 화면은 홈이라 goHome() 하나면 됩니다. */
+  if(!m){ goHome(); return false; }
   const rc = m[1], nm = m[2];
   const pd = DATA.peerdata; if(!pd) return false;
   /* [C단계] 이 단지가 data.js 에 아예 없으면(=조건 밖 단지)
@@ -3656,18 +3687,15 @@ if(DATA.regions && DATA.regions.length){
   //  아직 아무 단지도 안 골랐으면(#u= 해시 없음), 홈 화면(헤더·검색·카드)을 그리지
   //  않습니다. 그리면 index 의 헤더·검색·푸터와 겹쳐 화면이 두 벌로 보입니다.
   //  대신 "왼쪽에서 단지를 고르거나 지도에서 누르세요" 안내만 보여 줍니다.
-  var _inPanel = false;
-  try{ _inPanel = (window.self !== window.top); }catch(e){ _inPanel = true; }
+  var _inPanel = inPanelNow();
   var _hasU = /[#&]u=/.test(location.hash);
   if(_inPanel && !_hasU){
-    //  패널 안 + 아직 단지 안 고름: 홈(헤더·카드)은 감추고 차트 화면(검색창 포함)만
-    //  띄웁니다. 차트 자리에는 안내를 넣어, 검색하거나 지도에서 누르면 그래프가 뜹니다.
-    document.getElementById("home").classList.remove("on");
-    document.getElementById("scanner").classList.add("on");
-    var _ch = document.getElementById("chart");
-    if(_ch){ _ch.innerHTML = '<div style="padding:34px 20px;text-align:center;'
-      + 'color:#6B7076;line-height:1.85;font-size:14px">지도에서 아파트를 누르거나<br>'
-      + '위 검색창에 단지 이름을 넣으면<br>여기에 시세 그래프가 나옵니다.</div>'; }
+    /* [2026-08-30 변경] 패널 안 + 아직 단지 안 고름 → 홈을 그대로 둡니다.
+       예전엔 여기서 홈을 끄고 스캐너+안내문으로 바꿨습니다. 그런데 이 코드는
+       data.js(25MB) 를 다 받은 뒤에야 돌기 때문에, 그전까지 보이던 홈이 몇 초 뒤
+       갑자기 다른 화면으로 바뀌었습니다 — 그게 "홈이 잠깐 떴다가 바뀐다" 였습니다.
+       홈을 그대로 두면 바뀔 일이 없어 깜빡임이 사라집니다.
+       (겹침 걱정은 위 html.in-panel CSS 가 제목줄·검색창·지도버튼을 감춰 해결합니다) */
   }else{
     openFromHash();
   }

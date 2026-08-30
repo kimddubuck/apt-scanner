@@ -842,7 +842,15 @@ async function boot(){
        about:blank 일 때만 새로 띄워서 옛 해시가 그대로 살아 있었던 것.
        그래서 여기서 첫 화면일 때는 무조건 홈(해시 없는 chart.html)으로 다시 세팅합니다.
        (goto= 로 특정 단지를 열고 들어온 경우는 이미 panel-open 이라 이 블록을 안 탑니다) */
-    reopenPanel(true);
+    /* [2026-08-30] 예전엔 reopenPanel(true) 를 불렀습니다. 그런데 reopenPanel 은
+       src 를 './chart.html' 로 바꾸기만 해서, 프레임이 옛 '#u=단지' 주소에 있으면
+       '#' 뒤만 다른 주소라 브라우저가 문서를 다시 안 읽었습니다(옛 차트가 그대로).
+       openHomePanel 은 about:blank 를 한 번 거쳐 '진짜로' 새로 읽게 합니다.
+       ※ 예전엔 이 openHomePanel 을 아래 waitMapThenHome 타이머가 불렀는데,
+         그 타이머는 6초가 지나면 포기했습니다. 데이터가 38MB 라 6초를 넘기기 일쑤여서
+         정작 필요할 때 한 번도 실행되지 않았습니다. 이제 map 이 만들어진 뒤인
+         여기서 직접 부릅니다 — 기다릴 필요도, 시간 제한도 없습니다. */
+    openHomePanel();
   }
 }
 
@@ -1628,13 +1636,12 @@ function openHomePanel(){
   document.body.classList.add('panel-open');
   setTimeout(()=>{ try{ map.invalidateSize(); }catch(e){} }, 300);
 }
-// 지도 준비가 끝난 뒤 홈을 띄웁니다 (map 이 생기면 실행)
-(function waitMapThenHome(){
-  const t = setInterval(()=>{
-    if(typeof map !== "undefined" && map){ clearInterval(t); openHomePanel(); }
-  }, 120);
-  setTimeout(()=>clearInterval(t), 6000);     // 6초 넘으면 그만 (안전)
-})();
+/* [2026-08-30 삭제] 예전엔 여기서 map 이 생기기를 120ms 마다 기다렸다가
+   openHomePanel() 을 불렀고, 6초가 지나면 clearInterval 로 포기했습니다.
+   그런데 map 은 data.js(25MB)+coords.json(7MB)+all_list.js(6MB) 를 모두 받은
+   뒤에야 만들어집니다. 38MB 는 6초를 넘기기 쉬워서, 정작 필요한 상황에서는
+   openHomePanel 이 한 번도 실행되지 않았습니다(= 첫 화면에 옛 차트가 남던 이유).
+   이제 boot() 이 map 을 만든 뒤 직접 부르므로 기다림도 시간 제한도 없습니다. */
 
 // 지도 이동 멈추면 화면 안 말풍선 갱신
 document.addEventListener('DOMContentLoaded',()=>{ 
