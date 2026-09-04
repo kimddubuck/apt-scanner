@@ -309,6 +309,8 @@
   .rec-name em{font-style:normal;color:#8A9099;font-size:12.5px;font-weight:500;margin-left:4px}
   .rec-star{color:#B4763A;font-size:12.5px;font-weight:700;margin-left:6px}
   .rec-meta{font-size:13px;color:#6B7076;margin-top:3px}
+  /* [전용면적 · 2026-09-03] 평 옆에 붙는 전용 ㎡. 보조 정보라 한 톤 흐리게. */
+  .rec-ar{color:#9AA0A6;font-size:12px}
   #recModal{position:fixed;inset:0;background:#F7F7F5;z-index:80;overflow-y:auto;
     padding:0 16px 44px;-webkit-overflow-scrolling:touch}
   .rec-top{position:sticky;top:0;background:#F7F7F5;display:flex;justify-content:space-between;
@@ -437,9 +439,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.09.03 10:01 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.09.04 10:29 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.09.03 10:01</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.09.04 10:29</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="아파트 검색 (예: 해운대 롯데) 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -834,7 +836,7 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202609031001"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
+<script>window.__BUILD_V__="202609041029"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
 <script src="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -3341,7 +3343,7 @@ function pickAptByName(code, name, py){
 const _RECC={};  // recent 컬럼 인덱스 캐시
 function _recCols(){
   if(_RECC.ready) return _RECC;
-  const cols=(window.__RECENT__||{}).cols||["name","py","val","fl","date","hh","by","srate"];
+  const cols=(window.__RECENT__||{}).cols||["name","py","val","fl","date","hh","by","srate","ar"];
   cols.forEach((c,i)=>_RECC[c]=i);
   _RECC.ready=true; return _RECC;
 }
@@ -3503,9 +3505,15 @@ function _recentList(code, sido){
     const d=r[C.date], sr=r[C.srate];
     const dtxt=d? `${parseInt(d.slice(0,2))}/${parseInt(d.slice(2))}` : "";
     const star=sr>0? `<span class="rec-star">⭐${sr}%</span>` : "";
+    /* [전용면적 · 2026-09-03] 우리 '평'은 전용률(0.75)로 나눈 공급면적 기준이라,
+       전용면적 평을 쓰는 다른 사이트와 같은 집이 20평↔16평으로 달리 보였습니다.
+       옆에 전용 ㎡ 를 그대로 붙여, 어느 기준인지 헷갈리지 않게 합니다.
+       (옛 자료에는 ar 칸이 없으므로 있을 때만 붙입니다) */
+    const ar=r[C.ar];
+    const artxt = ar? ` <span class="rec-ar">전용 ${ar}㎡</span>` : "";
     h+=`<div class="rec-row" onclick="pickAptByName('${code}','${nm.replace(/'/g,"\\'")}',${py})">`
       +`<div class="rec-name">${nm} <em>${py}평</em>${star}</div>`
-      +`<div class="rec-meta">${val}억 · ${fl?fl+'층 · ':''}${dtxt} 계약</div></div>`;
+      +`<div class="rec-meta">${val}억 · ${fl?fl+'층 · ':''}${dtxt} 계약${artxt}</div></div>`;
   }
   h+='</div></div>';
   host.innerHTML=h;
