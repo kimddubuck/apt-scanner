@@ -1,6 +1,20 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 📱 [홈 화면 아이콘 · 2026-09-03] 크롬 '홈 화면에 추가' 로 앱처럼 쓰기 위한 설정.
+     manifest.json 이 이름·아이콘·시작 주소를 알려 주고, 아래 아이콘들이 각 기기에서 쓰입니다.
+     · icon-192/512      — 안드로이드 홈 화면
+     · icon-maskable-512 — 안드로이드가 아이콘을 둥글게 깎을 때 (로고를 가운데 78%에 넣어 안 잘림)
+     · apple-touch-icon  — 아이폰 홈 화면 (아이폰은 manifest 아이콘을 잘 안 봅니다)
+     · favicon           — 브라우저 탭
+     ※ 주소를 / 로 시작하게 둔 이유: 이 파일이 지도의 iframe 안에서도 열리는데,
+       상대경로(./)면 폴더가 달라질 때 아이콘을 못 찾습니다. -->
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="아파트 매치">
+<meta name="theme-color" content="#16202E">
 <!-- [패널 표시 · 2026-08-30] 이 페이지가 지도(index.html)의 왼쪽 창(iframe) 안인지를
      '그림이 그려지기 전에' 표시해 둡니다. 아래 CSS 가 이 표시를 보고, index 와 겹치는
      제목줄·검색창·'지도로 보기' 버튼을 처음부터 감춥니다.
@@ -439,9 +453,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.09.04 10:29 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.09.05 10:08 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.09.04 10:29</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.09.05 10:08</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="아파트 검색 (예: 해운대 롯데) 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -836,7 +850,7 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202609041029"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
+<script>window.__BUILD_V__="202609051008"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
 <script src="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
