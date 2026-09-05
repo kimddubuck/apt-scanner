@@ -14,6 +14,13 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="아파트 매치">
 <meta name="theme-color" content="#16202E">
+<!-- [앱 설치 · 2026-09-05] 서비스워커 등록 — chart.html 과 같은 내용입니다.
+     이 파일은 build_all.py 가 만들지 않으니 바꿀 때 양쪽을 같이 고쳐야 합니다. -->
+<script>
+if ("serviceWorker" in navigator) {
+  addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(()=>{}));
+}
+</script>
 
 <!-- 🔎 검색엔진 소유확인·노출 (2026-08) — 이 파일이 아파트매치.com 의 첫 화면이라 여기에 둡니다 -->
 <meta name="naver-site-verification" content="834ed7ce1c26f65e1d4202e5e4bc4fc85a5c14aa">
