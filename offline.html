@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>연결이 끊겼어요 | 아파트 매치</title>
+<!-- [오프라인 안내 · 2026-09-05]
+     서비스워커가 인터넷이 끊겼을 때만 이 페이지를 보여 줍니다.
+     크롬이 '앱 설치'를 제안하려면 오프라인에서도 화면이 뜨어야 해서 필요합니다.
+     ※ 손으로 관리하는 파일입니다(build_all.py 가 만들지 않습니다).
+       내용이 거의 안 바뀌므로 캐시에 오래 남아도 문제되지 않습니다. -->
+<link rel="icon" href="/favicon.ico" sizes="any">
+<meta name="theme-color" content="#16202E">
+<style>
+  html,body{margin:0;height:100%;background:#F7F9EB;
+    font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:#16202E}
+  .box{height:100%;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;text-align:center;padding:24px;box-sizing:border-box}
+  img{width:104px;height:104px;border-radius:22px;margin-bottom:22px}
+  h1{font-size:19px;margin:0 0 10px}
+  p{font-size:14.5px;color:#5B6470;line-height:1.8;margin:0 0 26px}
+  button{border:0;background:#16202E;color:#fff;font-family:inherit;
+    font-size:15px;font-weight:700;padding:13px 26px;border-radius:999px;cursor:pointer}
+</style>
+</head>
+<body>
+  <div class="box">
+    <img src="/icon-192.png" alt="아파트 매치">
+    <h1>연결이 끊겼어요</h1>
+    <p>인터넷이 연결되면 다시 볼 수 있어요.<br>
+       아파트 시세는 실시간 자료라 저장해 두지 않습니다.</p>
+    <button onclick="location.reload()">다시 시도</button>
+  </div>
+</body></html>

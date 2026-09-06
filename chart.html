@@ -15,6 +15,17 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="아파트 매치">
 <meta name="theme-color" content="#16202E">
+<!-- [앱 설치 · 2026-09-05] 서비스워커 등록. 이게 있어야 크롬이 '앱 설치'를 제안합니다.
+     · 지도 안의 창(iframe)에서는 등록하지 않습니다 — 같은 워커를 두 번 등록할 일이 없습니다.
+     · 실패해도 조용히 넘어갑니다(사이트는 워커 없이도 똑같이 동작합니다).
+     · 캐시는 offline.html·아이콘 둘뿐이고 시세 데이터는 캐시하지 않습니다. -->
+<script>
+if ("serviceWorker" in navigator) {
+  try { if (window.self === window.top)
+    addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(()=>{}));
+  } catch (e) {}
+}
+</script>
 <!-- [패널 표시 · 2026-08-30] 이 페이지가 지도(index.html)의 왼쪽 창(iframe) 안인지를
      '그림이 그려지기 전에' 표시해 둡니다. 아래 CSS 가 이 표시를 보고, index 와 겹치는
      제목줄·검색창·'지도로 보기' 버튼을 처음부터 감춥니다.
@@ -453,9 +464,9 @@
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.09.05 10:18 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.09.06 10:26 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.09.05 10:18</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.09.06 10:26</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="아파트 검색 (예: 해운대 롯데) 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -850,7 +861,7 @@
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202609051018"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
+<script>window.__BUILD_V__="202609061026"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
 <script src="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
