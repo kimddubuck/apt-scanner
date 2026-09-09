@@ -464,9 +464,9 @@ if ("serviceWorker" in navigator) {
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.09.08 10:32 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.09.09 10:30 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.09.08 10:32</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.09.09 10:30</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="아파트 검색 (예: 해운대 롯데) 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -861,7 +861,7 @@ if ("serviceWorker" in navigator) {
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202609081032"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
+<script>window.__BUILD_V__="202609091030"; window.__DATA_BASE__="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/";</script>
 <script src="https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -3535,7 +3535,9 @@ function _recentList(code, sido){
        옆에 전용 ㎡ 를 그대로 붙여, 어느 기준인지 헷갈리지 않게 합니다.
        (옛 자료에는 ar 칸이 없으므로 있을 때만 붙입니다) */
     const ar=r[C.ar];
-    const artxt = ar? ` <span class="rec-ar">전용 ${ar}㎡</span>` : "";
+    /* [2026-09-08] 소수 2자리로 찍습니다 — 아파트미가 84.81 처럼 두 자리를 쓰므로
+       84.8 로 줄여 보이면 같은 집인지 헷갈립니다. */
+    const artxt = ar? ` <span class="rec-ar">전용 ${ar.toFixed(2)}㎡</span>` : "";
     h+=`<div class="rec-row" onclick="pickAptByName('${code}','${nm.replace(/'/g,"\\'")}',${py})">`
       +`<div class="rec-name">${nm} <em>${py}평</em>${star}</div>`
       +`<div class="rec-meta">${val}억 · ${fl?fl+'층 · ':''}${dtxt} 계약${artxt}</div></div>`;
