@@ -1,6 +1,6 @@
-/* 아파트 매치 서비스워커 — build 202609101041
+/* 아파트 매치 서비스워커 — build 202609102136
    자동 생성 파일입니다. 고치려면 build_all.py 의 _sw 를 고치세요. */
-const V = "am-202609101041";
+const V = "am-202609102136";
 const KEEP = ["/offline.html", "/icon-192.png"];
 
 self.addEventListener("install", e => {
