@@ -508,16 +508,26 @@ const ZOOM_TAG = 14;              // 이 배율 이상이면 이름 말풍선, �
    Cloudflare R2 에서 받아옵니다.
    · 주소는 반드시 / 로 끝나야 합니다.
    · 예전처럼 같은 폴더에서 받으려면  './'  로 바꾸세요. */
-const DATA_BASE = 'https://pub-9d32708861394fa2baa26dda30ed2eb3.r2.dev/';
+/* [2026-09-12] r2.dev 가 느려(첫 방문 47초) GitHub(같은 폴더)으로 되돌렸습니다.
+   build_all.py 의 DATA_BASE_URL 설명 참고. */
+const DATA_BASE = './';
 
 async function boot(){
+  /* [2026-09-12] 예전엔 data.js → coords.json → all_list.js 를 하나씩 차례로 받아
+     기다리는 시간이 셋의 합이었습니다. 이제 셋을 한꺼번에 받기 시작하고,
+     쓰는 순서대로 기다리기만 합니다(쓰는 순서·동작은 전과 같음). */
+  const _coordsP = fetch(DATA_BASE+'coords.json').then(r=>r.json());
+  _coordsP.catch(()=>{});          // 실패는 아래 try 에서 처리
+  const _allP = new Promise(ok=>{ const s2=document.createElement('script');
+    s2.src=DATA_BASE+'all_list.js'; s2.onload=ok; s2.onerror=ok;
+    document.head.appendChild(s2); });
   await new Promise((ok,err)=>{ const s=document.createElement('script');
     s.src=DATA_BASE+'data.js'; s.onload=ok; s.onerror=()=>err(); document.head.appendChild(s); });
   const DATA = window.__APTDATA__;
   if(!DATA){ fail('data.js 에 데이터가 없어요'); return; }
 
   let COORDS;
-  try{ COORDS = await (await fetch(DATA_BASE+'coords.json')).json(); window.COORDS_G = COORDS; }
+  try{ COORDS = await _coordsP; window.COORDS_G = COORDS; }
   catch(e){ fail('coords.json 못 읽음 — http 서버로 열어주세요'); return; }
   COORDS_G = COORDS;      // [검색용] 전역 보관
 
@@ -529,9 +539,7 @@ async function boot(){
      현재가가 0이면 최근 6개월 거래가 없는 단지 → 마지막 거래가를 대신 씁니다.
      파일이 없어도 지도는 예전처럼 돌아갑니다(있으면 전체가 나옵니다). */
   window.ALLAPT = {};
-  await new Promise(ok=>{ const s2=document.createElement('script');
-    s2.src=DATA_BASE+'all_list.js'; s2.onload=ok; s2.onerror=ok;
-    document.head.appendChild(s2); });
+  await _allP;                      // [2026-09-12] 위에서 이미 받기 시작함
   (function(){
     const AL=(window.__ALLLIST__||{}).r||{};
     for(const rc in AL){
