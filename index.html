@@ -3,6 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<script>
+/* [폰 첫 화면 빠르게 · 2026-09-13] 폰(<760px)은 곧장 차트 홈(chart.html)으로 보냅니다.
+   예전엔 이 일을 본문 한가운데(지도 CSS·HTML 400줄 뒤)에서 했고, 넘어가는 사이에
+   아래 boot() 가 지도용 데이터(data.js·coords.json·all_list.js, 약 6.6MB)를 받기 시작해
+   chart.html 이 받을 data.js 와 대역폭을 나눠 썼습니다. 이제 맨 앞에서 넘기고,
+   __GO_CHART__ 표시를 보고 boot() 를 아예 부르지 않습니다.
+   ※ viewport 메타 바로 뒤에 있어야 innerWidth 가 폰 폭으로 잡힙니다. */
+if(window.innerWidth<760 && location.search.indexOf('m=1')<0){
+  window.__GO_CHART__ = true;
+  location.replace('./chart.html');
+}
+</script>
 <title>아파트 매치 지도</title>
 
 <!-- 📱 [홈 화면 아이콘 · 2026-09-03] chart.html 과 똑같이 넣습니다.
@@ -406,9 +418,7 @@ if ("serviceWorker" in navigator) {
 /* [모바일 첫화면 · 2026-08] 폰(<760px)으로 그냥 접속하면 차트 홈이 먼저 뜨게.
    지도는 차트 홈의 "지도로 보기" 버튼(?m=1)으로 들어옵니다.
    PC 는 지도가 그대로 첫 화면. */
-if(window.innerWidth<760 && location.search.indexOf('m=1')<0){
-  location.replace('./chart.html');
-}
+/* [2026-09-13] 폰 → chart.html 이동은 <head> 맨 앞으로 옮겼습니다. */
 /* [2026-08] rate 음수 = 동급보다 비싸다(고평가). 예전엔 음수도 초록으로 나와서
    '10% 미만 저평가'와 구별이 안 됐습니다. 고평가는 회색빛 파랑으로 분리합니다. */
 /* [색 구분 · 2026-08] 고평가를 회색(#64748B)으로 뒀더니
@@ -1638,7 +1648,8 @@ function fail(msg){
      <div style="font-size:12px">py -m http.server 8000 → http://localhost:8000/map.html</div>`;
 }
 
-boot();
+/* [2026-09-13] 폰은 chart.html 로 넘어가는 중이라 지도 데이터를 받지 않습니다(<head> 참고). */
+if(!window.__GO_CHART__) boot();
 
 /* ══ [PC 첫 화면 · 2026-08] 왼쪽에 아파트매치 홈(오늘의 매치)을 미리 띄웁니다 ══════
    왜: 예전엔 PC 로 처음 열면 오른쪽 지도만 보이고 왼쪽이 비어 있었습니다.
