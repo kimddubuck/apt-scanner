@@ -6,7 +6,42 @@
   <atom:link href="https://아파트매치.com/rss.xml" rel="self" type="application/rss+xml"/>
   <description>날마다 새로 신고된 아파트 실거래와, 실거래가를 읽는 법을 정리한 글</description>
   <language>ko</language>
-  <lastBuildDate>Mon, 28 Sep 2026 00:00:00 +0900</lastBuildDate>
+  <lastBuildDate>Tue, 29 Sep 2026 00:00:00 +0900</lastBuildDate>
+  <item>
+    <title>2026년 9월 29일 아파트 실거래 신고 1,959건</title>
+    <link>https://아파트매치.com/daily/20260929.html</link>
+    <guid isPermaLink="true">https://아파트매치.com/daily/20260929.html</guid>
+    <description>2026년 9월 29일(화) 국토교통부 실거래가 자료에 새로 올라온 아파트 매매 신고 1,959건. 시·도별 건수, 가장 비싼 거래, 역대 최고가(신고가) 380건을 정리했습니다.</description>
+    <pubDate>Tue, 29 Sep 2026 00:00:00 +0900</pubDate>
+  </item>
+  <item>
+    <title>직거래와 중개거래 차이 — 직거래 가격은 왜 낮게 찍힐까</title>
+    <link>https://아파트매치.com/articles/direct-deal.html</link>
+    <guid isPermaLink="true">https://아파트매치.com/articles/direct-deal.html</guid>
+    <description>실거래가 목록의 '직거래' 표시는 공인중개사 없이 사고판 거래라는 뜻입니다. 직거래가 얼마나 되는지, 지역과 가격대마다 어떻게 다른지, 같은 단지 중개거래보다 얼마나 싸게 찍히는지 최근 1년 반 전국 실거래로 세어 봤습니다.</description>
+    <pubDate>Mon, 28 Sep 2026 00:00:00 +0900</pubDate>
+  </item>
+  <item>
+    <title>평당가 계산법 — 전용 기준과 공급 기준은 33% 차이 납니다</title>
+    <link>https://아파트매치.com/articles/price-per-pyeong.html</link>
+    <guid isPermaLink="true">https://아파트매치.com/articles/price-per-pyeong.html</guid>
+    <description>평당가는 거래 금액을 평수로 나눈 값이지만, 어떤 넓이로 나누느냐에 따라 숫자가 3분의 1씩 달라집니다. 계산하는 법, 두 기준을 바꾸는 법, 2026년 상반기 지역별 평당가, 같은 단지에서도 작은 집의 평당가가 더 비싼 이유를 실거래로 정리했습니다.</description>
+    <pubDate>Mon, 28 Sep 2026 00:00:00 +0900</pubDate>
+  </item>
+  <item>
+    <title>실거래가란? 뜻과 보는 법 — 한 건만 보고 시세를 판단하면 안 되는 이유</title>
+    <link>https://아파트매치.com/articles/real-price-guide.html</link>
+    <guid isPermaLink="true">https://아파트매치.com/articles/real-price-guide.html</guid>
+    <description>실거래가는 실제로 계약된 값을 신고한 기록입니다. 목록의 칸 하나하나가 무슨 뜻인지, 같은 단지·같은 크기인데 값이 왜 10% 넘게 벌어지는지, 층과 거래유형이 값에 얼마나 반영되는지 전국 실거래로 풀어 봤습니다.</description>
+    <pubDate>Mon, 28 Sep 2026 00:00:00 +0900</pubDate>
+  </item>
+  <item>
+    <title>실거래 신고와 등기의 차이 — '등기일자' 칸 읽는 법</title>
+    <link>https://아파트매치.com/articles/registration.html</link>
+    <guid isPermaLink="true">https://아파트매치.com/articles/registration.html</guid>
+    <description>실거래가에 올라온 거래는 '계약했다는 신고'일 뿐, 집주인이 바뀌었다는 뜻은 아닙니다. 신고와 소유권이전등기가 어떻게 다른지, 계약 뒤 등기까지 며칠 걸리는지, 등기가 끝내 안 된 거래는 얼마나 되는지 전국 실거래로 살펴봤습니다.</description>
+    <pubDate>Mon, 28 Sep 2026 00:00:00 +0900</pubDate>
+  </item>
   <item>
     <title>2026년 9월 24일 아파트 실거래 신고 1,643건</title>
     <link>https://아파트매치.com/daily/20260924.html</link>
@@ -78,7 +113,7 @@
     <pubDate>Mon, 14 Sep 2026 00:00:00 +0900</pubDate>
   </item>
   <item>
-    <title>취소된 실거래는 얼마나 되나 — '해제' 표시 읽는 법</title>
+    <title>실거래 해제 뜻 — 취소된 거래는 얼마나 되나</title>
     <link>https://아파트매치.com/articles/cancelled-deals.html</link>
     <guid isPermaLink="true">https://아파트매치.com/articles/cancelled-deals.html</guid>
     <description>실거래가 목록에 올라온 거래도 나중에 계약이 취소될 수 있습니다. 해마다 몇 %가 취소되는지, 비싼 집일수록 더 자주 취소되는지, 역대 최고가 거래는 정말 자주 취소되는지 전국 실거래 자료로 세어 봤습니다.</description>
@@ -106,7 +141,7 @@
     <pubDate>Sun, 13 Sep 2026 00:00:00 +0900</pubDate>
   </item>
   <item>
-    <title>84㎡는 왜 34평인가요 — 전용면적·공급면적·평 계산법</title>
+    <title>전용면적 공급면적 차이 — 84㎡는 왜 34평인가요</title>
     <link>https://아파트매치.com/articles/pyeong-area.html</link>
     <guid isPermaLink="true">https://아파트매치.com/articles/pyeong-area.html</guid>
     <description>실거래가에는 전용면적(㎡)만 나오는데 사람들은 '34평', '25평'이라고 부릅니다. 두 숫자가 어떻게 이어지는지, 아파트매치가 평형을 어떻게 계산하는지, 최근 1년 실거래에서 어떤 크기가 가장 많이 팔렸는지 정리했습니다.</description>
