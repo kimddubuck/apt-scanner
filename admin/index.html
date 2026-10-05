@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#111416">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="매치 관리">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>매치 관리</title>
+<style>
+:root{--bg:#111416;--card:#1B1F22;--line:#2A3034;--tx:#E8EAEB;--sub:#8E979C;--acc:#4FC3B9;--blue:#7AA7F0;--up:#5BC98A;--dn:#F07A6E;--warn:#E8B44C}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:13px/1.35 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif}
+main{max-width:720px;margin:0 auto;padding:calc(8px + env(safe-area-inset-top)) 10px calc(24px + env(safe-area-inset-bottom))}
+button{font:inherit;cursor:pointer;color:inherit}
+header{display:flex;align-items:center;gap:8px;margin:2px 0 8px}
+header h1{font-size:17px;margin:0;font-weight:800}
+.live{color:var(--sub);font-size:11.5px;display:flex;align-items:center;gap:5px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--up)} .dot.old{background:var(--warn)}
+.rf{margin-left:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:4px 9px;font-size:14px}
+.sec{display:flex;align-items:baseline;gap:6px;margin:10px 2px 5px;font-size:12.5px;font-weight:700}
+.sec small{color:var(--sub);font-weight:400;font-size:11px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.c{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:6px 7px 4px;min-width:0;overflow:hidden}
+.c b{display:block;font-size:17px;font-weight:800;line-height:1.15;font-variant-numeric:tabular-nums;white-space:nowrap}
+.c span{display:block;color:var(--sub);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c em{display:block;font-style:normal;font-size:10px;color:var(--sub);white-space:nowrap}
+.c em.up{color:var(--up)} .c em.dn{color:var(--dn)}
+.c svg{display:block;width:100%;height:16px;margin-top:2px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:7px 8px;margin-top:5px}
+.tabs{display:flex;gap:3px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:0 0 auto;background:none;border:0;border-radius:8px;padding:4px 8px;color:var(--sub);font-size:12px}
+.tabs button.on{background:var(--line);color:var(--tx);font-weight:700}
+.tabs .rg{margin-left:auto}
+.chead{display:flex;align-items:baseline;gap:6px;margin:4px 2px 0;font-size:11px;color:var(--sub)}
+.chead b{color:var(--tx);font-size:15px}
+#chart svg{display:block;width:100%;height:auto}
+#chart text{fill:var(--sub);font-size:10px}
+.sb{display:flex;align-items:center;gap:6px;margin:5px 0}
+.sb>i{flex:0 0 38px;color:var(--sub);font-style:normal;font-size:11px}
+.sb .st{flex:1;display:flex;height:9px;border-radius:5px;overflow:hidden;background:var(--line)}
+.sb .st s{display:block;height:100%;text-decoration:none}
+.sb .lg{display:flex;flex-wrap:wrap;gap:2px 8px;margin:1px 0 0 44px;font-size:10.5px;color:var(--sub)}
+.sb .lg u{text-decoration:none;display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:3px}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-top:3px}
+td,th{padding:4px 3px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+th{color:var(--sub);font-weight:500;font-size:10.5px}
+td:first-child,th:first-child{text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0;width:100%}
+tr:last-child td{border-bottom:0}
+.tg{display:inline-block;font-size:10px;padding:0 5px;border-radius:6px;margin-right:4px;background:var(--line);color:var(--sub)}
+.tg.ok{background:#1E3A2C;color:var(--up)} .tg.wait{background:#3A321C;color:var(--warn)} .tg.bad{background:#3D2220;color:var(--dn)}
+.note{color:var(--sub);font-size:10.5px;margin:4px 2px 0}
+.err{background:#3D2220;border:1px solid #5A2E2A;color:#F5C4BE;border-radius:10px;padding:6px 8px;margin-top:5px;font-size:11.5px;word-break:break-all}
+.sample{background:#3A321C;color:var(--warn);border-radius:10px;padding:4px 8px;font-size:11.5px;margin-bottom:4px}
+#lock{max-width:340px;margin:18vh auto 0;padding:0 16px;text-align:center}
+#lock h1{font-size:22px;margin:0 0 6px}
+#lock p{color:var(--sub);margin:0 0 16px;font-size:14px}
+#lock input[type=password]{width:100%;font:inherit;font-size:17px;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--tx)}
+#lock label{display:flex;gap:8px;align-items:center;justify-content:center;color:var(--sub);margin:12px 0;font-size:14px}
+#lock .go{width:100%;background:var(--acc);color:#0B1A19;border:0;border-radius:12px;padding:12px;font-weight:700;font-size:16px}
+#msg{color:var(--dn);min-height:22px;margin-top:10px;font-size:14px}
+#app{display:none}
+.foot{display:flex;justify-content:space-between;gap:8px;margin-top:10px;color:var(--sub);font-size:10.5px}
+.foot a{color:var(--sub)}
+</style>
+</head>
+<body>
+<div id="lock">
+  <h1>🛠️ 매치 관리</h1>
+  <p>관리자 비밀번호를 넣어 주세요</p>
+  <form id="f"><input id="pw" type="password" autocomplete="current-password" placeholder="비밀번호">
+  <label><input id="keep" type="checkbox" checked> 이 기기에서 기억</label>
+  <button class="go">열기</button></form>
+  <div id="msg"></div>
+</div>
+<main id="app"></main>
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const KEY = "am_admin_pw", UI = "am_admin_ui";
+const ls = {get(k){try{return localStorage.getItem(k)}catch(e){return null}},
+            set(k, v){try{localStorage.setItem(k, v)}catch(e){}},
+            del(k){try{localStorage.removeItem(k)}catch(e){}}};
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+let ui = {chart:"users", range:30, list:"q"};
+try{ Object.assign(ui, JSON.parse(ls.get(UI) || "{}")); }catch(e){}
+const saveUi = () => ls.set(UI, JSON.stringify(ui));
+
+/* 홈 화면 앱 — 사이트의 서비스워커(네트워크 우선)를 같이 씁니다 */
+if("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+
+async function load(){
+  const r = await fetch("data.enc.json?t=" + Date.now(), {cache:"no-store"});
+  if(!r.ok) throw new Error("데이터 파일을 못 받았습니다 (" + r.status + ")");
+  return r.json();
+}
+async function decrypt(enc, pw){
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey({name:"PBKDF2", salt:b64(enc.salt), iterations:enc.iter, hash:"SHA-256"},
+                                            base, {name:"AES-GCM", length:256}, false, ["decrypt"]);
+  const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv:b64(enc.iv)}, key, b64(enc.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+let D = null;
+async function unlock(pw, remember){
+  $("#msg").textContent = "여는 중…";
+  let enc;
+  try{ enc = await load(); }catch(e){ $("#msg").textContent = e.message; return; }
+  try{
+    D = await decrypt(enc, pw);
+    if(remember) ls.set(KEY, pw);
+    $("#lock").style.display = "none"; $("#app").style.display = "block";
+    render();
+  }catch(e){ ls.del(KEY); $("#msg").textContent = "비밀번호가 맞지 않습니다"; }
+}
+$("#f").addEventListener("submit", e => { e.preventDefault(); unlock($("#pw").value.trim(), $("#keep").checked); });
+const saved = ls.get(KEY); if(saved) unlock(saved, true);
+document.addEventListener("visibilitychange", () => { if(!document.hidden && D && ls.get(KEY)) unlock(ls.get(KEY), true); });
+
+/* ── 숫자 ── */
+const n = v => v == null || isNaN(v) ? "–" : Math.round(v).toLocaleString("ko-KR");
+const k = v => v >= 10000 ? (v / 10000).toFixed(v >= 100000 ? 0 : 1) + "만" : n(v);
+const sum = (a, f) => a.reduce((t, r) => t + (r[f] || 0), 0);
+const md = s => { const [, m, d] = s.slice(0, 10).split("-"); return `${+m}/${+d}`; };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const chg = (a, b, lowGood) => { if(!b) return `<em>전주 –</em>`; const p = (a - b) / b * 100, good = lowGood ? p <= 0 : p >= 0;
+  return `<em class="${good ? "up" : "dn"}">${p >= 0 ? "▲" : "▼"}${Math.abs(p).toFixed(0)}% 전주</em>`; };
+const shortUrl = u => { try{ return decodeURIComponent(String(u).replace(/^https?:\/\/[^/]+/, "")) || "/"; }catch(e){ return u; } };
+
+/* ── 작은 추세선 ── */
+function spark(vals, color = "var(--acc)", invert = false){
+  if(vals.length < 2) return "";
+  const lo = Math.min(...vals), hi = Math.max(...vals), W = 100, H = 16;
+  const y = v => hi === lo ? H / 2 : invert ? 1 + (H - 2) * (v - lo) / (hi - lo) : H - 1 - (H - 2) * (v - lo) / (hi - lo);
+  const d = vals.map((v, i) => `${i ? "L" : "M"}${(i / (vals.length - 1) * W).toFixed(1)},${y(v).toFixed(1)}`).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${d}" fill="none" stroke="${color}" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>`;
+}
+const card = (big, label, sub = "", sp = "") => `<div class="c"><b>${big}</b><span>${label}</span>${sub}${sp}</div>`;
+
+/* ── 큰 그래프 하나 ── */
+function bigChart(pts, color, invert, fmt){
+  if(pts.length < 2) return `<div class="note">아직 자료가 없습니다</div>`;
+  const W = Math.max(280, Math.min(700, $("#app").clientWidth - 18)), H = 118, L = 30, R = 6, T = 6, B = 16;
+  const ys = pts.map(p => p.y), lo = invert ? Math.min(...ys) : 0, hi = Math.max(...ys, lo + 1);
+  const X = i => L + (W - L - R) * i / (pts.length - 1);
+  const Y = v => invert ? T + (H - T - B) * (v - lo) / (hi - lo) : H - B - (H - T - B) * (v - lo) / (hi - lo);
+  const d = pts.map((p, i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(p.y).toFixed(1)}`).join("");
+  const grid = [0, .5, 1].map(f => { const v = lo + (hi - lo) * f, yy = Y(v);
+    return `<line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}" stroke="#2A3034"/><text x="${L - 4}" y="${yy + 3}" text-anchor="end">${fmt(v)}</text>`; }).join("");
+  const ti = [0, Math.round((pts.length - 1) / 2), pts.length - 1].map((i, j) =>
+    `<text x="${X(i)}" y="${H - 3}" text-anchor="${["start", "middle", "end"][j]}">${md(pts[i].x)}</text>`).join("");
+  const area = invert ? "" : `<path d="${d}L${X(pts.length - 1)},${H - B}L${L},${H - B}Z" fill="${color}" opacity=".13"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}">${grid}${area}<path d="${d}" fill="none" stroke="${color}" stroke-width="2"/>
+    <circle cx="${X(pts.length - 1)}" cy="${Y(pts[pts.length - 1].y)}" r="3.5" fill="${color}"/>${ti}</svg>`;
+}
+
+/* ── 비율 막대 ── */
+const COLORS = ["#4FC3B9", "#7AA7F0", "#E8B44C", "#C58AF0", "#F07A6E", "#8E979C"];
+const NAMES = {"AI Assistant":"AI","chatgpt.com":"챗GPT","perplexity.ai":"퍼플렉시티","gemini.google.com":"제미나이","Organic Search":"검색","Direct":"직접","Referral":"링크","Organic Social":"SNS","Unassigned":"기타",
+  "Paid Search":"검색광고","Email":"메일","Organic Video":"동영상","Display":"배너","Cross-network":"교차",
+  "(direct)":"직접","mobile":"폰","desktop":"PC","tablet":"태블릿","google":"구글","naver":"네이버","bing":"빙","daum":"다음",
+  "m.search.naver.com":"네이버","search.naver.com":"네이버","duckduckgo":"덕덕고","yahoo":"야후"};
+function share(label, rows, key, val){
+  if(!rows || !rows.length) return "";
+  const m = {}; rows.forEach(r => { const nm = NAMES[r[key]] || r[key]; m[nm] = (m[nm] || 0) + r[val]; });
+  let ent = Object.entries(m).sort((a, b) => b[1] - a[1]);
+  if(ent.length > 5) ent = ent.slice(0, 4).concat([["기타", ent.slice(4).reduce((t, e) => t + e[1], 0)]]);
+  const tot = ent.reduce((t, e) => t + e[1], 0) || 1;
+  return `<div class="sb"><i>${label}</i><div class="st">${ent.map((e, i) => `<s style="width:${e[1] / tot * 100}%;background:${COLORS[i]}"></s>`).join("")}</div></div>
+    <div class="sb" style="margin-top:-3px"><div class="lg">${ent.map((e, i) => `<span><u style="background:${COLORS[i]}"></u>${esc(e[0])} ${(e[1] / tot * 100).toFixed(0)}%</span>`).join("")}</div></div>`;
+}
+
+const IDX = {"Submitted and indexed":["ok","색인"],"Indexed, not submitted in sitemap":["ok","색인"],
+  "Discovered - currently not indexed":["wait","발견만"],"Crawled - currently not indexed":["wait","보류"],
+  "URL is unknown to Google":["wait","모름"],"Duplicate without user-selected canonical":["bad","중복"],
+  "Excluded by ‘noindex’ tag":["bad","noindex"],"Page with redirect":["bad","리디렉션"],"Not found (404)":["bad","404"]};
+const ixTag = r => IDX[r.state] || (r.verdict === "ERROR" ? ["bad", "실패"] : ["", r.state || "?"]);
+
+/* ── 화면 ── */
+function render(){
+  const d = D, ga = d.ga, gs = d.gsc, E = d.errors || {};
+  const ageH = (Date.now() - new Date(d.updated.replace(" ", "T"))) / 36e5;
+  let h = `<header><h1>🛠️ 매치 관리</h1><span class="live"><i class="dot ${ageH > 30 ? "old" : ""}"></i>${esc(d.updated.slice(5))} 기준</span>
+    <button class="rf" onclick="location.reload()">🔄</button></header>`;
+  if(d.sample) h += `<div class="sample">견본 숫자 — 구글 연결 전 화면 시험용</div>`;
+  if(E.all) h += `<div class="err">${esc(E.all)}</div>`;
+
+  /* 방문자 카드 8개 */
+  if(ga){
+    const dy = ga.daily || [], l30 = dy.slice(-30), w = dy.slice(-7), pw = dy.slice(-14, -7);
+    const nu = sum(w, "activeUsers") ? sum(w, "newUsers") / sum(w, "activeUsers") * 100 : null;
+    const su = f => l30.map(r => r[f]);
+    h += `<div class="sec">👀 방문자 <small>애널리틱스</small></div><div class="g4">
+      ${card(n(ga.realtime), "실시간", `<em>30분</em>`)}
+      ${card(n(ga.today.activeUsers), "오늘", `<em>어제 ${n(ga.yesterday.activeUsers)}</em>`)}
+      ${card(n(ga.d7.activeUsers), "7일 방문", chg(ga.d7.activeUsers, ga.d7prev.activeUsers), spark(su("activeUsers")))}
+      ${card(k(ga.d28.activeUsers), "28일 방문", `<em>세션 ${k(ga.d28.sessions)}</em>`)}
+      ${card(k(ga.d7.screenPageViews), "7일 조회", chg(ga.d7.screenPageViews, ga.d7prev.screenPageViews), spark(su("screenPageViews"), "var(--blue)"))}
+      ${card((ga.d7.screenPageViews / (ga.d7.sessions || 1)).toFixed(1), "방문당 조회", `<em>7일</em>`)}
+      ${card(nu == null ? "–" : nu.toFixed(0) + "%", "새 방문자", `<em>7일</em>`)}
+      ${card(n(Math.max(0, ...dy.map(r => r.activeUsers))), "하루 최고", `<em>${dy.length ? md(dy.reduce((a, b) => b.activeUsers > a.activeUsers ? b : a).date) : ""}</em>`)}
+    </div>`;
+  }
+  if(E.ga) h += `<div class="err">애널리틱스 실패 — ${esc(E.ga)}</div>`;
+
+  /* 검색 카드 4개 */
+  if(gs){
+    const dy = gs.daily || [], a = dy.slice(-7), b = dy.slice(-14, -7), l30 = dy.slice(-30);
+    const pos = rows => { const im = sum(rows, "impressions"); return im ? rows.reduce((t, r) => t + r.position * r.impressions, 0) / im : null; };
+    const pa = pos(a), pb = pos(b), ca = sum(a, "clicks"), ia = sum(a, "impressions");
+    h += `<div class="sec">🔎 구글 검색 <small>~${dy.length ? md(dy[dy.length - 1].date) : "–"} · 2~3일 늦음</small></div><div class="g4">
+      ${card(n(ca), "7일 클릭", chg(ca, sum(b, "clicks")), spark(l30.map(r => r.clicks)))}
+      ${card(k(ia), "7일 노출", chg(ia, sum(b, "impressions")), spark(l30.map(r => r.impressions), "var(--blue)"))}
+      ${card(pa ? pa.toFixed(1) : "–", "평균 순위", pa && pb ? `<em class="${pa <= pb ? "up" : "dn"}">${pa <= pb ? "▲" : "▼"}${Math.abs(pb - pa).toFixed(1)}위</em>` : "<em>–</em>",
+             spark(l30.filter(r => r.impressions).map(r => r.position), "var(--warn)", true))}
+      ${card(ia ? (ca / ia * 100).toFixed(1) + "%" : "–", "클릭률", `<em>7일</em>`)}
+    </div>`;
+  }
+  if(E.gsc) h += `<div class="err">서치 콘솔 실패 — ${esc(E.gsc)}</div>`;
+
+  /* 큰 그래프 (탭) */
+  const CH = {users:["방문자", ga && ga.daily, "activeUsers", "#4FC3B9"], views:["조회", ga && ga.daily, "screenPageViews", "#7AA7F0"],
+              clicks:["클릭", gs && gs.daily, "clicks", "#4FC3B9"], imps:["노출", gs && gs.daily, "impressions", "#7AA7F0"],
+              pos:["순위", gs && gs.daily, "position", "#E8B44C"]};
+  if(!CH[ui.chart] || !CH[ui.chart][1]) ui.chart = Object.keys(CH).find(x => CH[x][1]) || "users";
+  h += `<div class="box"><div class="tabs">${Object.entries(CH).filter(([, v]) => v[1]).map(([x, v]) =>
+      `<button class="${ui.chart === x ? "on" : ""}" onclick="ui.chart='${x}';saveUi();render()">${v[0]}</button>`).join("")}
+      <button class="rg" onclick="ui.range=ui.range===30?90:30;saveUi();render()">${ui.range}일 ⇄</button></div><div id="chart"></div></div>`;
+
+  /* 유입·기기 */
+  if(ga) h += `<div class="box">${share("유입", ga.channels, "sessionDefaultChannelGroup", "sessions")}
+    ${share("출처", ga.sources, "sessionSource", "sessions")}${share("기기", ga.devices, "deviceCategory", "activeUsers")}</div>`;
+
+  /* 사이트·색인 카드 */
+  const ix = (gs && gs.index) || [], okN = ix.filter(r => ixTag(r)[0] === "ok").length, sm = ((gs && gs.sitemaps) || [])[0];
+  h += `<div class="sec">📚 색인·사이트</div><div class="g4">
+    ${card(ix.length ? `${okN}/${ix.length}` : "–", "색인된 글", `<em>${ix.length - okN ? "대기 " + (ix.length - okN) : "전부 완료"}</em>`)}
+    ${card(sm ? k(sm.submitted) : "–", "사이트맵", `<em>${sm && sm.lastDownloaded ? "읽음 " + md(sm.lastDownloaded) : "–"}</em>`)}
+    ${card(k(d.site.danji), "단지 페이지", `<em>일별 ${n(d.site.daily)}</em>`)}
+    ${card(n(d.site.articles), "읽을거리", `<em>글</em>`)}
+  </div>`;
+
+  /* 목록 (탭) */
+  const LS = {q:"검색어", p:"검색 페이지", top:"인기 페이지", ix:"색인"};
+  h += `<div class="box"><div class="tabs">${Object.entries(LS).map(([x, v]) =>
+      `<button class="${ui.list === x ? "on" : ""}" onclick="ui.list='${x}';saveUi();render()">${v}</button>`).join("")}</div>${list(ui.list, ga, gs, ix)}</div>`;
+
+  h += `<div class="foot"><span>${d.robot ? esc(d.robot.split("@")[0]) + " 연결" : ""}</span>
+    <a href="#" onclick="localStorage.removeItem('${KEY}');location.reload();return false">이 기기 잠그기</a></div>`;
+  $("#app").innerHTML = h;
+
+  const c = CH[ui.chart];
+  if(c && c[1]){
+    const rows = c[1].slice(-ui.range).filter(r => ui.chart !== "pos" || r.impressions);
+    const last7 = c[1].slice(-7), tot = ui.chart === "pos" ? null : sum(last7, c[2]);
+    $("#chart").innerHTML = `<div class="chead"><b>${tot == null ? (rows.length ? rows[rows.length - 1].position.toFixed(1) + "위" : "–") : n(tot)}</b>${tot == null ? "마지막 날 · 위가 좋음" : "최근 7일 합"}</div>`
+      + bigChart(rows.map(r => ({x:r.date, y:r[c[2]]})), c[3], ui.chart === "pos", ui.chart === "pos" ? v => v.toFixed(0) : k);
+  }
+}
+
+function list(t, ga, gs, ix){
+  const empty = `<div class="note">아직 자료가 없습니다</div>`;
+  const tbl = (head, rows) => rows.length ? `<table><tr>${head.map(x => `<th>${x}</th>`).join("")}</tr>${rows.join("")}</table>` : empty;
+  if(t === "q") return tbl(["검색어 · 28일", "클릭", "노출", "순위"], ((gs && gs.queries) || []).slice(0, 12).map(r =>
+    `<tr><td>${esc(r.key)}</td><td>${n(r.clicks)}</td><td>${k(r.impressions)}</td><td>${r.position.toFixed(1)}</td></tr>`));
+  if(t === "p") return tbl(["페이지 · 28일", "클릭", "노출", "순위"], ((gs && gs.pages) || []).slice(0, 12).map(r =>
+    `<tr><td>${esc(shortUrl(r.key))}</td><td>${n(r.clicks)}</td><td>${k(r.impressions)}</td><td>${r.position.toFixed(1)}</td></tr>`));
+  if(t === "top") return tbl(["페이지 · 28일", "조회", "방문"], ((ga && ga.pages) || []).slice(0, 12).map(r =>
+    `<tr><td>${esc(shortUrl(r.pagePath))}</td><td>${k(r.screenPageViews)}</td><td>${k(r.activeUsers)}</td></tr>`));
+  /* 색인: 아직 안 된 글을 위로 */
+  const rank = {bad:0, wait:1, "":2, ok:3};
+  return tbl(["글", "구글 방문"], ix.slice().sort((a, b) => rank[ixTag(a)[0]] - rank[ixTag(b)[0]]).map(r => { const [cls, lab] = ixTag(r);
+    return `<tr><td><span class="tg ${cls}">${esc(lab)}</span>${esc(r.title)}</td><td>${r.lastCrawl ? md(r.lastCrawl) : "–"}</td></tr>`; }));
+}
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => D && render(), 200); });
+</script>
+</body>
+</html>
