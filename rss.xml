@@ -6,7 +6,14 @@
   <atom:link href="https://아파트매치.com/rss.xml" rel="self" type="application/rss+xml"/>
   <description>날마다 새로 신고된 아파트 실거래와, 실거래가를 읽는 법을 정리한 글</description>
   <language>ko</language>
-  <lastBuildDate>Mon, 12 Oct 2026 00:00:00 +0900</lastBuildDate>
+  <lastBuildDate>Tue, 13 Oct 2026 00:00:00 +0900</lastBuildDate>
+  <item>
+    <title>2026년 10월 13일 아파트 실거래 신고 3,608건</title>
+    <link>https://아파트매치.com/daily/20261013.html</link>
+    <guid isPermaLink="true">https://아파트매치.com/daily/20261013.html</guid>
+    <description>2026년 10월 13일(화) 국토교통부 실거래가 자료에 새로 올라온 아파트 매매 신고 3,608건. 시·도별 건수, 가장 비싼 거래, 역대 최고가(신고가) 375건을 정리했습니다.</description>
+    <pubDate>Tue, 13 Oct 2026 00:00:00 +0900</pubDate>
+  </item>
   <item>
     <title>2026년 10월 12일 아파트 실거래 신고 80건</title>
     <link>https://아파트매치.com/daily/20261012.html</link>
@@ -181,13 +188,6 @@
     <guid isPermaLink="true">https://아파트매치.com/daily/20260917.html</guid>
     <description>2026년 9월 17일(목) 국토교통부 실거래가 자료에 새로 올라온 아파트 매매 신고 1,500건. 시·도별 건수, 가장 비싼 거래, 역대 최고가(신고가) 171건을 정리했습니다.</description>
     <pubDate>Thu, 17 Sep 2026 00:00:00 +0900</pubDate>
-  </item>
-  <item>
-    <title>2026년 9월 16일 아파트 실거래 신고 1,525건</title>
-    <link>https://아파트매치.com/daily/20260916.html</link>
-    <guid isPermaLink="true">https://아파트매치.com/daily/20260916.html</guid>
-    <description>2026년 9월 16일(수) 국토교통부 실거래가 자료에 새로 올라온 아파트 매매 신고 1,525건. 시·도별 건수, 가장 비싼 거래, 역대 최고가(신고가) 177건을 정리했습니다.</description>
-    <pubDate>Wed, 16 Sep 2026 00:00:00 +0900</pubDate>
   </item>
   <item>
     <title>실거래 해제 뜻 — 취소된 거래는 얼마나 되나</title>
