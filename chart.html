@@ -478,9 +478,9 @@ if ("serviceWorker" in navigator) {
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.10.13 22:52 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.10.13 23:12 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.10.13 22:52</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.10.13 23:12</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="아파트 검색 (예: 해운대 롯데) 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -887,7 +887,7 @@ if ("serviceWorker" in navigator) {
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202610132252"; window.__DATA_BASE__="./";</script>
+<script>window.__BUILD_V__="202610132312"; window.__DATA_BASE__="./";</script>
 <script src="./data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -2949,7 +2949,7 @@ let _djWant = "";
 function _djLoadJs(){
   if(window.djChart) return Promise.resolve();
   if(!window.__DJJS__) window.__DJJS__ = new Promise((ok,no)=>{const s=document.createElement("script");
-    s.src="danji/chart.js?v=202610132252"; s.onload=ok; s.onerror=no; document.head.appendChild(s);});
+    s.src="danji/chart.js?v=202610132312"; s.onload=ok; s.onerror=no; document.head.appendChild(s);});
   return window.__DJJS__;
 }
 function _djDong(name, rc){
@@ -2963,7 +2963,7 @@ function showDanji(name, rc){
   const want=rc+"|"+name;
   if(_djWant===want && box.dataset.done==="1") return;
   _djWant=want; box.dataset.done=""; box.innerHTML="";
-  const mp = _djMap[rc] || (_djMap[rc]=fetch("danji/"+rc+"/map.json?v=202610132252").then(r=>r.ok?r.json():{}).catch(()=>({})));
+  const mp = _djMap[rc] || (_djMap[rc]=fetch("danji/"+rc+"/map.json?v=202610132312").then(r=>r.ok?r.json():{}).catch(()=>({})));
   mp.then(m=>{
     if(_djWant!==want) return;
     const hits=m[name]||[];
@@ -2985,7 +2985,7 @@ function showDanji(name, rc){
       box.innerHTML=`<div class="dje-h">📊 ${name} 단지 분석<a href="${url}" target="_top">전체 분석 보기 ›</a></div>`
         +(facts?`<div class="dje-f">${facts.innerHTML}</div>`:"")
         +ps.map(p=>`<p>${p.textContent}</p>`).join("")
-        +(dat?'<div class="djc"></div><p class="dje-m">가격=주력 평형 분기 중앙값(선)·거래(점) · 손바뀜률=최근 1년 거래÷세대수, 점선은 구 평균</p>':"");
+        +(dat?'<div class="djc"></div><p class="dje-m">가격=주력 평형 분기 중앙값(선)·거래(점) · 세대수 대비 거래량(회전율)=최근 1년 거래÷세대수, 점선은 구 평균</p>':"");
       if(dat && window.djChart){ try{ window.djChart(box.querySelector(".djc"), JSON.parse(dat.textContent)); }catch(e){} }
       box.dataset.done="1";
     });

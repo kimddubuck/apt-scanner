@@ -1,4 +1,4 @@
-/* danji/chart.js — 단지 페이지의 '거래량 · 가격 · 손바뀜률' 3단 그래프 (단지페이지.py 가 danji/ 로 복사합니다)
+/* danji/chart.js — 단지 페이지의 '거래량 · 가격 · 세대수 대비 거래량' 3단 그래프 (단지페이지.py 가 danji/ 로 복사합니다)
    페이지마다 <script type="application/json" id="djd"> 에 분기별 숫자만 넣고, 그리는 일은 이 파일 하나가 합니다.
    d = {s:"2017-1"(첫 분기), v:[분기 거래 수], p:[주력 평형 분기 중앙값(백만원), 0=거래 없음],
         d:[[분기 위치, 가격(백만원)], ...] 주력 평형 거래 하나하나, t:[최근 4분기 거래÷세대수 %], h:세대수, ga:구 평균 %, pt:"주력 평형" } */
@@ -36,11 +36,11 @@ function djChart(el, D) {
     var Y2 = function (v) { return P2[0] + P2[1] - P2[1] * v / vhi; };
     s += panel(P2[0], P2[1], "거래량 (분기 · 모든 평형)") + axis(P2[0], P2[1], 0, vhi, function (v) { return Math.round(v) + "건"; });
     D.v.forEach(function (v, i) { if (v) s += '<rect x="' + (X(i) - bw / 2).toFixed(1) + '" y="' + Y2(v).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + (P2[0] + P2[1] - Y2(v)).toFixed(1) + '" fill="#7AA7D8"/>'; });
-    // ③ 손바뀜률 — 최근 4분기 거래 ÷ 세대수, 구 평균(점선)
+    // ③ 세대수 대비 거래량(회전율) — 최근 4분기 거래 ÷ 세대수, 구 평균(점선)
     if (hasT) {
       var thi = nice(Math.max(0.5, Math.max.apply(null, D.t.concat([D.ga || 0])) * 1.1));
       var Y3 = function (v) { return P3[0] + P3[1] - P3[1] * v / thi; };
-      s += panel(P3[0], P3[1], "손바뀜률 (최근 1년 거래 ÷ " + D.h.toLocaleString("ko-KR") + "세대)") + axis(P3[0], P3[1], 0, thi, function (v) { return v.toFixed(v < 10 ? 1 : 0) + "%"; });
+      s += panel(P3[0], P3[1], "세대수 대비 거래량 · 회전율 (최근 1년 거래 ÷ " + D.h.toLocaleString("ko-KR") + "세대)") + axis(P3[0], P3[1], 0, thi, function (v) { return v.toFixed(v < 10 ? 1 : 0) + "%"; });
       if (D.ga) s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y3(D.ga) + '" y2="' + Y3(D.ga) + '" stroke="#B4441C" stroke-dasharray="5 4"/>' +
         '<text x="' + (W - R) + '" y="' + (Y3(D.ga) - 4) + '" text-anchor="end" fill="#B4441C">구 평균 ' + D.ga + "% (최근 1년)</text>";
       var tp = []; D.t.forEach(function (v, i) { if (v != null) tp.push(X(i).toFixed(1) + "," + Y3(v).toFixed(1)); });
@@ -58,7 +58,7 @@ function djChart(el, D) {
       tip.innerHTML = "<b>" + qlab(i) + "</b>" +
         '<div><i style="background:#fff"></i>' + D.pt.split("(")[0] + " 중앙값 <s>" + (D.p[i] ? eok(D.p[i]) : "거래 없음") + (cnt ? " (" + cnt + "건)" : "") + "</s></div>" +
         '<div><i style="background:#7AA7D8"></i>거래량 <s>' + D.v[i] + "건</s></div>" +
-        (hasT && D.t[i] != null ? '<div><i style="background:#3E9B8F"></i>손바뀜률 <s>' + D.t[i] + "%</s></div>" : "");
+        (hasT && D.t[i] != null ? '<div><i style="background:#3E9B8F"></i>세대수 대비 거래량 <s>' + D.t[i] + "%</s></div>" : "");
       tip.style.display = "block";
       var tw = tip.offsetWidth, th = tip.offsetHeight, left = cx + 14;
       if (left + tw > p.width - 4) left = cx - tw - 14; if (left < 2) left = 2;
