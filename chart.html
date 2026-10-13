@@ -197,6 +197,20 @@ if ("serviceWorker" in navigator) {
   .legend .val{color:var(--soft);font-variant-numeric:tabular-nums}
   footer{margin-top:24px;font-size:12px;color:var(--soft);text-align:center}
   .detail-link{margin-top:12px}
+  /* [2026-10-13] 단지 분석 칸 — 단지 페이지의 요약·3단 그래프를 패널 안에서 바로 보여 줍니다 */
+  .dj-embed{margin-top:12px;text-align:left}
+  .dj-embed .dje-h{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;margin:4px 0 6px}
+  .dj-embed .dje-h a{margin-left:auto;font-weight:600;font-size:12.5px;color:#B4763A;text-decoration:none}
+  .dj-embed .dje-f{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px}
+  .dj-embed .dje-f span{background:#fff;border:1px solid #E3E3DF;border-radius:9px;padding:4px 8px;font-size:12px}
+  .dj-embed .dje-f b{color:#B4763A}
+  .dj-embed p{font-size:13px;line-height:1.6;margin:4px 0;color:#2E3338}
+  .dj-embed .dje-m{color:#8A9097;font-size:12px}
+  .dj-embed .djc{background:#fff;border:1px solid #E3E3DF;border-radius:12px;padding:8px 10px;margin:8px 0}
+  .djc-tip{display:none;position:absolute;pointer-events:none;background:rgba(22,32,46,.94);color:#fff;border-radius:10px;padding:8px 10px;font-size:12.5px;line-height:1.55;white-space:nowrap;z-index:5;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+  .djc-tip b{display:block;margin-bottom:2px}.djc-tip div{display:flex;align-items:center;gap:6px}
+  .djc-tip i{display:inline-block;width:9px;height:9px;border-radius:2px}
+  .djc-tip s{text-decoration:none;margin-left:auto;padding-left:10px;font-weight:700}
   .detail-link button{background:var(--ink);color:#fff;border:0;border-radius:9px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer}
   .modal{display:none;position:fixed;inset:0;background:rgba(20,30,45,.5);z-index:50;align-items:center;justify-content:center;padding:16px}
   .modal-box{background:#fff;border-radius:16px;max-width:760px;width:100%;max-height:90vh;overflow:auto;padding:22px}
@@ -464,9 +478,9 @@ if ("serviceWorker" in navigator) {
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.10.13 21:19 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.10.13 22:52 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.10.13 21:19</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.10.13 22:52</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="아파트 검색 (예: 해운대 롯데) 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -590,7 +604,8 @@ if ("serviceWorker" in navigator) {
         </span>
         <button id="rawBtn" type="button">🔍 진짜 실거래가로 비교하기</button>
       </div>
-      <div class="detail-link"><button id="detailBtn">📋 이 단지 전체 평형·거래이력 보기</button></div></div>
+      <div class="detail-link"><button id="detailBtn">📋 이 단지 전체 평형·거래이력 보기</button>
+      <div id="djEmbed" class="dj-embed"></div></div></div>
   </div>
   <footer>데이터: 국토교통부 실거래가 · 세로축=실거래가(매매), 비슷한 평수끼리 비교</footer>
 </div><!-- /scanner -->
@@ -872,7 +887,7 @@ if ("serviceWorker" in navigator) {
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202610132119"; window.__DATA_BASE__="./";</script>
+<script>window.__BUILD_V__="202610132252"; window.__DATA_BASE__="./";</script>
 <script src="./data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -2902,6 +2917,7 @@ function render(){
     btn.textContent = hu ? `📋 ${tName} 전체 평형·거래이력 보기`
                          : "📋 이 단지 전체 평형·거래이력 보기";
     btn.onclick=()=>openDetail(tName, tRc);
+    showDanji(tName, tRc);
   }
 
   /* ── [진짜 실거래가로 비교하기] 버튼 ──
@@ -2924,6 +2940,56 @@ function render(){
       };
     }
   }
+}
+/* ── [단지 분석 · 2026-10-13] 지도·검색에서 고른 단지의 '단지 페이지'(danji/<지역>/<단지>.html)를
+   받아, 요약 칩·첫 문장 몇 줄·거래량·가격·손바뀜 3단 그래프를 패널 안에 바로 보여 줍니다.
+   단지 페이지는 최근 12개월 10건 넘게 거래된 단지만 있어, 없으면 칸을 비워 둡니다. ── */
+const _djMap = {}, _djHtml = {};
+let _djWant = "";
+function _djLoadJs(){
+  if(window.djChart) return Promise.resolve();
+  if(!window.__DJJS__) window.__DJJS__ = new Promise((ok,no)=>{const s=document.createElement("script");
+    s.src="danji/chart.js?v=202610132252"; s.onload=ok; s.onerror=no; document.head.appendChild(s);});
+  return window.__DJJS__;
+}
+function _djDong(name, rc){
+  const AL=((window.__ALLLIST__||{}).r||{})[rc]||{};
+  const ds=[...new Set((AL.u||[]).filter(u=>u[0]===name&&u[7]).map(u=>u[7]))];
+  return ds.length===1 ? ds[0] : "";
+}
+function showDanji(name, rc){
+  const box=document.getElementById("djEmbed");
+  if(!box || !rc) return;
+  const want=rc+"|"+name;
+  if(_djWant===want && box.dataset.done==="1") return;
+  _djWant=want; box.dataset.done=""; box.innerHTML="";
+  const mp = _djMap[rc] || (_djMap[rc]=fetch("danji/"+rc+"/map.json?v=202610132252").then(r=>r.ok?r.json():{}).catch(()=>({})));
+  mp.then(m=>{
+    if(_djWant!==want) return;
+    const hits=m[name]||[];
+    if(!hits.length){ box.dataset.done="1"; return; }
+    const d=_djDong(name, rc);
+    const pick=hits.find(h=>h[0]===d) || (hits.length===1?hits[0]:null);
+    if(!pick){   // 같은 이름 단지가 여러 동에 있으면 고르게 합니다
+      box.innerHTML='<div class="dje-h">📊 단지 분석</div><p class="dje-m">같은 이름 단지가 여러 곳이에요: '
+        + hits.map(h=>`<a href="danji/${rc}/${encodeURIComponent(h[1])}.html" target="_top">${h[0]}</a>`).join(" · ")+'</p>';
+      box.dataset.done="1"; return;
+    }
+    const url="danji/"+rc+"/"+encodeURIComponent(pick[1])+".html";
+    const pg=_djHtml[url]||(_djHtml[url]=fetch(url).then(r=>r.ok?r.text():"").catch(()=>""));
+    Promise.all([pg,_djLoadJs().catch(()=>{})]).then(([html])=>{
+      if(_djWant!==want || !html) return;
+      const doc=new DOMParser().parseFromString(html,"text/html");
+      const facts=doc.querySelector(".facts"), dat=doc.getElementById("djd");
+      const ps=[...doc.querySelectorAll(".facts ~ p")].filter(p=>!p.className).slice(0,4);
+      box.innerHTML=`<div class="dje-h">📊 ${name} 단지 분석<a href="${url}" target="_top">전체 분석 보기 ›</a></div>`
+        +(facts?`<div class="dje-f">${facts.innerHTML}</div>`:"")
+        +ps.map(p=>`<p>${p.textContent}</p>`).join("")
+        +(dat?'<div class="djc"></div><p class="dje-m">가격=주력 평형 분기 중앙값(선)·거래(점) · 손바뀜률=최근 1년 거래÷세대수, 점선은 구 평균</p>':"");
+      if(dat && window.djChart){ try{ window.djChart(box.querySelector(".djc"), JSON.parse(dat.textContent)); }catch(e){} }
+      box.dataset.done="1";
+    });
+  });
 }
 // 검색: 질의어 포함 → 관련도 순 정렬(이름이 질의어로 '시작'하면 우선, 짧은 이름 우선) → 상위 60개
 /* 검색 결과 한 줄에 붙일 설명.

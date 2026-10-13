@@ -3,9 +3,9 @@
    d = {s:"2017-1"(첫 분기), v:[분기 거래 수], p:[주력 평형 분기 중앙값(백만원), 0=거래 없음],
         d:[[분기 위치, 가격(백만원)], ...] 주력 평형 거래 하나하나, t:[최근 4분기 거래÷세대수 %], h:세대수, ga:구 평균 %, pt:"주력 평형" } */
 (function () {
-  var el = document.getElementById("djc"), src = document.getElementById("djd");
-  if (!el || !src) return;
-  var D; try { D = JSON.parse(src.textContent); } catch (e) { return; }
+/*  window.djChart(el, D) — 다른 화면(지도 패널의 '단지 분석')에서도 같은 그래프를 그립니다. */
+function djChart(el, D) {
+  if (!el || !D) return;
   var n = D.v.length, y0 = +D.s.split("-")[0], q0 = +D.s.split("-")[1] - 1;
   var qlab = function (i) { var k = q0 + i; return (y0 + Math.floor(k / 4)) + "." + (k % 4 + 1) + "분기"; };
   var eok = function (m) { return m >= 100 ? (m / 100).toFixed(m >= 1000 ? 1 : 2).replace(/\.?0+$/, "") + "억" : m + "백만"; };
@@ -47,9 +47,9 @@
       s += '<polyline fill="none" stroke="#3E9B8F" stroke-width="2.2" points="' + tp.join(" ") + '"/>';
     }
     for (var i = 0; i < n; i++) { var k = q0 + i; if (k % 4 === 0 && (y0 + Math.floor(k / 4)) % 2 === 0) s += '<text x="' + X(i) + '" y="' + (H - 4) + '" text-anchor="middle" fill="#8A9097">' + (y0 + Math.floor(k / 4)) + "</text>"; }
-    s += '<line id="djx" x1="0" x2="0" y1="14" y2="' + BOT + '" stroke="#16202E" opacity="0"/></svg>';
+    s += '<line data-x="1" x1="0" x2="0" y1="14" y2="' + BOT + '" stroke="#16202E" opacity="0"/></svg>';
     el.innerHTML = s; el.appendChild(tip);
-    var svg = el.querySelector("svg"), cross = el.querySelector("#djx");
+    var svg = el.querySelector("svg"), cross = el.querySelector("[data-x]");
     var show = function (ev) {
       var p = svg.getBoundingClientRect(), t = ev.touches ? ev.touches[0] : ev, cx = t.clientX - p.left, cy = t.clientY - p.top;
       var i = Math.max(0, Math.min(n - 1, Math.floor((cx * W / p.width - L) / ((W - L - R) / n))));
@@ -68,5 +68,9 @@
     svg.onmouseleave = function () { tip.style.display = "none"; cross.setAttribute("opacity", "0"); };
   }
   draw();
-  var rt; window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(draw, 200); });
+  var rt; window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(function () { if (el.isConnected) draw(); }, 200); });
+}
+window.djChart = djChart;
+var el = document.getElementById("djc"), src = document.getElementById("djd");
+if (el && src) { try { djChart(el, JSON.parse(src.textContent)); } catch (e) {} }
 })();
