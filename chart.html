@@ -478,9 +478,9 @@ if ("serviceWorker" in navigator) {
 <div id="home" class="on">
   <div class="home-top">
     <div class="home-logo">아파트 <em>매치</em> <i class="infobtn" onclick="openInfo()" title="동급 아파트란?">ⓘ</i></div>
-    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.10.15 09:18 갱신</div>
+    <div class="ver-badge" title="이 시각 기준의 실거래 데이터입니다">🔄 2026.10.16 09:41 갱신</div>
   </div>
-  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.10.15 09:18</div>
+  <div class="update-note">국토교통부 실거래가를 <b>매일 오전 9시 자동 갱신</b>합니다 · 마지막 갱신 2026.10.16 09:41</div>
   <div class="home-search">
     <input id="homeSearch" type="text" placeholder="아파트 검색 (예: 해운대 롯데) 🔍" autocomplete="off">
     <div class="sresults" id="homeResults"></div>
@@ -514,7 +514,7 @@ if ("serviceWorker" in navigator) {
          없으면 구글은 그 페이지들을 사이트맵으로만 알게 됩니다. 같은 모양의 카드로 둡니다.
          (내용은 빌드 때 채움 — 자료가 없으면 빈칸이 되어 카드 자체가 안 보입니다) -->
     <a class="qcard" href="https://아파트매치.com/danji/index.html"><span class="qi">🏢</span><b>단지별 실거래가</b><span>전국 13,810곳</span></a><a class="qcard" href="https://아파트매치.com/region.html"><span class="qi">📊</span><b>지역 분석</b><span>지수·거래량·입주물량</span></a>
-    <a class="qcard" href="https://아파트매치.com/daily/20261015.html"><span class="qi">📅</span><b>일별 실거래</b><span>10월 15일 신고 1,572건</span></a>
+    <a class="qcard" href="https://아파트매치.com/daily/20261016.html"><span class="qi">📅</span><b>일별 실거래</b><span>10월 16일 신고 1,580건</span></a>
     <button class="qcard" onclick="openRecent()">
       <span class="qi">🔥</span><b>오늘의 실거래</b><span>오늘 · 이번주 계약</span>
     </button>
@@ -527,7 +527,7 @@ if ("serviceWorker" in navigator) {
   </div>
   <div class="home-intro">
     <div class="home-sec" style="margin-bottom:6px">오늘 한눈에 📅</div>
-    <p class="ip">10월 15일(목) 아침 국토교통부 자료에 새로 올라온 아파트 매매 신고는 <b>1,572건</b>이고, 그중 같은 단지·같은 전용면적의 이전 최고가 이상인 신고가가 <b>159건</b>입니다(첫 거래 포함). 가장 비싼 거래는 서울 용산구 나인원한남 전용 273.94㎡ 262억원입니다. <a href="https://아파트매치.com/daily/20261015.html">그날 신고 전체 보기 ›</a></p>
+    <p class="ip">10월 16일(금) 아침 국토교통부 자료에 새로 올라온 아파트 매매 신고는 <b>1,580건</b>이고, 그중 같은 단지·같은 전용면적의 이전 최고가 이상인 신고가가 <b>193건</b>입니다(첫 거래 포함). 가장 비싼 거래는 서울 용산구 나인원한남 전용 206.89㎡ 143억원입니다. <a href="https://아파트매치.com/daily/20261016.html">그날 신고 전체 보기 ›</a></p>
     <p class="ip">최근 12개월 동안 10건 넘게 거래된 전국 아파트 <b>13,810곳</b>은 단지마다 평형별 시세·최근 실거래·10년 흐름을 한 장씩 정리해 두었습니다. <a href="https://아파트매치.com/danji/index.html">시군구별로 찾아보기 ›</a></p>
   </div>
   <div class="home-sec">바로가기</div>
@@ -795,6 +795,29 @@ if ("serviceWorker" in navigator) {
   중개·상담·투자 자문을 제공하지 않으며, 특정 단지를 추천하거나 홍보하지 않습니다.
   본 서비스가 제공하는 정보는 참고 자료일 뿐이며, 이를 근거로 한 어떠한 의사결정의 결과에 대해서도 책임지지 않습니다.</p>
 
+  <h2 id="operator">운영자 소개</h2>
+  <p>안녕하세요, 아파트매치를 만든 운영자입니다. 저는 부동산 전문가도, 개발자도 아닙니다.
+  <strong>내 집 마련을 준비하는 평범한 실수요자</strong>입니다.</p>
+  <p>집을 알아보며 실거래가를 들여다보다가 궁금한 게 생겼습니다.
+  "몇 년 전엔 비슷한 값이던 옆 단지는 많이 올랐는데, 이 단지는 왜 그대로일까?"
+  부동산 앱은 가격을 보여 주지만, 과거에 비슷하게 움직였던 단지와 나란히 견줘 주지는 않았습니다.
+  그래서 국토교통부 실거래가를 직접 내려받아, <strong>같은 급이던 단지끼리 묶어 보는 도구</strong>를 만들기 시작했습니다.</p>
+  <p>코딩을 배운 적이 없어 AI 도구의 도움을 받아 하나씩 만들었고, 공부하며 알게 된 것을 읽을거리 글로 정리하고 있습니다.
+  전문가가 아니기에 더 조심합니다. 짐작이나 전망 대신 <strong>실제 거래로 계산한 숫자</strong>만 쓰고,
+  계산 방법은 모두 공개합니다. 저처럼 처음 집을 알아보는 분들께 판단의 재료가 되었으면 합니다.</p>
+  <p>아파트매치는 이렇게 <strong>개인 운영자 한 명</strong>이 만들고 운영합니다. 2026년 8월 지금의 주소(아파트매치.com)로 문을 열었고,
+  실거래가 수집부터 동급 단지 계산, 단지 페이지와 읽을거리 글까지 모두 직접 만든 프로그램으로 매일 갱신합니다.</p>
+  <p>읽을거리 글에 나오는 숫자는 운영자가 국토교통부 실거래가를 직접 내려받아 계산한 값입니다.
+  글마다 어느 기간의 자료로 계산했는지 적어 두었고, 계산 방법이 바뀌거나 잘못이 확인되면 글을 고친 뒤 그 사실을 밝힙니다.
+  잘못된 숫자나 이상한 점을 발견하시면 <a href="contact.html">문의하기</a>로 알려 주세요.</p>
+  <h3>편집 원칙</h3>
+  <ul>
+    <li><strong>계산한 숫자만 씁니다.</strong> "오른다", "지금이 기회다" 같은 전망이나 매수 권유는 쓰지 않습니다.</li>
+    <li><strong>특정 단지를 추천·홍보하지 않습니다.</strong> 단지나 분양 업체로부터 돈을 받고 글을 쓰지 않습니다.</li>
+    <li><strong>계산 기준을 공개합니다.</strong> 동급 단지를 고르는 법, 현재가·신고가를 세는 법은 <a href="articles.html">읽을거리</a>에 모두 적어 두었습니다.</li>
+    <li><strong>틀리면 고치고 밝힙니다.</strong> 오류가 확인되면 글과 페이지를 고치고, 바뀐 내용을 글 안에 적습니다.</li>
+    <li><strong>광고는 내용에 영향을 주지 않습니다.</strong> 광고가 붙더라도 어떤 단지를 어떻게 보여 줄지는 계산 기준으로만 정합니다.</li>
+  </ul>
   <h2 id="privacy">개인정보처리방침</h2>
   <p>본 서비스는 <strong>회원가입 기능이 없으며, 이용자의 개인정보를 직접 수집·저장하지 않습니다.</strong>
   이름, 연락처, 이메일 등 어떠한 식별 정보도 요구하지 않습니다.</p>
@@ -806,13 +829,33 @@ if ("serviceWorker" in navigator) {
     이용자는 <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">구글 광고 설정</a>에서
     맞춤 광고를 해제할 수 있으며, <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener">aboutads.info</a>에서
     제3자 공급업체의 쿠키 사용을 차단할 수 있습니다.</li>
-    <li><strong>접속 통계</strong> — GitHub Pages 호스팅 특성상 접속 로그가 남을 수 있으나, 본 서비스 운영자는 이를 수집하거나 분석하지 않습니다.</li>
+    <li><strong>방문 통계(구글 애널리틱스)</strong> — 서비스 개선을 위해 구글 애널리틱스로 방문 통계를 봅니다.
+    방문한 페이지, 머문 시간, 기기 종류, 대략적인 지역, 어디서 들어왔는지(검색·SNS 등)가 쿠키를 통해 익명으로 집계되며,
+    운영자는 개인을 알아볼 수 없는 합계 숫자만 확인합니다. 이 정보는 구글의 개인정보처리방침에 따라 처리됩니다.
+    수집을 원하지 않으시면 브라우저에서 쿠키를 차단하거나
+    <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener">구글 애널리틱스 차단 부가기능</a>을 쓰실 수 있습니다.</li>
+    <li><strong>호스팅 접속 기록</strong> — 사이트를 올려 둔 GitHub Pages 의 특성상 서버 접속 기록(IP 주소 등)이 GitHub 에 남을 수 있으며,
+    운영자는 이 기록을 받거나 보관하지 않습니다.</li>
+    <li><strong>문의 메일</strong> — 문의하기로 보내 주신 이메일 주소와 내용은 답변에만 쓰고, 다른 목적으로 쓰거나 제3자에게 주지 않습니다.
+    답변이 끝난 뒤 요청하시면 지워 드립니다.</li>
   </ul>
+  <p>이 방침은 2026년 10월 15일부터 적용됩니다. 내용이 바뀌면 이 페이지에 바뀐 날짜와 함께 알립니다.</p>
 
   <h2 id="contact">문의하기</h2>
   <p>서비스 오류 제보, 데이터 정정 요청, 광고·제휴 문의 등 궁금한 점이 있으시면 아래로 연락해 주세요.
-  확인하는 대로 답변드리겠습니다.</p>
+  아파트매치는 개인이 운영하는 사이트라, 메일은 운영자가 직접 읽고 확인하는 대로 답변드립니다.</p>
   <p>· <strong>이메일</strong>: <a href="mailto:insk1811@kakao.com">insk1811@kakao.com</a></p>
+  <h3>이런 내용을 보내 주세요</h3>
+  <ul>
+    <li><strong>데이터가 이상할 때</strong> — 단지 이름, 지역(시·군·구와 동), 계약일, 거래 금액을 함께 적어 주시면
+    국토교통부 원자료와 대조해 확인합니다. 원자료 자체가 잘못된 경우에는 국토교통부 실거래가 공개시스템의 정정 절차를 안내해 드립니다.</li>
+    <li><strong>단지 정보가 다를 때</strong> — 세대수·준공연도·동 이름이 실제와 다르면 알려 주세요. 확인 후 다음 갱신 때 고칩니다.</li>
+    <li><strong>화면이 깨지거나 느릴 때</strong> — 사용하시는 기기(휴대폰·PC)와 브라우저, 어느 화면에서 생겼는지 적어 주시면 원인을 찾기 쉽습니다.</li>
+    <li><strong>분석 방법이 궁금할 때</strong> — 동급 단지를 고르는 방법, 현재가 계산 방식 등은 <a href="about.html">서비스 소개</a>와
+    <a href="articles.html">읽을거리</a>에 정리해 두었습니다. 그래도 궁금한 점은 메일로 물어봐 주세요.</li>
+    <li><strong>광고·제휴</strong> — 제안 내용과 연락처를 적어 보내 주세요.</li>
+  </ul>
+  <p>자료는 매일 아침 국토교통부 공개 자료를 새로 받아 갱신합니다. 정정된 내용은 국토교통부 자료에 반영된 다음 날 아침부터 사이트에 나타납니다.</p>
 
   <h2>데이터 출처 및 저작권</h2>
   <p>본 서비스가 사용하는 아파트 매매 실거래가 자료의 출처는 <strong>국토교통부</strong>이며,
@@ -887,7 +930,7 @@ if ("serviceWorker" in navigator) {
       <tbody id="dDeals"></tbody></table>
     </div>
   </div>
-<script>window.__BUILD_V__="202610150918"; window.__DATA_BASE__="./";</script>
+<script>window.__BUILD_V__="202610160941"; window.__DATA_BASE__="./";</script>
 <script src="./data.js"></script>
 <script>
 const DATA = window.__APTDATA__ || {};
@@ -2949,7 +2992,7 @@ let _djWant = "";
 function _djLoadJs(){
   if(window.djChart) return Promise.resolve();
   if(!window.__DJJS__) window.__DJJS__ = new Promise((ok,no)=>{const s=document.createElement("script");
-    s.src="danji/chart.js?v=202610150918"; s.onload=ok; s.onerror=no; document.head.appendChild(s);});
+    s.src="danji/chart.js?v=202610160941"; s.onload=ok; s.onerror=no; document.head.appendChild(s);});
   return window.__DJJS__;
 }
 function _djDong(name, rc){
@@ -2963,7 +3006,7 @@ function showDanji(name, rc){
   const want=rc+"|"+name;
   if(_djWant===want && box.dataset.done==="1") return;
   _djWant=want; box.dataset.done=""; box.innerHTML="";
-  const mp = _djMap[rc] || (_djMap[rc]=fetch("danji/"+rc+"/map.json?v=202610150918").then(r=>r.ok?r.json():{}).catch(()=>({})));
+  const mp = _djMap[rc] || (_djMap[rc]=fetch("danji/"+rc+"/map.json?v=202610160941").then(r=>r.ok?r.json():{}).catch(()=>({})));
   mp.then(m=>{
     if(_djWant!==want) return;
     const hits=m[name]||[];
