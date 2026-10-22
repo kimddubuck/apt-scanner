@@ -6,7 +6,14 @@
   <atom:link href="https://아파트매치.com/rss.xml" rel="self" type="application/rss+xml"/>
   <description>날마다 새로 신고된 아파트 실거래와, 실거래가를 읽는 법을 정리한 글</description>
   <language>ko</language>
-  <lastBuildDate>Wed, 21 Oct 2026 00:00:00 +0900</lastBuildDate>
+  <lastBuildDate>Thu, 22 Oct 2026 00:00:00 +0900</lastBuildDate>
+  <item>
+    <title>2026년 10월 22일 아파트 실거래 신고 1,556건</title>
+    <link>https://아파트매치.com/daily/20261022.html</link>
+    <guid isPermaLink="true">https://아파트매치.com/daily/20261022.html</guid>
+    <description>2026년 10월 22일(목) 국토교통부 실거래가 자료에 새로 올라온 아파트 매매 신고 1,556건. 시·도별 건수, 가장 비싼 거래, 역대 최고가(신고가) 196건을 정리했습니다.</description>
+    <pubDate>Thu, 22 Oct 2026 00:00:00 +0900</pubDate>
+  </item>
   <item>
     <title>2026년 10월 21일 아파트 실거래 신고 2,250건</title>
     <link>https://아파트매치.com/daily/20261021.html</link>
@@ -181,13 +188,6 @@
     <guid isPermaLink="true">https://아파트매치.com/articles/registration.html</guid>
     <description>실거래가에 올라온 거래는 '계약했다는 신고'일 뿐, 집주인이 바뀌었다는 뜻은 아닙니다. 신고와 소유권이전등기가 어떻게 다른지, 계약 뒤 등기까지 며칠 걸리는지, 등기가 끝내 안 된 거래는 얼마나 되는지 전국 실거래로 살펴봤습니다.</description>
     <pubDate>Mon, 28 Sep 2026 00:00:00 +0900</pubDate>
-  </item>
-  <item>
-    <title>2026년 9월 24일 아파트 실거래 신고 1,643건</title>
-    <link>https://아파트매치.com/daily/20260924.html</link>
-    <guid isPermaLink="true">https://아파트매치.com/daily/20260924.html</guid>
-    <description>2026년 9월 24일(목) 국토교통부 실거래가 자료에 새로 올라온 아파트 매매 신고 1,643건. 시·도별 건수, 가장 비싼 거래, 역대 최고가(신고가) 230건을 정리했습니다.</description>
-    <pubDate>Thu, 24 Sep 2026 00:00:00 +0900</pubDate>
   </item>
   <item>
     <title>실거래 해제 뜻 — 취소된 거래는 얼마나 되나</title>
